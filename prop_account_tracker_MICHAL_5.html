@@ -1,0 +1,3598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prop Firm Account Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            color: #333;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+        }
+        
+        .sidebar-header {
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            text-align: center;
+        }
+        
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        .sidebar-header p {
+            margin: 8px 0 0 0;
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        
+        .nav-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+        
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.05em;
+            color: #2c3e50;
+        }
+        
+        .nav-item:hover {
+            background: #f8f9fa;
+            border-left-color: #3498db;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(90deg, #e3f2fd 0%, #f8f9fa 100%);
+            border-left-color: #2196f3;
+            font-weight: 600;
+            color: #1976d2;
+        }
+        
+        .nav-item .icon {
+            font-size: 1.3em;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .container {
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .total-profit {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        /* Account Dashboard */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .account-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border-left: 6px solid #2ecc71;
+            transition: transform 0.2s;
+        }
+        
+        .account-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+        
+        .account-card.warning {
+            border-left-color: #f39c12;
+        }
+        
+        .account-card.danger {
+            border-left-color: #e74c3c;
+        }
+        
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .account-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .account-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .account-status.healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .account-status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .account-status.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .account-stats {
+            margin-top: 15px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .stat-value.positive {
+            color: #27ae60;
+        }
+        
+        .stat-value.negative {
+            color: #e74c3c;
+        }
+        
+        .progress-bar-container {
+            margin-top: 15px;
+        }
+        
+        .progress-bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .progress-fill.drawdown {
+            background: linear-gradient(90deg, #27ae60 0%, #f39c12 70%, #e74c3c 100%);
+        }
+        
+        .progress-fill.profit {
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+        }
+        
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 1200px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.8em;
+        }
+        
+        .card h3 {
+            color: #34495e;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        /* Trade Entry Form */
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.05em;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        /* Discipline Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-box .value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-box .label {
+            font-size: 0.95em;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        /* Trade Log */
+        .trade-log {
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .trade-entry {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            transition: all 0.2s;
+        }
+        
+        .trade-entry:hover {
+            background: #f0f0f0;
+            transform: translateX(3px);
+        }
+        
+        .trade-entry.bullshit {
+            border-left-color: #e74c3c;
+            background: #fff5f5;
+        }
+        
+        .trade-entry.system {
+            border-left-color: #27ae60;
+            background: #f0fff4;
+        }
+        
+        .trade-entry.loss {
+            background: #fff5f5;
+            border-left-color: #e74c3c;
+        }
+        
+        .trade-entry.win {
+            background: #f0fff4;
+            border-left-color: #27ae60;
+        }
+        
+        .trade-entry.be {
+            background: #fffbf0;
+            border-left-color: #f39c12;
+        }
+        
+        .trade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .trade-type-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .trade-type-badge.system {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .trade-type-badge.bullshit {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .trade-pnl {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .trade-pnl.profit {
+            color: #27ae60;
+        }
+        
+        .trade-pnl.loss {
+            color: #e74c3c;
+        }
+        
+        .trade-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .risk-warning {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #856404;
+        }
+        
+        .risk-warning.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .big-number {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .big-number .value {
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .big-number .label {
+            font-size: 1.2em;
+            margin-top: 10px;
+            opacity: 0.95;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .comparison-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .comparison-box h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+        
+        .dropdown-header {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            font-size: 16px;
+        }
+        
+        .dropdown-header:hover {
+            border-color: #3498db;
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            margin-top: 5px;
+        }
+        
+        .dropdown-menu.open {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .dropdown-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .dropdown-item label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 15px;
+        }
+        
+        .input-group select[multiple] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        
+        .input-group select[multiple]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .input-group select[multiple] option {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        
+        .input-group select[multiple] option:checked {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .trade-screenshot {
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+        
+        .trade-screenshot:hover {
+            border-color: #3498db;
+            transform: scale(1.02);
+        }
+        
+        .trade-screenshot img {
+            width: 100%;
+            display: block;
+        }
+        
+        .screenshot-thumbnail {
+            max-height: 200px;
+            object-fit: cover;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            cursor: pointer;
+        }
+        
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .collapsible-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .collapsible-header {
+            padding: 12px 15px;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .collapsible-header:hover {
+            background: #e9ecef;
+        }
+        
+        .collapsible-content {
+            padding: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+        
+        .collapsible-content.collapsed {
+            display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>📈 Trading Journal</h2>
+            <p>Stay Disciplined. Stay Locked In.</p>
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item active" onclick="switchTab('overview')">
+                <span class="icon">📊</span>
+                <span>Overview</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('calendar')">
+                <span class="icon">📅</span>
+                <span>Calendar</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('performance')">
+                <span class="icon">📈</span>
+                <span>Performance</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('trade-history')">
+                <span class="icon">📋</span>
+                <span>Trade History</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('journal')">
+                <span class="icon">📖</span>
+                <span>Journal</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('settings')">
+                <span class="icon">⚙️</span>
+                <span>Settings</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="container">
+                <div class="header">
+                    <h1>📊 Overview</h1>
+                    <div class="total-profit" id="totalProfit">$0</div>
+                    <div class="subtitle" id="totalProfitLabel">Combined Profit Across All Accounts</div>
+                </div>
+                
+                <!-- Account Dashboard -->
+                <div class="accounts-grid" id="accountsGrid">
+                    <!-- Account cards will be generated here -->
+                </div>
+        
+        <div class="content-grid">
+            <!-- Trade Entry Form -->
+            <div class="card">
+                <h2>📝 Log Trade (Batch Entry)</h2>
+                <p style="margin-bottom: 20px; color: #7f8c8d;">Enter once, applies to all selected accounts. Risk auto-scales: 50k base, 150k = 3x</p>
+                
+                <div class="input-group">
+                    <label>Select Accounts</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" class="btn" onclick="applyToAll()" style="width: auto; padding: 10px 20px; margin: 0;">Apply to All Accounts</button>
+                        <button type="button" class="btn" onclick="clearSelection()" style="width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);">Clear Selection</button>
+                    </div>
+                    <div class="custom-dropdown">
+                        <div class="dropdown-header" onclick="toggleDropdown()">
+                            <span id="dropdownText">Click to select accounts...</span>
+                            <span style="float: right;">▼</span>
+                        </div>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <!-- Account checkboxes will be generated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Trade Type</label>
+                        <select id="tradeType">
+                            <option value="system">✅ System Trade (Following Rules)</option>
+                            <option value="bullshit">❌ Bullshit Trade (Off-System)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Result</label>
+                        <select id="tradeResult" onchange="updateResultHint()">
+                            <option value="win">🟢 WIN</option>
+                            <option value="loss">🔴 LOSS</option>
+                            <option value="be_win">🟡 BE/WIN</option>
+                            <option value="be_loss">🟡 BE/LOSS</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Symbol</label>
+                        <select id="tradeSymbol">
+                            <option value="NQ">NQ</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Direction</label>
+                        <select id="tradeDirection">
+                            <option value="long">📈 LONG</option>
+                            <option value="short">📉 SHORT</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Model Used</label>
+                        <select id="tradeModel">
+                            <option value="model1">Model 1</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Setup Grade</label>
+                        <select id="tradeGrade">
+                            <option value="A" style="background: #d4edda; font-weight: bold;">A - Excellent Setup</option>
+                            <option value="B" style="background: #d4edda;">B - Good Setup</option>
+                            <option value="C" style="background: #fff3cd;">C - Average Setup</option>
+                            <option value="troll" style="background: #f8d7da; font-weight: bold;">Troll - Bad Setup</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Risk Size</label>
+                        <select id="tradeRiskSize">
+                            <option value="1">Full Risk (1R)</option>
+                            <option value="0.5">Half Risk (0.5R)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>P&L per 50k Account ($)</label>
+                        <input type="number" id="tradePnl" step="0.01" placeholder="e.g., 250 or -150">
+                        <div id="resultHint" style="margin-top: 5px; font-size: 0.85em; color: #7f8c8d;"></div>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Date</label>
+                        <input type="date" id="tradeDate" value="">
+                    </div>
+                    <div class="input-group">
+                        <label>Entry Time</label>
+                        <input type="time" id="tradeEntryTime" value="">
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Exit Time</label>
+                        <input type="time" id="tradeExitTime" value="">
+                    </div>
+                    <div class="input-group">
+                        <label>Screenshot (Optional)</label>
+                        <input type="file" id="tradeScreenshot" accept="image/*" style="padding: 8px;">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Note (Optional)</label>
+                    <input type="text" id="tradeNote" placeholder="e.g., FOMO after missing setup">
+                </div>
+                
+                <div id="riskAlert"></div>
+                
+                <!-- Collapsible Preview Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection('previewSection')">
+                        <span>📊 Trade Preview</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div id="previewSection" class="collapsible-content" style="display: none;">
+                        <div id="batchPreview"></div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="logBatchTrade()">Add Trade to Selected Accounts</button>
+                
+                <!-- Collapsible How It Works Section -->
+                <div class="collapsible-section" style="margin-top: 20px;">
+                    <div class="collapsible-header" onclick="toggleSection('howItWorksSection')">
+                        <span>ℹ️ How it works</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div id="howItWorksSection" class="collapsible-content" style="display: none;">
+                        <div class="alert alert-info" style="margin: 0;">
+                            <strong>Batch Entry:</strong><br>
+                            • Enter P&L for 50k base<br>
+                            • Risk auto-calculated as 1:1 RR (Risk = |P&L|)<br>
+                            • 150k accounts automatically get 3x the amounts<br>
+                            • Select which accounts the trade applies to<br><br>
+                            <strong>BE/WIN & BE/LOSS:</strong><br>
+                            • For record-keeping only - tracks trades that went breakeven first<br>
+                            • P&L still updates account balance<br>
+                            • NOT counted in win rate statistics (excluded from win/loss calculation)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Discipline Scorecard -->
+            <div class="card">
+                <h2>📊 Discipline Stats</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="value" id="totalTrades">0</div>
+                        <div class="label">Total Trades</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="systemTrades">0</div>
+                        <div class="label">System Trades</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="bullshitTrades">0</div>
+                        <div class="label">Bullshit Trades</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="disciplineRate">0%</div>
+                        <div class="label">Discipline Rate</div>
+                    </div>
+                </div>
+                
+                <h3>Performance Breakdown</h3>
+                <div class="comparison-grid">
+                    <div class="comparison-box">
+                        <h4>System Trades</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Win Rate</span>
+                            <span class="stat-value" id="systemWinRate">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total P&L</span>
+                            <span class="stat-value" id="systemPnl">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Avg Win</span>
+                            <span class="stat-value" id="systemAvgWin">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Avg Loss</span>
+                            <span class="stat-value" id="systemAvgLoss">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="comparison-box">
+                        <h4>Bullshit Trades</h4>
+                        <div class="stat-row">
+                            <span class="stat-label">Win Rate</span>
+                            <span class="stat-value" id="bullshitWinRate">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total P&L</span>
+                            <span class="stat-value" id="bullshitPnl">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Avg Win</span>
+                            <span class="stat-value" id="bullshitAvgWin">-</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Avg Loss</span>
+                            <span class="stat-value" id="bullshitAvgLoss">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="bullshitTaxDisplay" style="display:none;"></div>
+                
+                <h3>📅 This Week</h3>
+                <div id="weeklyPerformance"></div>
+            </div>
+        </div>
+        
+        <!-- Trade History -->
+        <div class="card">
+            <h2>📜 Trade History</h2>
+            
+            <div class="filter-buttons" id="tradeHistoryFilters">
+                <!-- Filter buttons will be generated dynamically -->
+            </div>
+            
+            <button class="btn btn-danger" onclick="clearAllData()" style="width: auto; padding: 10px 20px; margin-bottom: 20px;">Clear All Data</button>
+            
+            <div class="trade-log" id="tradeLog">
+                <div class="no-data">No trades logged yet</div>
+            </div>
+        </div>
+            </div>
+        </div>
+        <!-- End Overview Tab -->
+        
+        <!-- Calendar Tab -->
+        <div id="calendar" class="tab-content">
+            <div class="container">
+                <div class="header">
+                    <h1>📅 Calendar</h1>
+                    <div class="subtitle" id="cal-monthLabel">Monthly P&L Overview</div>
+                </div>
+                
+                <!-- Account Filter -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Select Accounts:</label>
+                    <div id="cal-account-filter" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                </div>
+                
+                <div id="cal-exportTarget" style="background:#fff; border-radius:16px; padding:28px; box-shadow:0 4px 24px rgba(0,0,0,0.07);">
+                    <!-- Nav -->
+                    <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-bottom:28px;">
+                        <button onclick="calChangeMonth(-1)" style="background:#f8f9fa; border:none; border-radius:10px; width:40px; height:40px; cursor:pointer; font-size:1.2em; color:#2c3e50; display:flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#f8f9fa'">‹</button>
+                        <div id="cal-title" style="font-size:1.5em; font-weight:800; color:#1a1a2e; letter-spacing:-0.5px; min-width:200px; text-align:center;"></div>
+                        <button onclick="calChangeMonth(1)" style="background:#f8f9fa; border:none; border-radius:10px; width:40px; height:40px; cursor:pointer; font-size:1.2em; color:#2c3e50; display:flex; align-items:center; justify-content:center;" onmouseover="this.style.background='#eee'" onmouseout="this.style.background='#f8f9fa'">›</button>
+                    </div>
+                    
+                    <!-- Day headers + Grid rendered by JS -->
+                    <div id="cal-grid"></div>
+                    
+                    <!-- Monthly summary -->
+                    <div id="cal-summary" style="margin-top:24px;"></div>
+                </div>
+                
+                <!-- Export button -->
+                <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                    <button onclick="exportCalendarJpg()" class="btn" style="width:auto; padding:10px 24px; margin:0; display:flex; align-items:center; gap:8px;">
+                        📸 Export as JPG
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Tab -->
+        <div id="performance" class="tab-content">
+            <div class="container">
+                <div class="header">
+                    <h1>📈 Performance Analytics</h1>
+                    <div class="subtitle">Every stat below counts one batch entry as one trade</div>
+                </div>
+                
+                <!-- Filters -->
+                <div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:250px;">
+                        <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Time Range:</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            <button class="filter-btn" onclick="setPerfTimeRange('all')">Since Beginning</button>
+                            <button class="filter-btn" onclick="setPerfTimeRange('today')">Today</button>
+                            <button class="filter-btn active" onclick="setPerfTimeRange('week')">This Week</button>
+                            <button class="filter-btn" onclick="setPerfTimeRange('month')">This Month</button>
+                            <button class="filter-btn" onclick="setPerfTimeRange('quarter')">This Quarter</button>
+                            <button class="filter-btn" onclick="setPerfTimeRange('year')">This Year</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; min-width:250px;">
+                        <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Accounts:</label>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button type="button" class="btn" onclick="perfSelectAll(event)" style="width: auto; padding: 8px 16px; margin: 0; font-size:0.9em;">All Accounts</button>
+                            <button type="button" class="btn" onclick="perfClearSelection(event)" style="width: auto; padding: 8px 16px; margin: 0; background: #95a5a6; font-size:0.9em;">Clear</button>
+                        </div>
+                        <div class="custom-dropdown">
+                            <div class="dropdown-header" onclick="togglePerfDropdown()">
+                                <span id="perfDropdownText">Click to select accounts...</span>
+                                <span style="float: right;">▼</span>
+                            </div>
+                            <div class="dropdown-menu" id="perfDropdownMenu">
+                                <!-- Account checkboxes will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Key Metrics Row -->
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-box">
+                        <div class="value" id="perf-totalTrades">0</div>
+                        <div class="label">Total Trades</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-winRate" style="color: #27ae60;">0%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-totalR">0R</div>
+                        <div class="label">Total R</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-totalPnl">$0</div>
+                        <div class="label">Total P&L</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-avgWin" style="color: #27ae60;">$0</div>
+                        <div class="label">Avg Win</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-avgLoss" style="color: #e74c3c;">$0</div>
+                        <div class="label">Avg Loss</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-rrRatio">0</div>
+                        <div class="label">Actual R:R</div>
+                    </div>
+                </div>
+                
+                <div class="content-grid">
+                    <!-- By Model -->
+                    <div class="card">
+                        <h2>🔧 Performance by Model</h2>
+                        <div id="perf-byModel"><div class="no-data">No trades yet</div></div>
+                    </div>
+                    
+                    <!-- By Setup Grade -->
+                    <div class="card">
+                        <h2>🎯 Performance by Grade</h2>
+                        <div id="perf-byGrade"><div class="no-data">No trades yet</div></div>
+                    </div>
+                    
+                    <!-- By Direction -->
+                    <div class="card">
+                        <h2>📊 Long vs Short</h2>
+                        <div id="perf-byDirection"><div class="no-data">No trades yet</div></div>
+                    </div>
+                    
+                    <!-- System vs Bullshit -->
+                    <div class="card">
+                        <h2>🧠 Discipline Impact</h2>
+                        <div id="perf-discipline"><div class="no-data">No trades yet</div></div>
+                    </div>
+                </div>
+                
+                <!-- BE Trades breakdown -->
+                <div class="card" style="margin-top: 20px;">
+                    <h2>🟡 BE Trade Breakdown</h2>
+                    <div id="perf-beTrades"><div class="no-data">No BE trades yet</div></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trade History Tab -->
+        <div id="trade-history" class="tab-content">
+            <div class="container">
+                <div class="header">
+                    <h1>📋 Trade History</h1>
+                    <p style="font-size: 1.1em; color: #7f8c8d; margin-top: 10px;">Coming soon - Full trade history and filtering</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Journal Tab -->
+        <div id="journal" class="tab-content">
+            <div class="container">
+                <div class="header">
+                    <h1>📖 Trading Journal</h1>
+                    <p style="font-size: 1.1em; color: #7f8c8d; margin-top: 10px;">Coming soon - Review your trades with screenshots and notes</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="container">
+                <div class="header">
+                    <h1>⚙️ Settings</h1>
+                    <div class="subtitle">Manage your accounts</div>
+                </div>
+                
+                <div class="content-grid">
+                    <!-- Add Account -->
+                    <div class="card">
+                        <h2>➕ Add Account</h2>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Account Name</label>
+                                <input type="text" id="new-name" placeholder="e.g. Tradeify 50k 3">
+                            </div>
+                            <div class="input-group">
+                                <label>Account Size ($)</label>
+                                <input type="number" id="new-size" placeholder="e.g. 50000">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Initial Balance ($)</label>
+                                <input type="number" id="new-initialBalance" placeholder="e.g. 50000">
+                            </div>
+                            <div class="input-group">
+                                <label>Max Drawdown ($)</label>
+                                <input type="number" id="new-maxDrawdown" placeholder="e.g. 2000">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Profit Target ($) <span style="color:#aaa;font-weight:400;">optional</span></label>
+                                <input type="number" id="new-profitTarget" placeholder="e.g. 9000 or leave blank">
+                            </div>
+                            <div class="input-group">
+                                <label>Initial Drawdown ($)</label>
+                                <input type="number" id="new-initialDrawdown" placeholder="e.g. 0" value="0">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>P&L Multiplier</label>
+                                <select id="new-multiplier">
+                                    <option value="1">1x (50k base)</option>
+                                    <option value="2">2x (100k)</option>
+                                    <option value="3">3x (150k)</option>
+                                    <option value="4">4x (200k)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="addAccount()">Add Account</button>
+                    </div>
+                    
+                    <!-- Balance Adjustment -->
+                    <div class="card">
+                        <h2>⚖️ Balance Adjustment</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Use this to correct slippage differences between accounts. Adjustments affect balance only — excluded from all stats, win rate, and performance.</p>
+                        <div class="input-group">
+                            <label>Select Account</label>
+                            <select id="adj-account"></select>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Current Balance ($)</label>
+                                <input type="number" id="adj-amount" step="0.01" placeholder="e.g. 151324.75">
+                            </div>
+                            <div class="input-group">
+                                <label>Date</label>
+                                <input type="date" id="adj-date">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Note <span style="color:#aaa;font-weight:400;">optional</span></label>
+                            <input type="text" id="adj-note" placeholder="e.g. Slippage correction">
+                        </div>
+                        <button class="btn" onclick="addAdjustment()">Apply Adjustment</button>
+                        
+                        <!-- Adjustment history -->
+                        <div style="margin-top:20px;">
+                            <div onclick="toggleAdjHistory()" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; padding:10px 14px; background:#f8f9fa; border-radius:8px; border:1px solid #e0e0e0; user-select:none;">
+                                <span style="font-weight:600; color:#2c3e50;">📋 Adjustment History</span>
+                                <span id="adj-history-arrow" style="color:#7f8c8d; font-size:0.85em;">▼ Show</span>
+                            </div>
+                            <div id="adj-history" style="display:none; margin-top:8px;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Accounts List -->
+                <div class="card" style="margin-top:20px;">
+                    <h2>📋 Active Accounts</h2>
+                    <div id="settings-accountList"></div>
+                </div>
+                
+                <!-- Model Management -->
+                <div class="card" style="margin-top:20px;">
+                    <h2>🔧 Trading Models</h2>
+                    <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Define your setups. These appear in trade entry and performance analytics.</p>
+                    
+                    <!-- Existing models -->
+                    <div id="settings-modelList" style="margin-bottom:25px;"></div>
+                    
+                    <!-- Add new model -->
+                    <h3 style="margin-top:0;">Add New Model</h3>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Model Name</label>
+                            <input type="text" id="new-model-name" placeholder="e.g. Opening Range Breakout">
+                        </div>
+                        <div class="input-group">
+                            <label>Description <span style="color:#aaa;font-weight:400;">optional</span></label>
+                            <input type="text" id="new-model-desc" placeholder="e.g. 9:30-10:00 range breakout with volume">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="addModel()" style="margin-top:5px;">Add Model</button>
+                </div>
+                
+                <!-- Symbol Management -->
+                <div class="card" style="margin-top:20px;">
+                    <h2>📊 Tradeable Symbols</h2>
+                    <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Instruments available in the trade entry dropdown.</p>
+                    
+                    <!-- Symbol list -->
+                    <div id="settings-symbolList" style="margin-bottom:20px;"></div>
+                    
+                    <!-- Add symbol -->
+                    <div class="input-row" style="align-items:flex-end;">
+                        <div class="input-group">
+                            <label>Symbol</label>
+                            <input type="text" id="new-symbol" placeholder="e.g. CL, GC, RTY" style="text-transform:uppercase;">
+                        </div>
+                        <div class="input-group" style="flex:0 0 auto;">
+                            <button class="btn" onclick="addSymbol()" style="margin:0; width:auto; padding:10px 24px;">Add Symbol</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+    
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.closest('.nav-item').classList.add('active');
+            if (tabName === 'settings') renderSettingsPage();
+            if (tabName === 'calendar') {
+                generateCalendarAccountFilter();
+                renderCalendar();
+            }
+            if (tabName === 'performance') {
+                generatePerfAccountFilter();
+                // Select all by default on first load
+                if (perfSelectedAccounts.length === 0) {
+                    // Set state to all account IDs
+                    perfSelectedAccounts = Object.keys(ACCOUNTS);
+                    // Update checkboxes to match state
+                    setTimeout(() => {
+                        document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = true;
+                        });
+                        document.getElementById('perfDropdownText').textContent = 'All Accounts';
+                        updatePerformanceTab();
+                    }, 0);
+                } else {
+                    updatePerformanceTab();
+                }
+            }
+        }
+        
+        // Account configurations - load from localStorage or use defaults
+        const DEFAULT_ACCOUNTS = {
+            lucid1: { name: 'Lucid 150k S2F 1', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151330, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid2: { name: 'Lucid 150k S2F 2', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151310, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid3: { name: 'Lucid 150k S2F 3', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid4: { name: 'Lucid 150k S2F 4', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid5: { name: 'Lucid 150k S2F 5', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151272, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            tradeify1: { name: 'Tradeify Live 50k 1', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 },
+            tradeify2: { name: 'Tradeify Live 50k 2', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 }
+        };
+        let ACCOUNTS = JSON.parse(localStorage.getItem('propAccounts')) || DEFAULT_ACCOUNTS;
+        
+        function saveAccounts() {
+            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
+        }
+        
+        // Models - load from localStorage or use defaults
+        const DEFAULT_MODELS = {
+            model1: { name: 'Model 1', description: '' },
+            model2: { name: 'Model 2', description: '' },
+            model3: { name: 'Model 3', description: '' },
+            model4: { name: 'Model 4', description: '' }
+        };
+        let MODELS = JSON.parse(localStorage.getItem('propModels')) || DEFAULT_MODELS;
+        
+        function saveModels() {
+            localStorage.setItem('propModels', JSON.stringify(MODELS));
+        }
+        
+        // Symbols - load from localStorage or use defaults
+        const DEFAULT_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES'];
+        let SYMBOLS = JSON.parse(localStorage.getItem('propSymbols')) || DEFAULT_SYMBOLS;
+        
+        function saveSymbols() {
+            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
+        }
+        
+        let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
+        let currentFilter = 'system';
+        
+        // Set current date/time
+        const now = new Date();
+        document.getElementById('tradeDate').valueAsDate = now;
+        document.getElementById('tradeEntryTime').value = now.toTimeString().slice(0,5);
+        document.getElementById('tradeExitTime').value = now.toTimeString().slice(0,5);
+        
+        function openModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+        }
+        
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function calculateDuration(entryTime, exitTime) {
+            if (!entryTime || !exitTime) return '';
+            
+            const [entryHour, entryMin] = entryTime.split(':').map(Number);
+            const [exitHour, exitMin] = exitTime.split(':').map(Number);
+            
+            let totalMinutes = (exitHour * 60 + exitMin) - (entryHour * 60 + entryMin);
+            
+            if (totalMinutes < 0) {
+                totalMinutes += 24 * 60; // Handle overnight trades
+            }
+            
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+        
+        // Generate account checkboxes in dropdown
+        function toggleAdjHistory() {
+            const panel = document.getElementById('adj-history');
+            const arrow = document.getElementById('adj-history-arrow');
+            const adjustments = trades.filter(t => t.type === 'adjustment');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                arrow.textContent = `▲ Hide (${adjustments.length})`;
+            } else {
+                panel.style.display = 'none';
+                arrow.textContent = `▼ Show (${adjustments.length})`;
+            }
+        }
+        
+        // ── CALENDAR FUNCTIONS ───────────────────────────────────────
+        
+        let calYear = new Date().getFullYear();
+        let calMonth = new Date().getMonth(); // 0-indexed
+        let calSelectedAccounts = []; // empty = all
+        
+        function generateCalendarAccountFilter() {
+            const container = document.getElementById('cal-account-filter');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <button class="filter-btn ${calSelectedAccounts.length === 0 ? 'active' : ''}" onclick="toggleCalAccount(null)">All Accounts</button>
+                ${Object.keys(ACCOUNTS).map(id => `
+                    <button class="filter-btn ${calSelectedAccounts.includes(id) ? 'active' : ''}" onclick="toggleCalAccount('${id}')">${ACCOUNTS[id].name}</button>
+                `).join('')}
+            `;
+        }
+        
+        function toggleCalAccount(accountId) {
+            if (accountId === null) {
+                calSelectedAccounts = [];
+            } else {
+                const idx = calSelectedAccounts.indexOf(accountId);
+                if (idx >= 0) {
+                    calSelectedAccounts.splice(idx, 1);
+                } else {
+                    calSelectedAccounts.push(accountId);
+                }
+            }
+            generateCalendarAccountFilter();
+            renderCalendar();
+        }
+        
+        function calChangeMonth(dir) {
+            calMonth += dir;
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            if (calMonth < 0)  { calMonth = 11; calYear--; }
+            renderCalendar();
+        }
+        
+        function getDayPnl(dateStr) {
+            const accountFilter = calSelectedAccounts.length > 0 
+                ? (t => calSelectedAccounts.includes(t.account))
+                : (() => true);
+            return trades
+                .filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t))
+                .reduce((sum, t) => sum + t.pnl, 0);
+        }
+        
+        function getDayTrades(dateStr) {
+            // unique batches for trade count display
+            const accountFilter = calSelectedAccounts.length > 0 
+                ? (t => calSelectedAccounts.includes(t.account))
+                : (() => true);
+            const dayTrades = trades.filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t));
+            const seen = new Set();
+            dayTrades.forEach(t => seen.add(String(t.batchId || Math.floor(t.id/10)*10)));
+            return seen.size;
+        }
+        
+        function getDayR(dateStr) {
+            // R from unique batches only, excluding BE trades
+            // R is per batch, not per account - all accounts in a batch have same R
+            const unique = getUniqueTrades();
+            const dayBatches = unique.filter(t => t.date === dateStr && (t.result === 'win' || t.result === 'loss'));
+            
+            if (calSelectedAccounts.length === 0) {
+                // No filter - sum R from all batches
+                return dayBatches.reduce((sum, t) => sum + (t.rValue || 0), 0);
+            } else {
+                // Filtered - only include batches that have at least one selected account
+                // But R is still per batch, not summed across accounts
+                let totalR = 0;
+                dayBatches.forEach(uniqueTrade => {
+                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
+                    const batchTrades = trades.filter(t => 
+                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
+                    );
+                    // Check if this batch includes any selected accounts
+                    const hasSelectedAccount = batchTrades.some(t => calSelectedAccounts.includes(t.account));
+                    if (hasSelectedAccount) {
+                        // Add R once per batch (take from first trade, they all have same R)
+                        const firstTrade = batchTrades.find(t => t.rValue !== undefined);
+                        totalR += (firstTrade ? firstTrade.rValue : 0);
+                    }
+                });
+                return totalR;
+            }
+        }
+        
+        function renderCalendar() {
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            const title = `${monthNames[calMonth]} ${calYear}`;
+            document.getElementById('cal-title').textContent = title;
+            document.getElementById('cal-monthLabel').textContent = title;
+            
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            
+            const firstDay = new Date(calYear, calMonth, 1);
+            let startOffset = firstDay.getDay() - 1;
+            if (startOffset < 0) startOffset = 6;
+            
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            
+            const cells = [];
+            for (let i = 0; i < startOffset; i++) cells.push(null);
+            for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+            while (cells.length % 7 !== 0) cells.push(null);
+            
+            let monthPnl = 0, monthR = 0, winDays = 0, lossDays = 0, beDays = 0, tradeDays = 0;
+            
+            // Pre-calculate all day data
+            const dayData = {};
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const pnl = getDayPnl(dateStr);
+                const r = getDayR(dateStr);
+                const count = getDayTrades(dateStr);
+                dayData[d] = { dateStr, pnl, r, count };
+                if (count > 0) {
+                    tradeDays++;
+                    monthPnl += pnl;
+                    monthR += r;
+                    // Use R to determine win/loss/BE (not P&L)
+                    if (Math.abs(r) < 0.01) beDays++;  // R is ~0 = BE
+                    else if (r > 0) winDays++;          // R > 0 = win
+                    else lossDays++;                    // R < 0 = loss
+                }
+            }
+            
+            // Day headers — Sat/Sun greyed
+            const dayHeaders = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) =>
+                `<div style="text-align:center; font-size:0.78em; font-weight:700; color:${i >= 5 ? '#d0d5dd' : '#b0b8c4'}; padding:6px 0; letter-spacing:0.5px;">${d}</div>`
+            ).join('');
+            
+            // Day cells
+            const dayCells = cells.map((day, cellIndex) => {
+                // cellIndex % 7: 0=Mon..4=Fri, 5=Sat, 6=Sun
+                const isWeekend = (cellIndex % 7) >= 5;
+                if (day === null) return `<div></div>`;
+                
+                const { dateStr, pnl, r, count } = dayData[day];
+                const isToday = dateStr === todayStr;
+                const isFuture = dateStr > todayStr;
+                const hasTraded = count > 0;
+                
+                let bg, borderColor, pnlColor, textColor = '#2c3e50';
+                
+                if (isFuture || !hasTraded) {
+                    bg = isWeekend ? '#f0f0f0' : '#f9fafb';
+                    borderColor = isToday ? '#3498db' : 'transparent';
+                    pnlColor = '#d0d5dd';
+                } else if (Math.abs(r) < 0.01) {
+                    // R is ~0 = BE day (yellow)
+                    bg = 'linear-gradient(145deg, #fffcf0, #fef3d0)';
+                    borderColor = '#f39c12';
+                    pnlColor = '#d68910';
+                } else if (r > 0) {
+                    // R > 0 = win day (green)
+                    bg = 'linear-gradient(145deg, #f0fff6, #dcf5e8)';
+                    borderColor = '#27ae60';
+                    pnlColor = '#1e8449';
+                } else {
+                    // R < 0 = loss day (red)
+                    bg = 'linear-gradient(145deg, #fff5f5, #fde0e0)';
+                    borderColor = '#e74c3c';
+                    pnlColor = '#c0392b';
+                }
+                
+                const shadow = hasTraded
+                    ? `0 2px 8px ${Math.abs(r) < 0.01 ? 'rgba(243,156,18,0.12)' : r > 0 ? 'rgba(39,174,96,0.15)' : 'rgba(231,76,60,0.15)'}`
+                    : 'none';
+                const todayStyle = isToday ? `box-shadow: 0 0 0 2.5px #3498db, ${shadow};` : `box-shadow:${shadow};`;
+                
+                const formattedPnl = Math.abs(pnl) >= 1000
+                    ? `${pnl >= 0 ? '+' : '-'}$${(Math.abs(pnl)/1000).toFixed(1)}k`
+                    : `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}`;
+                
+                return `
+                    <div style="min-height:88px; background:${bg}; border:1.5px solid ${borderColor}; border-radius:12px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; ${todayStyle} transition:transform 0.1s;" 
+                         onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:0.82em; font-weight:700; color:${isToday ? '#3498db' : isWeekend ? '#c8cdd5' : '#9aa5b4'};">${day}</span>
+                            ${hasTraded ? `<span style="font-size:0.68em; font-weight:600; background:rgba(0,0,0,0.06); color:#888; border-radius:20px; padding:1px 6px;">${count}</span>` : ''}
+                        </div>
+                        <div style="text-align:center; padding:4px 0;">
+                            ${hasTraded
+                                ? `<div style="font-size:1.05em; font-weight:800; color:${pnlColor}; letter-spacing:-0.3px;">${formattedPnl}</div>
+                                   <div style="font-size:0.72em; font-weight:700; color:${pnlColor}; opacity:0.75; margin-top:1px;">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
+                                : `<span style="font-size:0.8em; color:#dde1e7;">${isFuture ? '' : '—'}</span>`
+                            }
+                        </div>
+                    </div>`;
+            }).join('');
+            
+            document.getElementById('cal-grid').innerHTML = `
+                <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px;">${dayHeaders}</div>
+                <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px;">${dayCells}</div>
+            `;
+            
+            // Summary bar
+            const winRate = (winDays + lossDays) > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0;
+            const wrColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
+            const monthRColor = monthR > 0 ? '#27ae60' : monthR < 0 ? '#e74c3c' : '#f39c12';
+            const monthPnlFmt = Math.abs(monthPnl) >= 1000
+                ? `${monthPnl >= 0 ? '+' : '-'}$${(Math.abs(monthPnl)/1000).toFixed(1)}k`
+                : `${monthPnl >= 0 ? '+' : ''}$${monthPnl.toFixed(0)}`;
+            
+            const summaryItems = [
+                { val: monthPnlFmt, label: 'Month P&L', color: monthPnl >= 0 ? '#27ae60' : '#e74c3c' },
+                { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
+                { val: winDays, label: 'Green Days', color: '#27ae60' },
+                { val: lossDays, label: 'Red Days', color: '#e74c3c' },
+                { val: beDays, label: 'BE Days', color: '#f39c12' },
+                { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
+            ];
+            
+            document.getElementById('cal-summary').innerHTML = `
+                <div style="background:#f8f9fb; border-radius:14px; padding:18px 10px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px;">
+                    ${summaryItems.map(s => `
+                        <div style="text-align:center;">
+                            <div style="font-size:1.15em; font-weight:800; color:${s.color}; letter-spacing:-0.5px;">${s.val}</div>
+                            <div style="font-size:0.7em; color:#aab; margin-top:3px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px;">${s.label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function exportCalendarJpg() {
+            const target = document.getElementById('cal-exportTarget');
+            const btn = target.querySelector ? null : null;
+            
+            html2canvas(target, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                const filename = `trading-calendar-${monthNames[calMonth]}-${calYear}.jpg`;
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.click();
+            });
+        }
+        
+        // ── END CALENDAR FUNCTIONS ───────────────────────────────────
+        
+        // ── SYMBOL FUNCTIONS ─────────────────────────────────────────
+        
+        function addSymbol() {
+            const val = document.getElementById('new-symbol').value.trim().toUpperCase();
+            if (!val) { alert('Please enter a symbol'); return; }
+            if (SYMBOLS.includes(val)) { alert(`${val} already exists`); return; }
+            SYMBOLS.push(val);
+            saveSymbols();
+            document.getElementById('new-symbol').value = '';
+            generateSymbolOptions();
+            renderSettingsPage();
+        }
+        
+        function deleteSymbol(sym) {
+            if (!confirm(`Remove ${sym}?`)) return;
+            SYMBOLS = SYMBOLS.filter(s => s !== sym);
+            saveSymbols();
+            generateSymbolOptions();
+            renderSettingsPage();
+        }
+        
+        // ── END SYMBOL FUNCTIONS ─────────────────────────────────────
+        
+        // ── MODEL FUNCTIONS ──────────────────────────────────────────
+        
+        function addModel() {
+            const name = document.getElementById('new-model-name').value.trim();
+            const description = document.getElementById('new-model-desc').value.trim();
+            
+            if (!name) { alert('Please enter a model name'); return; }
+            
+            const id = 'model_' + Date.now();
+            MODELS[id] = { name, description };
+            saveModels();
+            
+            document.getElementById('new-model-name').value = '';
+            document.getElementById('new-model-desc').value = '';
+            
+            generateModelOptions();
+            renderSettingsPage();
+        }
+        
+        function deleteModel(modelId) {
+            const model = MODELS[modelId];
+            if (!model) return;
+            const usedCount = trades.filter(t => t.model === modelId).length;
+            const warning = usedCount > 0 ? `\n\nNote: ${usedCount} trade(s) use this model — data is preserved but will show as unknown.` : '';
+            if (!confirm(`Delete model "${model.name}"?${warning}`)) return;
+            delete MODELS[modelId];
+            saveModels();
+            generateModelOptions();
+            renderSettingsPage();
+        }
+        
+        function startEditModel(modelId) {
+            const model = MODELS[modelId];
+            const row = document.getElementById(`model-row-${modelId}`);
+            row.innerHTML = `
+                <div style="flex:1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input type="text" id="edit-model-name-${modelId}" value="${model.name}" 
+                        style="padding:8px; border:2px solid #3498db; border-radius:6px; font-size:0.95em; flex:1; min-width:120px;">
+                    <input type="text" id="edit-model-desc-${modelId}" value="${model.description || ''}" 
+                        placeholder="Description..."
+                        style="padding:8px; border:2px solid #e0e0e0; border-radius:6px; font-size:0.95em; flex:2; min-width:180px;">
+                </div>
+                <div style="display:flex; gap:8px; margin-top:5px;">
+                    <button class="btn" onclick="saveEditModel('${modelId}')" style="width:auto; padding:8px 16px; margin:0; font-size:0.9em;">Save</button>
+                    <button class="btn" onclick="renderSettingsPage()" style="width:auto; padding:8px 16px; margin:0; font-size:0.9em; background:linear-gradient(135deg,#95a5a6,#7f8c8d);">Cancel</button>
+                </div>
+            `;
+        }
+        
+        function saveEditModel(modelId) {
+            const name = document.getElementById(`edit-model-name-${modelId}`).value.trim();
+            const description = document.getElementById(`edit-model-desc-${modelId}`).value.trim();
+            if (!name) { alert('Model name cannot be empty'); return; }
+            MODELS[modelId] = { name, description };
+            saveModels();
+            generateModelOptions();
+            renderSettingsPage();
+        }
+        
+        // ── END MODEL FUNCTIONS ──────────────────────────────────────
+        
+        // ── SETTINGS FUNCTIONS ──────────────────────────────────────
+        
+        function generateAccountId() {
+            return 'acc_' + Date.now();
+        }
+        
+        function addAccount() {
+            const name = document.getElementById('new-name').value.trim();
+            const size = parseFloat(document.getElementById('new-size').value);
+            const initialBalance = parseFloat(document.getElementById('new-initialBalance').value);
+            const maxDrawdown = parseFloat(document.getElementById('new-maxDrawdown').value);
+            const profitTargetVal = document.getElementById('new-profitTarget').value;
+            const profitTarget = profitTargetVal ? parseFloat(profitTargetVal) : null;
+            const initialDrawdown = parseFloat(document.getElementById('new-initialDrawdown').value) || 0;
+            const multiplier = parseFloat(document.getElementById('new-multiplier').value);
+            
+            if (!name || isNaN(size) || isNaN(initialBalance) || isNaN(maxDrawdown)) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            const id = generateAccountId();
+            ACCOUNTS[id] = {
+                name, size, initialBalance, maxDrawdown, profitTarget,
+                initialDrawdown, multiplier,
+                minRisk: Math.round(size * 0.004),
+                maxRisk: Math.round(size * 0.005)
+            };
+            saveAccounts();
+            
+            // Clear form
+            ['new-name','new-size','new-initialBalance','new-maxDrawdown','new-profitTarget'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            document.getElementById('new-initialDrawdown').value = '0';
+            document.getElementById('new-multiplier').value = '1';
+            
+            generateAccountOptions();
+            applyToAll();
+            renderSettingsPage();
+            updateDisplay();
+            alert(`✅ Account "${name}" added!`);
+        }
+        
+        function deleteAccount(accountId) {
+            const account = ACCOUNTS[accountId];
+            if (!account) return;
+            if (!confirm(`Delete "${account.name}"?\n\nThis will permanently remove the account AND all its trade history. This cannot be undone.`)) return;
+            if (!confirm(`Are you sure? All trades for "${account.name}" will be deleted forever.`)) return;
+            
+            // Remove all trades for this account
+            trades = trades.filter(t => t.account !== accountId);
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            
+            // Remove account
+            delete ACCOUNTS[accountId];
+            saveAccounts();
+            
+            generateAccountOptions();
+            applyToAll();
+            renderSettingsPage();
+            updateDisplay();
+        }
+        
+        function editAccount(accountId) {
+            const acc = ACCOUNTS[accountId];
+            if (!acc) return;
+            
+            const modalHtml = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;" onclick="closeEditAccountModal(event)">
+                    <div class="card" onclick="event.stopPropagation()" style="max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                        <h2>✏️ Edit Account</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Update account settings. Trade history will be preserved.</p>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Account Name</label>
+                                <input type="text" id="edit-acc-name" value="${acc.name}">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Account Size ($)</label>
+                                <input type="number" id="edit-acc-size" value="${acc.size}">
+                            </div>
+                            <div class="input-group">
+                                <label>Initial Balance ($)</label>
+                                <input type="number" id="edit-acc-initialBalance" value="${acc.initialBalance}">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Max Drawdown ($)</label>
+                                <input type="number" id="edit-acc-maxDrawdown" value="${acc.maxDrawdown}">
+                            </div>
+                            <div class="input-group">
+                                <label>Profit Target ($)</label>
+                                <input type="number" id="edit-acc-profitTarget" value="${acc.profitTarget || ''}" placeholder="Optional">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Initial Drawdown ($)</label>
+                                <input type="number" id="edit-acc-initialDrawdown" value="${acc.initialDrawdown}">
+                            </div>
+                            <div class="input-group">
+                                <label>P&L Multiplier</label>
+                                <select id="edit-acc-multiplier">
+                                    <option value="1" ${acc.multiplier === 1 ? 'selected' : ''}>1x (50k base)</option>
+                                    <option value="2" ${acc.multiplier === 2 ? 'selected' : ''}>2x (100k)</option>
+                                    <option value="3" ${acc.multiplier === 3 ? 'selected' : ''}>3x (150k)</option>
+                                    <option value="4" ${acc.multiplier === 4 ? 'selected' : ''}>4x (200k)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn" onclick="saveEditedAccount('${accountId}')" style="flex: 1;">Save Changes</button>
+                            <button class="btn" onclick="closeEditAccountModal()" style="flex: 1; background: #95a5a6;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.id = 'editAccountModal';
+            modal.innerHTML = modalHtml;
+            document.body.appendChild(modal);
+        }
+        
+        function closeEditAccountModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('editAccountModal');
+            if (modal) modal.remove();
+        }
+        
+        function saveEditedAccount(accountId) {
+            const name = document.getElementById('edit-acc-name').value.trim();
+            const size = parseFloat(document.getElementById('edit-acc-size').value);
+            const initialBalance = parseFloat(document.getElementById('edit-acc-initialBalance').value);
+            const maxDrawdown = parseFloat(document.getElementById('edit-acc-maxDrawdown').value);
+            const profitTargetVal = document.getElementById('edit-acc-profitTarget').value;
+            const profitTarget = profitTargetVal ? parseFloat(profitTargetVal) : null;
+            const initialDrawdown = parseFloat(document.getElementById('edit-acc-initialDrawdown').value) || 0;
+            const multiplier = parseFloat(document.getElementById('edit-acc-multiplier').value);
+            
+            if (!name || isNaN(size) || isNaN(initialBalance) || isNaN(maxDrawdown)) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // Update account (preserve minRisk/maxRisk or recalculate)
+            ACCOUNTS[accountId] = {
+                ...ACCOUNTS[accountId],
+                name, size, initialBalance, maxDrawdown, profitTarget,
+                initialDrawdown, multiplier,
+                minRisk: Math.round(size * 0.004),
+                maxRisk: Math.round(size * 0.005)
+            };
+            
+            saveAccounts();
+            closeEditAccountModal();
+            generateAccountOptions();
+            renderSettingsPage();
+            updateDisplay();
+            alert(`✅ Account "${name}" updated!`);
+        }
+        
+        function addAdjustment() {
+            const accountId = document.getElementById('adj-account').value;
+            const newBalance = parseFloat(document.getElementById('adj-amount').value);
+            const date = document.getElementById('adj-date').value;
+            const note = document.getElementById('adj-note').value || 'Balance adjustment';
+            
+            if (!accountId || isNaN(newBalance) || !date) {
+                alert('Please fill in account, current balance, and date');
+                return;
+            }
+            
+            // Calculate current balance from existing trades
+            const account = ACCOUNTS[accountId];
+            const accountTrades = trades.filter(t => t.account === accountId);
+            const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0);
+            const currentBalance = account.initialBalance + totalPnl;
+            
+            // The adjustment is the difference
+            const amount = newBalance - currentBalance;
+            
+            if (Math.abs(amount) < 0.001) {
+                alert('Balance is already at that value, no adjustment needed.');
+                return;
+            }
+            
+            const timestamp = Date.now();
+            const adjustment = {
+                id: timestamp,
+                batchId: timestamp,
+                account: accountId,
+                type: 'adjustment',
+                result: 'adjustment',
+                pnl: amount,
+                risk: 0,
+                date: date,
+                note: `🔧 ${note}`,
+                timestamp: new Date().toISOString()
+            };
+            
+            trades.push(adjustment);
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            
+            document.getElementById('adj-amount').value = '';
+            document.getElementById('adj-note').value = '';
+            
+            renderSettingsPage();
+            updateDisplay();
+            alert(`✅ Adjusted ${ACCOUNTS[accountId].name}\nWas: $${currentBalance.toFixed(2)} → Now: $${newBalance.toFixed(2)}\nDifference: ${amount >= 0 ? '+' : ''}$${amount.toFixed(2)}`);
+        }
+        
+        function deleteAdjustment(id) {
+            if (!confirm('Remove this adjustment?')) return;
+            trades = trades.filter(t => t.id !== id);
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            renderSettingsPage();
+            updateDisplay();
+        }
+        
+        function renderSettingsPage() {
+            // Populate account dropdown for adjustments
+            const adjSelect = document.getElementById('adj-account');
+            if (adjSelect) {
+                adjSelect.innerHTML = Object.keys(ACCOUNTS).map(id =>
+                    `<option value="${id}">${ACCOUNTS[id].name}</option>`
+                ).join('');
+            }
+            
+            // Render symbol list
+            const symbolListEl = document.getElementById('settings-symbolList');
+            if (symbolListEl) {
+                if (SYMBOLS.length === 0) {
+                    symbolListEl.innerHTML = '<div class="no-data" style="padding:12px 0;">No symbols defined</div>';
+                } else {
+                    symbolListEl.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${SYMBOLS.map(s => `
+                            <div style="display:flex; align-items:center; gap:6px; background:#e8f0fe; border-radius:20px; padding:6px 14px;">
+                                <span style="font-weight:700; color:#1a56db; font-size:0.95em;">${s}</span>
+                                <button onclick="deleteSymbol('${s}')" style="background:none; border:none; cursor:pointer; color:#7f8c8d; font-size:0.9em; padding:0; line-height:1;" onmouseover="this.style.color='#e74c3c'" onmouseout="this.style.color='#7f8c8d'">✕</button>
+                            </div>
+                        `).join('')}
+                    </div>`;
+                }
+            }
+            const modelListEl = document.getElementById('settings-modelList');
+            if (modelListEl) {
+                if (Object.keys(MODELS).length === 0) {
+                    modelListEl.innerHTML = '<div class="no-data" style="padding:20px 0;">No models defined yet</div>';
+                } else {
+                    modelListEl.innerHTML = Object.keys(MODELS).map(id => {
+                        const m = MODELS[id];
+                        const usedCount = trades.filter(t => t.model === id).length;
+                        return `
+                            <div id="model-row-${id}" style="display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid #ecf0f1; gap:10px; flex-wrap:wrap;">
+                                <div style="flex:1;">
+                                    <div style="font-weight:700; color:#2c3e50; font-size:1.05em;">${m.name}</div>
+                                    ${m.description ? `<div style="font-size:0.88em; color:#7f8c8d; margin-top:3px;">${m.description}</div>` : '<div style="font-size:0.88em; color:#bdc3c7; margin-top:3px; font-style:italic;">No description</div>'}
+                                    <div style="font-size:0.8em; color:#aaa; margin-top:3px;">${usedCount} trade${usedCount !== 1 ? 's' : ''} logged</div>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    <button class="btn" onclick="startEditModel('${id}')" style="width:auto; padding:8px 16px; margin:0; font-size:0.9em; background:linear-gradient(135deg,#f39c12,#e67e22);">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteModel('${id}')" style="width:auto; padding:8px 16px; margin:0; font-size:0.9em;">Delete</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+            
+            // Render accounts list
+            const listEl = document.getElementById('settings-accountList');
+            if (!listEl) return;
+            
+            listEl.innerHTML = Object.keys(ACCOUNTS).map(id => {
+                const acc = ACCOUNTS[id];
+                const stats = calculateAccountStats(id);
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #ecf0f1; gap:10px;">
+                        <div style="flex:1;">
+                            <div style="font-weight:700; color:#2c3e50; font-size:1.05em;">${acc.name}</div>
+                            <div style="font-size:0.88em; color:#7f8c8d; margin-top:3px;">
+                                Size: $${acc.size.toLocaleString()} &nbsp;|&nbsp; 
+                                Max DD: $${acc.maxDrawdown.toLocaleString()} &nbsp;|&nbsp;
+                                Multiplier: ${acc.multiplier}x &nbsp;|&nbsp;
+                                Balance: <span style="font-weight:600; color:${stats.currentProfit >= 0 ? '#27ae60' : '#e74c3c'}">$${stats.currentBalance.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn" onclick="editAccount('${id}')" style="width:auto; padding:8px 18px; margin:0; font-size:0.9em; background:#3498db;">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteAccount('${id}')" style="width:auto; padding:8px 18px; margin:0; font-size:0.9em;">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Render adjustment history
+            const adjHistory = document.getElementById('adj-history');
+            if (!adjHistory) return;
+            const adjustments = trades.filter(t => t.type === 'adjustment').sort((a,b) => b.id - a.id);
+            
+            // Update arrow label count
+            const arrow = document.getElementById('adj-history-arrow');
+            if (arrow) arrow.textContent = adjHistory.style.display === 'none' 
+                ? `▼ Show (${adjustments.length})` 
+                : `▲ Hide (${adjustments.length})`;
+            
+            if (adjustments.length === 0) {
+                adjHistory.innerHTML = '<div style="padding:12px; color:#aaa; font-size:0.9em;">No adjustments yet</div>';
+                return;
+            }
+            adjHistory.innerHTML = `
+                <div style="border:1px solid #e0e0e0; border-radius:8px; overflow:hidden;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
+                        <thead>
+                            <tr style="background:#f8f9fa;">
+                                <th style="padding:10px 12px; text-align:left; color:#7f8c8d; font-weight:600; border-bottom:1px solid #e0e0e0;">Account</th>
+                                <th style="padding:10px 12px; text-align:left; color:#7f8c8d; font-weight:600; border-bottom:1px solid #e0e0e0;">Date</th>
+                                <th style="padding:10px 12px; text-align:left; color:#7f8c8d; font-weight:600; border-bottom:1px solid #e0e0e0;">Note</th>
+                                <th style="padding:10px 12px; text-align:right; color:#7f8c8d; font-weight:600; border-bottom:1px solid #e0e0e0;">Amount</th>
+                                <th style="padding:10px 12px; text-align:center; color:#7f8c8d; font-weight:600; border-bottom:1px solid #e0e0e0;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${adjustments.map((a, i) => `
+                                <tr style="background:${i % 2 === 0 ? '#fff' : '#fafafa'}; border-bottom:1px solid #f0f0f0;">
+                                    <td style="padding:9px 12px; font-weight:600; color:#2c3e50;">${ACCOUNTS[a.account] ? ACCOUNTS[a.account].name : 'Unknown'}</td>
+                                    <td style="padding:9px 12px; color:#7f8c8d;">${formatDate(a.date)}</td>
+                                    <td style="padding:9px 12px; color:#888;">${a.note}</td>
+                                    <td style="padding:9px 12px; text-align:right; font-weight:700; color:${a.pnl >= 0 ? '#27ae60' : '#e74c3c'};">${a.pnl >= 0 ? '+' : ''}$${a.pnl.toFixed(2)}</td>
+                                    <td style="padding:9px 12px; text-align:center;"><button class="delete-btn" onclick="deleteAdjustment(${a.id})">✕</button></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        // ── END SETTINGS FUNCTIONS ──────────────────────────────────
+        
+        function generateSymbolOptions() {
+            const select = document.getElementById('tradeSymbol');
+            const current = select.value;
+            select.innerHTML = SYMBOLS.map(s => `<option value="${s}">${s}</option>`).join('');
+            if (SYMBOLS.includes(current)) select.value = current;
+        }
+        
+        function generateModelOptions() {
+            const select = document.getElementById('tradeModel');
+            const current = select.value;
+            select.innerHTML = Object.keys(MODELS).map(id => 
+                `<option value="${id}">${MODELS[id].name}</option>`
+            ).join('');
+            // Restore selection if still valid
+            if (MODELS[current]) select.value = current;
+        }
+        
+        function generateAccountOptions() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.innerHTML = Object.keys(ACCOUNTS).map(accountId => {
+                const account = ACCOUNTS[accountId];
+                return `
+                    <div class="dropdown-item" onclick="toggleAccountCheck(event, '${accountId}')">
+                        <input type="checkbox" id="acc_${accountId}" value="${accountId}" onchange="updateDropdownText(); updateBatchPreview();">
+                        <label for="acc_${accountId}">${account.name}</label>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function toggleDropdown() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.toggle('open');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.custom-dropdown');
+            const perfDropdown = document.getElementById('perfDropdownMenu');
+            
+            if (dropdown && !dropdown.contains(event.target)) {
+                document.getElementById('dropdownMenu').classList.remove('open');
+            }
+            
+            if (perfDropdown && !event.target.closest('#perfDropdownMenu') && !event.target.closest('[onclick*="togglePerfDropdown"]')) {
+                perfDropdown.classList.remove('open');
+            }
+        });
+        
+        function toggleAccountCheck(event, accountId) {
+            // Prevent the click from bubbling when clicking the checkbox itself
+            if (event.target.tagName === 'INPUT') {
+                return;
+            }
+            event.stopPropagation();
+            
+            const checkbox = document.getElementById('acc_' + accountId);
+            checkbox.checked = !checkbox.checked;
+            updateDropdownText();
+            updateBatchPreview();
+        }
+        
+        function updateDropdownText() {
+            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
+            const text = document.getElementById('dropdownText');
+            
+            if (checkboxes.length === 0) {
+                text.textContent = 'Click to select accounts...';
+            } else if (checkboxes.length === Object.keys(ACCOUNTS).length) {
+                text.textContent = 'All accounts selected (' + checkboxes.length + ')';
+            } else {
+                text.textContent = checkboxes.length + ' account(s) selected';
+            }
+        }
+        
+        function applyToAll() {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+            updateBatchPreview();
+        }
+        
+        function clearSelection() {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateDropdownText();
+            updateBatchPreview();
+        }
+        
+        // Update batch preview when inputs change
+        document.getElementById('tradePnl').addEventListener('input', updateBatchPreview);
+        
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+            const icon = header.querySelector('.toggle-icon');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                section.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        function updateResultHint() {
+            const result = document.getElementById('tradeResult').value;
+            const hint = document.getElementById('resultHint');
+            
+            if (result === 'be_win') {
+                hint.innerHTML = '💡 BE/WIN: Went BE initially, eventually won. P&L recorded but NOT counted in win rate.';
+                hint.style.color = '#f39c12';
+            } else if (result === 'be_loss') {
+                hint.innerHTML = '💡 BE/LOSS: Went BE initially, eventually lost. P&L recorded but NOT counted in win rate.';
+                hint.style.color = '#f39c12';
+            } else {
+                hint.innerHTML = '💡 Risk is auto-calculated as 1:1 RR (Risk = |P&L|)';
+                hint.style.color = '#7f8c8d';
+            }
+        }
+        
+        // Initialize result hint
+        updateResultHint();
+        
+        function updateBatchPreview() {
+            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
+            const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
+            
+            const basePnl = parseFloat(document.getElementById('tradePnl').value) || 0;
+            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value) || 1;
+            const baseRisk = Math.abs(basePnl);
+            const rLabel = riskSize === 1 ? '1R' : '0.5R';
+            
+            const previewDiv = document.getElementById('batchPreview');
+            const alertDiv = document.getElementById('riskAlert');
+            
+            if (selectedAccounts.length === 0) {
+                previewDiv.innerHTML = '';
+                alertDiv.innerHTML = '';
+                return;
+            }
+            
+            let previewHtml = `<div class="alert alert-info" style="margin-top: 15px;"><strong>Trade Preview (${rLabel}):</strong><br>`;
+            let hasWarning = false;
+            let hasDanger = false;
+            
+            selectedAccounts.forEach(accountId => {
+                const account = ACCOUNTS[accountId];
+                const actualPnl = basePnl * account.multiplier;
+                const actualRisk = baseRisk * account.multiplier;
+                const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
+                
+                previewHtml += `${account.name}: `;
+                previewHtml += actualPnl >= 0 ? `+$${actualPnl.toFixed(2)}` : `$${actualPnl.toFixed(2)}`;
+                previewHtml += ` (${rValue >= 0 ? '+' : ''}${rValue.toFixed(2)}R, Risk: $${actualRisk.toFixed(0)})<br>`;
+                
+                if (actualRisk > account.maxRisk) hasDanger = true;
+                else if (actualRisk < account.minRisk && actualRisk > 0) hasWarning = true;
+            });
+            
+            previewHtml += '</div>';
+            previewDiv.innerHTML = previewHtml;
+            alertDiv.innerHTML = '';
+        }
+        
+        function logBatchTrade() {
+            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
+            const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (selectedAccounts.length === 0) {
+                alert('Please select at least one account');
+                return;
+            }
+            
+            const type = document.getElementById('tradeType').value;
+            const result = document.getElementById('tradeResult').value;
+            const symbol = document.getElementById('tradeSymbol').value;
+            const direction = document.getElementById('tradeDirection').value;
+            const model = document.getElementById('tradeModel').value;
+            const grade = document.getElementById('tradeGrade').value;
+            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value); // 1 or 0.5
+            const basePnl = parseFloat(document.getElementById('tradePnl').value);
+            const baseRisk = Math.abs(basePnl); // 1:1 RR
+            const date = document.getElementById('tradeDate').value;
+            const entryTime = document.getElementById('tradeEntryTime').value;
+            const exitTime = document.getElementById('tradeExitTime').value;
+            const note = document.getElementById('tradeNote').value;
+            const screenshotFile = document.getElementById('tradeScreenshot').files[0];
+            
+            if (isNaN(basePnl) || !date) {
+                alert('Please enter P&L and date');
+                return;
+            }
+            
+            // Convert screenshot to base64 if provided
+            const processScreenshot = new Promise((resolve, reject) => {
+                if (screenshotFile) {
+                    // Compress image before storing
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Resize to max 1200px width while maintaining aspect ratio
+                        const maxWidth = 1200;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to JPEG with 0.7 quality for compression
+                        const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+                        resolve(compressedData);
+                    };
+                    img.onerror = function() {
+                        reject(new Error('Failed to load screenshot image'));
+                    };
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = function() {
+                        reject(new Error('Failed to read screenshot file'));
+                    };
+                    reader.readAsDataURL(screenshotFile);
+                } else {
+                    resolve(null);
+                }
+            });
+            
+            processScreenshot.then(screenshotData => {
+                const timestamp = Date.now();
+                
+                selectedAccounts.forEach((accountId, index) => {
+                    const account = ACCOUNTS[accountId];
+                    const actualPnl = basePnl * account.multiplier;
+                    const actualRisk = baseRisk * account.multiplier;
+                    // R value: pnl / (risk / riskSize) — e.g. half risk win = +0.5R, full risk loss = -1R
+                    const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
+                    
+                    const trade = {
+                        id: timestamp + index,
+                        batchId: timestamp,
+                        account: accountId,
+                        type: type,
+                        result: result,
+                        symbol: symbol,
+                        direction: direction,
+                        model: model,
+                        grade: grade,
+                        riskSize: riskSize,
+                        rValue: rValue,
+                        pnl: actualPnl,
+                        risk: actualRisk,
+                        date: date,
+                        entryTime: entryTime,
+                        exitTime: exitTime,
+                        screenshot: screenshotData,
+                        note: note,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    trades.push(trade);
+                });
+                
+                localStorage.setItem('propTrades', JSON.stringify(trades));
+                
+                // Clear inputs
+                document.getElementById('tradePnl').value = '';
+                document.getElementById('tradeNote').value = '';
+                document.getElementById('tradeScreenshot').value = '';
+                document.getElementById('batchPreview').innerHTML = '';
+                document.getElementById('riskAlert').innerHTML = '';
+                
+                // Reset to defaults
+                document.getElementById('tradeType').value = 'system';
+                document.getElementById('tradeResult').value = 'win';
+                document.getElementById('tradeDirection').value = 'long';
+                document.getElementById('tradeRiskSize').value = '1';
+                document.getElementById('tradeModel').value = 'model1';
+                document.getElementById('tradeGrade').value = 'A';
+                updateResultHint();
+                
+                // Don't clear selection - keep accounts selected
+                
+                const now = new Date();
+                document.getElementById('tradeDate').valueAsDate = now;
+                document.getElementById('tradeEntryTime').value = now.toTimeString().slice(0,5);
+                document.getElementById('tradeExitTime').value = now.toTimeString().slice(0,5);
+                
+                updateDisplay();
+                
+                alert(`✅ Trade added to ${selectedAccounts.length} account(s)`);
+            }).catch(error => {
+                console.error('Error processing trade:', error);
+                if (error.name === 'QuotaExceededError') {
+                    alert('⚠️ Storage quota exceeded! Your browser storage is full.\n\nTips:\n- Use smaller screenshots\n- Delete old trades you no longer need\n- Consider exporting data and starting fresh');
+                } else {
+                    alert('⚠️ Error adding trade: ' + error.message);
+                }
+            });
+        }
+        
+        function deleteTrade(id) {
+            if (confirm('Delete this trade from all accounts?')) {
+                const trade = trades.find(t => t.id === id);
+                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                    // Delete entire batch (all accounts)
+                    const batchKey = String(trade ? (trade.batchId || Math.floor(trade.id / 10) * 10) : id);
+                    trades = trades.filter(t => {
+                        const tBatchKey = String(t.batchId || Math.floor(t.id / 10) * 10);
+                        return tBatchKey !== batchKey;
+                    });
+                } else {
+                    // Delete just this one account's trade
+                    trades = trades.filter(t => t.id !== id);
+                }
+                localStorage.setItem('propTrades', JSON.stringify(trades));
+                updateDisplay();
+            }
+            return false;
+        }
+        
+        function editTrade(id, filter) {
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+            
+            // Build edit form in modal
+            const isBatch = filter === 'system' || filter === 'bullshit';
+            const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+            const batchTrades = isBatch 
+                ? trades.filter(t => String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey)
+                : [trade];
+            
+            const modalHtml = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;" onclick="closeEditModal(event)">
+                    <div class="card" onclick="event.stopPropagation()" style="max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                        <h2>✏️ Edit Trade ${isBatch ? `(${batchTrades.length} accounts)` : ''}</h2>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Type</label>
+                                <select id="edit-type">
+                                    <option value="system" ${trade.type === 'system' ? 'selected' : ''}>System</option>
+                                    <option value="bullshit" ${trade.type === 'bullshit' ? 'selected' : ''}>Bullshit</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Result</label>
+                                <select id="edit-result">
+                                    <option value="win" ${trade.result === 'win' ? 'selected' : ''}>Win</option>
+                                    <option value="loss" ${trade.result === 'loss' ? 'selected' : ''}>Loss</option>
+                                    <option value="be_win" ${trade.result === 'be_win' ? 'selected' : ''}>BE (counted as win)</option>
+                                    <option value="be_loss" ${trade.result === 'be_loss' ? 'selected' : ''}>BE (counted as loss)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Symbol</label>
+                                <select id="edit-symbol">
+                                    ${SYMBOLS.map(s => `<option value="${s}" ${trade.symbol === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Direction</label>
+                                <select id="edit-direction">
+                                    <option value="long" ${trade.direction === 'long' ? 'selected' : ''}>📈 LONG</option>
+                                    <option value="short" ${trade.direction === 'short' ? 'selected' : ''}>📉 SHORT</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Model</label>
+                                <select id="edit-model">
+                                    ${Object.keys(MODELS).map(id => `<option value="${id}" ${trade.model === id ? 'selected' : ''}>${MODELS[id].name}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Grade</label>
+                                <select id="edit-grade">
+                                    <option value="A" ${trade.grade === 'A' ? 'selected' : ''}>A - Excellent</option>
+                                    <option value="B" ${trade.grade === 'B' ? 'selected' : ''}>B - Good</option>
+                                    <option value="C" ${trade.grade === 'C' ? 'selected' : ''}>C - Average</option>
+                                    <option value="troll" ${trade.grade === 'troll' ? 'selected' : ''}>Troll - Bad</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Risk Size</label>
+                                <select id="edit-riskSize">
+                                    <option value="1" ${trade.riskSize === 1 ? 'selected' : ''}>Full Risk (1R)</option>
+                                    <option value="0.5" ${trade.riskSize === 0.5 ? 'selected' : ''}>Half Risk (0.5R)</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>P&L per 50k ($)</label>
+                                <input type="number" id="edit-pnl" step="0.01" value="${(trade.pnl / (ACCOUNTS[trade.account]?.multiplier || 1)).toFixed(2)}">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Date</label>
+                                <input type="date" id="edit-date" value="${trade.date}">
+                            </div>
+                            <div class="input-group">
+                                <label>Entry Time</label>
+                                <input type="time" id="edit-entryTime" value="${trade.entryTime || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Exit Time</label>
+                                <input type="time" id="edit-exitTime" value="${trade.exitTime || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Note</label>
+                            <input type="text" id="edit-note" value="${trade.note || ''}">
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn" onclick="saveEditedTrade(${id}, '${filter}')" style="flex: 1;">Save Changes</button>
+                            <button class="btn" onclick="closeEditModal()" style="flex: 1; background: #95a5a6;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.id = 'editTradeModal';
+            modal.innerHTML = modalHtml;
+            document.body.appendChild(modal);
+        }
+        
+        function closeEditModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const modal = document.getElementById('editTradeModal');
+            if (modal) modal.remove();
+        }
+        
+        function saveEditedTrade(id, filter) {
+            const trade = trades.find(t => t.id === id);
+            if (!trade) return;
+            
+            const isBatch = filter === 'system' || filter === 'bullshit';
+            const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+            const tradesToEdit = isBatch
+                ? trades.filter(t => String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey)
+                : [trade];
+            
+            // Read new values
+            const type = document.getElementById('edit-type').value;
+            const result = document.getElementById('edit-result').value;
+            const symbol = document.getElementById('edit-symbol').value;
+            const direction = document.getElementById('edit-direction').value;
+            const model = document.getElementById('edit-model').value;
+            const grade = document.getElementById('edit-grade').value;
+            const riskSize = parseFloat(document.getElementById('edit-riskSize').value);
+            const basePnl = parseFloat(document.getElementById('edit-pnl').value);
+            const date = document.getElementById('edit-date').value;
+            const entryTime = document.getElementById('edit-entryTime').value;
+            const exitTime = document.getElementById('edit-exitTime').value;
+            const note = document.getElementById('edit-note').value;
+            
+            if (isNaN(basePnl)) {
+                alert('Please enter valid P&L');
+                return;
+            }
+            
+            // Update all trades in batch
+            tradesToEdit.forEach(t => {
+                const account = ACCOUNTS[t.account];
+                const actualPnl = basePnl * account.multiplier;
+                const baseRisk = Math.abs(basePnl);
+                const actualRisk = baseRisk * account.multiplier;
+                const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
+                
+                t.type = type;
+                t.result = result;
+                t.symbol = symbol;
+                t.direction = direction;
+                t.model = model;
+                t.grade = grade;
+                t.riskSize = riskSize;
+                t.rValue = rValue;
+                t.pnl = actualPnl;
+                t.risk = actualRisk;
+                t.date = date;
+                t.entryTime = entryTime;
+                t.exitTime = exitTime;
+                t.note = note;
+            });
+            
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            closeEditModal();
+            updateDisplay();
+        }
+        
+        function filterTrades(filter, clickedElement) {
+            currentFilter = filter;
+            generateTradeHistoryFilters();
+            displayTrades();
+        }
+        
+        function clearAllData() {
+            console.log('clearAllData called');
+            if (confirm('⚠️ WARNING: This will delete ALL trades and reset all accounts. This CANNOT be undone. Are you absolutely sure?')) {
+                if (confirm('Really? All your trade history will be lost forever.')) {
+                    trades = [];
+                    localStorage.removeItem('propTrades');
+                    updateDisplay();
+                }
+            }
+            return false;
+        }
+        
+        function calculateAccountStats(accountId) {
+            const account = ACCOUNTS[accountId];
+            const accountTrades = trades.filter(t => t.account === accountId);
+            const realTrades = accountTrades.filter(t => t.type !== 'adjustment');
+            
+            const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0); // includes adjustments
+            const currentBalance = account.initialBalance + totalPnl;
+            const currentProfit = currentBalance - account.size;
+            
+            // Calculate drawdown
+            // Peak starts at initialBalance (already accounts for profits before tracking started)
+            // We replay all EOD closes and track worst drawdown from peak
+            // IMPORTANT: Only use realTrades (exclude adjustments) for drawdown calc
+            const tradesByDate = {};
+            realTrades.forEach(trade => {
+                if (!tradesByDate[trade.date]) tradesByDate[trade.date] = [];
+                tradesByDate[trade.date].push(trade);
+            });
+            
+            const sortedDates = Object.keys(tradesByDate).sort();
+            
+            let runningBalance = account.initialBalance;
+            let peakBalance = account.initialBalance;
+            
+            sortedDates.forEach(date => {
+                const dailyPnl = tradesByDate[date].reduce((sum, t) => sum + t.pnl, 0);
+                runningBalance += dailyPnl;
+                if (runningBalance > peakBalance) peakBalance = runningBalance;
+            });
+            
+            // How far are we from peak right now
+            const currentDDfromPeak = peakBalance - runningBalance;
+            
+            // The worst drawdown ever = max(initialDrawdown, currentDDfromPeak)
+            // But we need to also check intermediate days, not just final state
+            // Re-run to find actual worst
+            let runningBalance2 = account.initialBalance;
+            let peakBalance2 = account.initialBalance;
+            let worstDD = account.initialDrawdown;
+            
+            sortedDates.forEach(date => {
+                const dailyPnl = tradesByDate[date].reduce((sum, t) => sum + t.pnl, 0);
+                runningBalance2 += dailyPnl;
+                if (runningBalance2 > peakBalance2) peakBalance2 = runningBalance2;
+                const dd = peakBalance2 - runningBalance2;
+                if (dd > worstDD) worstDD = dd;
+            });
+            
+            // Cushion = how much balance can drop from HERE before hitting the drawdown limit
+            // Drawdown limit means: balance cannot drop more than maxDrawdown from peak
+            // So floor = peakBalance - maxDrawdown
+            // Cushion = currentBalance - floor = currentBalance - peakBalance + maxDrawdown
+            const cushionRemaining = Math.max(0, runningBalance - (peakBalance - account.maxDrawdown));
+            const ddConsumed = account.maxDrawdown - cushionRemaining;
+            const ddPercent = Math.max(0, Math.min(100, (ddConsumed / account.maxDrawdown) * 100));
+            
+            let profitPercent = 0;
+            if (account.profitTarget) {
+                profitPercent = Math.min((currentProfit / account.profitTarget) * 100, 100);
+            }
+            
+            let status = 'healthy';
+            if (ddPercent > 75) status = 'danger';
+            else if (ddPercent > 50) status = 'warning';
+            
+            return {
+                currentBalance, currentProfit,
+                currentDrawdown: ddConsumed,
+                ddRemaining: cushionRemaining,
+                ddPercent, profitPercent, status,
+                tradeCount: realTrades.length
+            };
+        }
+        
+        function renderAccountCard(accountId) {
+            const account = ACCOUNTS[accountId];
+            const stats = calculateAccountStats(accountId);
+            
+            const statusLabel = {
+                'healthy': '✅ Healthy',
+                'warning': '⚠️ Warning',
+                'danger': '🚨 Danger'
+            }[stats.status];
+            
+            const isLucid = accountId.startsWith('lucid');
+            
+            return `
+                <div class="account-card ${stats.status}">
+                    <div class="account-header">
+                        <div class="account-name">${account.name}</div>
+                        <div class="account-status ${stats.status}">${statusLabel}</div>
+                    </div>
+                    
+                    <div class="account-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">Current Balance</span>
+                            <span class="stat-value">$${stats.currentBalance.toLocaleString()}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Profit/Loss</span>
+                            <span class="stat-value ${stats.currentProfit >= 0 ? 'positive' : 'negative'}">
+                                ${stats.currentProfit >= 0 ? '+' : ''}$${stats.currentProfit.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${account.profitTarget ? `
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-label">
+                            <span>Profit Target: $${stats.currentProfit.toFixed(0)} / $${account.profitTarget}</span>
+                            <span>${stats.profitPercent.toFixed(1)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill profit" style="width: ${stats.profitPercent}%">
+                                ${stats.profitPercent > 15 ? stats.profitPercent.toFixed(0) + '%' : ''}
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.85em; color: #7f8c8d;">
+                            ${stats.profitPercent >= 100 ? '🎉 Target reached!' : `$${(account.profitTarget - stats.currentProfit).toFixed(0)} to go`}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-label">
+                            <span>Drawdown: $${stats.currentDrawdown.toFixed(0)} / $${account.maxDrawdown}</span>
+                            <span>${stats.ddPercent.toFixed(1)}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill drawdown" style="width: ${stats.ddPercent}%">
+                                ${stats.ddPercent > 15 ? stats.ddPercent.toFixed(0) + '%' : ''}
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.85em; color: ${stats.status === 'danger' ? '#e74c3c' : '#7f8c8d'};">
+                            ${stats.ddRemaining > 0 ? `$${stats.ddRemaining.toFixed(0)} cushion remaining` : '⚠️ Max drawdown reached!'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateDisplay() {
+            // Render all account cards
+            const accountsGrid = document.getElementById('accountsGrid');
+            accountsGrid.innerHTML = Object.keys(ACCOUNTS).map(id => renderAccountCard(id)).join('');
+            
+            // Calculate total profit for current month only
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+            
+            const monthlyPnl = trades
+                .filter(t => t.type !== 'adjustment' && t.date && t.date.startsWith(currentMonth))
+                .reduce((sum, t) => sum + t.pnl, 0);
+            
+            const totalProfitEl = document.getElementById('totalProfit');
+            totalProfitEl.textContent = (monthlyPnl >= 0 ? '+' : '') + '$' + monthlyPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalProfitEl.style.color = monthlyPnl >= 0 ? '#2ecc71' : '#e74c3c';
+            document.getElementById('totalProfitLabel').textContent = `${monthName} — All Accounts`;
+            
+            // Update discipline stats
+            updateDisciplineStats();
+            
+            // Update weekly performance
+            updateWeeklyPerformance();
+            if (document.getElementById('calendar').classList.contains('active')) renderCalendar();
+            
+            // Update performance tab
+            updatePerformanceTab();
+            
+            // Generate trade history filter buttons
+            generateTradeHistoryFilters();
+            
+            // Display trades
+            displayTrades();
+        }
+        
+        // Returns one entry per batch, with P&L summed across all accounts
+        // Excludes adjustment entries - those affect balance only
+        function getUniqueTrades() {
+            const unique = [];
+            const seen = new Set();
+            trades.filter(t => t.type !== 'adjustment').forEach(trade => {
+                const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+                if (!seen.has(batchKey)) {
+                    seen.add(batchKey);
+                    const batch = trades.filter(t => 
+                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
+                    );
+                    unique.push({
+                        ...trade,
+                        pnl: batch.reduce((sum, t) => sum + t.pnl, 0),
+                        accountCount: batch.length
+                    });
+                }
+            });
+            return unique;
+        }
+        
+        function renderPerfBreakdown(groups) {
+            if (groups.length === 0) return '<div class="no-data">No trades yet</div>';
+            return groups.map(g => {
+                const winLoss = g.trades.filter(t => t.result === 'win' || t.result === 'loss');
+                const wins = g.trades.filter(t => t.result === 'win');
+                const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
+                const totalPnl = g.trades.reduce((s, t) => s + t.pnl, 0);
+                // Calculate R - sum R from wins/losses only (not BE), R is already per batch in unique trades
+                const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0);
+                const winRateColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
+                return `
+                    <div style="padding: 14px 0; border-bottom: 1px solid #ecf0f1;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                            <span style="font-weight:700; color:#2c3e50; font-size:1.05em;">${g.label}</span>
+                            <div style="display:flex; align-items:baseline; gap:10px;">
+                                <span style="font-weight:700; color:${totalPnl >= 0 ? '#27ae60' : '#e74c3c'};">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(0)}</span>
+                                <span style="font-weight:700; font-size:0.85em; color:${totalR >= 0 ? '#27ae60' : '#e74c3c'}; opacity:0.9;">${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:16px; font-size:0.9em; color:#7f8c8d;">
+                            <span>${g.trades.length} trade${g.trades.length !== 1 ? 's' : ''}</span>
+                            <span style="color:${winRateColor}; font-weight:600;">${winRate}% win rate</span>
+                            <span>${wins.length}W / ${winLoss.length - wins.length}L${g.trades.length - winLoss.length > 0 ? ' / ' + (g.trades.length - winLoss.length) + 'BE' : ''}</span>
+                        </div>
+                        <div style="margin-top: 8px; background:#ecf0f1; border-radius:6px; height:8px; overflow:hidden;">
+                            <div style="height:100%; width:${winRate}%; background:${winRateColor}; border-radius:6px; transition: width 0.5s;"></div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+        
+        let perfSelectedAccounts = [];
+        let perfTimeRange = 'week';
+        
+        function generatePerfAccountFilter() {
+            const menu = document.getElementById('perfDropdownMenu');
+            if (!menu) return;
+            
+            menu.innerHTML = Object.keys(ACCOUNTS).map(id => `
+                <label class="dropdown-item">
+                    <input type="checkbox" value="${id}" onchange="updatePerfAccountSelection()">
+                    <span>${ACCOUNTS[id].name}</span>
+                </label>
+            `).join('');
+        }
+        
+        function togglePerfDropdown() {
+            const menu = document.getElementById('perfDropdownMenu');
+            if (menu) menu.classList.toggle('open');
+        }
+        
+        function updatePerfAccountSelection() {
+            const checkboxes = document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]:checked');
+            perfSelectedAccounts = Array.from(checkboxes).map(cb => cb.value);
+            
+            const text = document.getElementById('perfDropdownText');
+            if (perfSelectedAccounts.length === 0) {
+                text.textContent = 'All Accounts';
+            } else if (perfSelectedAccounts.length === Object.keys(ACCOUNTS).length) {
+                text.textContent = 'All Accounts';
+            } else {
+                text.textContent = perfSelectedAccounts.map(id => ACCOUNTS[id].name).join(', ');
+            }
+            
+            updatePerformanceTab();
+        }
+        
+        function perfSelectAll(event) {
+            if (event) event.stopPropagation();
+            document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updatePerfAccountSelection();
+        }
+        
+        function perfClearSelection(event) {
+            if (event) event.stopPropagation();
+            document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updatePerfAccountSelection();
+        }
+        
+        function setPerfTimeRange(range) {
+            perfTimeRange = range;
+            document.querySelectorAll('#performance .filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updatePerformanceTab();
+        }
+        
+        function getFilteredPerfTrades() {
+            let filtered = getUniqueTrades();
+            
+            // Filter by accounts - check if batch contains any selected account
+            // AND recalculate P&L to only include selected accounts
+            if (perfSelectedAccounts.length > 0) {
+                filtered = filtered.filter(uniqueTrade => {
+                    // Get all trades in this batch
+                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
+                    const batchTrades = trades.filter(t => 
+                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
+                    );
+                    // Keep this batch if ANY trade in it matches selected accounts
+                    return batchTrades.some(t => perfSelectedAccounts.includes(t.account));
+                }).map(uniqueTrade => {
+                    // Recalculate P&L for only the selected accounts
+                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
+                    const batchTrades = trades.filter(t => 
+                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey &&
+                        perfSelectedAccounts.includes(t.account)
+                    );
+                    const filteredPnl = batchTrades.reduce((sum, t) => sum + t.pnl, 0);
+                    return {
+                        ...uniqueTrade,
+                        pnl: filteredPnl,
+                        accountCount: batchTrades.length
+                    };
+                });
+            }
+            
+            // Filter by time range
+            if (perfTimeRange !== 'all') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                let startDate;
+                if (perfTimeRange === 'today') {
+                    startDate = today;
+                } else if (perfTimeRange === 'week') {
+                    const day = today.getDay();
+                    const diff = day === 0 ? 6 : day - 1; // Mon = 0
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - diff);
+                } else if (perfTimeRange === 'month') {
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                } else if (perfTimeRange === 'quarter') {
+                    const q = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), q * 3, 1);
+                } else if (perfTimeRange === 'year') {
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                }
+                
+                if (startDate) {
+                    const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`;
+                    filtered = filtered.filter(t => t.date >= startStr);
+                }
+            }
+            
+            return filtered;
+        }
+        
+        function updatePerformanceTab() {
+            const all = getFilteredPerfTrades();
+            if (all.length === 0) {
+                ['perf-totalTrades','perf-winRate','perf-totalR','perf-totalPnl','perf-avgWin','perf-avgLoss','perf-rrRatio'].forEach(id => {
+                    document.getElementById(id).textContent = '-';
+                });
+                ['perf-byModel','perf-byGrade','perf-byDirection','perf-discipline','perf-beTrades'].forEach(id => {
+                    document.getElementById(id).innerHTML = '<div class="no-data">No trades yet</div>';
+                });
+                return;
+            }
+            
+            // Only WIN/LOSS count for stats - BE excluded
+            const winLoss = all.filter(t => t.result === 'win' || t.result === 'loss');
+            const wins = all.filter(t => t.result === 'win');
+            const losses = all.filter(t => t.result === 'loss');
+            const beTrades = all.filter(t => t.result === 'be_win' || t.result === 'be_loss');
+            
+            const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
+            const totalPnl = all.reduce((s, t) => s + t.pnl, 0);
+            const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // Only wins/losses, not BE
+            const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
+            const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0;
+            const rr = avgLoss !== 0 ? Math.abs(avgWin / avgLoss).toFixed(2) : '-';
+            
+            // Top metrics
+            document.getElementById('perf-totalTrades').textContent = all.length;
+            const wrEl = document.getElementById('perf-winRate');
+            wrEl.textContent = winRate + '%';
+            wrEl.style.color = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
+            const rEl = document.getElementById('perf-totalR');
+            if (rEl) {
+                rEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
+                rEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            const pnlEl = document.getElementById('perf-totalPnl');
+            pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(0);
+            pnlEl.style.color = totalPnl >= 0 ? '#27ae60' : '#e74c3c';
+            document.getElementById('perf-avgWin').textContent = '$' + avgWin.toFixed(0);
+            document.getElementById('perf-avgLoss').textContent = '$' + Math.abs(avgLoss).toFixed(0);
+            document.getElementById('perf-rrRatio').textContent = rr;
+            
+            // By Model
+            const modelGroups = Object.keys(MODELS).map(id => ({
+                label: MODELS[id].name,
+                trades: all.filter(t => t.model === id)
+            })).filter(g => g.trades.length > 0);
+            document.getElementById('perf-byModel').innerHTML = renderPerfBreakdown(modelGroups);
+            
+            // By Grade
+            const grades = [
+                { key: 'A', label: '🟢 Grade A' },
+                { key: 'B', label: '🟢 Grade B' },
+                { key: 'C', label: '🟡 Grade C' },
+                { key: 'troll', label: '🔴 Troll' }
+            ];
+            const gradeGroups = grades.map(g => ({
+                label: g.label,
+                trades: all.filter(t => t.grade === g.key)
+            })).filter(g => g.trades.length > 0);
+            document.getElementById('perf-byGrade').innerHTML = renderPerfBreakdown(gradeGroups);
+            
+            // By Direction
+            const dirGroups = [
+                { label: '📈 Long', trades: all.filter(t => t.direction === 'long') },
+                { label: '📉 Short', trades: all.filter(t => t.direction === 'short') }
+            ].filter(g => g.trades.length > 0);
+            document.getElementById('perf-byDirection').innerHTML = renderPerfBreakdown(dirGroups);
+            
+            // Discipline Impact
+            const systemTrades = all.filter(t => t.type === 'system');
+            const bullshitTrades = all.filter(t => t.type === 'bullshit');
+            const discGroups = [
+                { label: '✅ System Trades', trades: systemTrades },
+                { label: '❌ Bullshit Trades', trades: bullshitTrades }
+            ].filter(g => g.trades.length > 0);
+            document.getElementById('perf-discipline').innerHTML = renderPerfBreakdown(discGroups);
+            
+            // BE trades
+            if (beTrades.length === 0) {
+                document.getElementById('perf-beTrades').innerHTML = '<div class="no-data">No BE trades recorded</div>';
+            } else {
+                const beWins = beTrades.filter(t => t.result === 'be_win');
+                const beLosses = beTrades.filter(t => t.result === 'be_loss');
+                // Calculate what R would be if BE trades were counted as actual wins/losses
+                const beWinR = beWins.reduce((sum, t) => sum + (t.riskSize || 1), 0); // +1R per BE/WIN
+                const beLossR = beLosses.reduce((sum, t) => sum + (t.riskSize || 1), 0); // would be -1R per BE/LOSS
+                const hypotheticalR = beWinR - beLossR;
+                document.getElementById('perf-beTrades').innerHTML = `
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:15px;">
+                        <div class="stat-box">
+                            <div class="value">${beTrades.length}</div>
+                            <div class="label">Total BE Trades</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" style="color:#27ae60;">${beWins.length}</div>
+                            <div class="label">BE → Win</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" style="color:#e74c3c;">${beLosses.length}</div>
+                            <div class="label">BE → Loss</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="value" style="color:${hypotheticalR >= 0 ? '#27ae60' : '#e74c3c'};">${hypotheticalR >= 0 ? '+' : ''}${hypotheticalR.toFixed(2)}R</div>
+                            <div class="label">If Counted as W/L</div>
+                        </div>
+                    </div>
+                    <p style="margin-top:15px; color:#7f8c8d; font-size:0.95em;">⚠️ BE trades are excluded from win rate and Total R — "If Counted" shows hypothetical R if they were treated as wins/losses.</p>
+                `;
+            }
+        }
+        
+        function updateWeeklyPerformance() {
+            const container = document.getElementById('weeklyPerformance');
+            
+            // Get Monday of current week using LOCAL date (avoid UTC timezone shift)
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon...
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            monday.setHours(0, 0, 0, 0);
+            
+            // Build local date string YYYY-MM-DD without UTC conversion
+            function toLocalDateStr(d) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            
+            const todayStr = toLocalDateStr(today);
+            
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+            const dayDates = days.map((_, i) => {
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                return d;
+            });
+            
+            // Get unique trades (one per batch), P&L summed across all accounts
+            const unique = getUniqueTrades();
+            
+            // Build day data - match using local date string
+            const dayData = dayDates.map((date, i) => {
+                const dateStr = toLocalDateStr(date);
+                const dayTrades = unique.filter(t => t.date === dateStr);
+                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0);
+                const isToday = dateStr === todayStr;
+                const isFuture = dateStr > todayStr;
+                return { label: days[i], date, dateStr, dayTrades, pnl, isToday, isFuture };
+            });
+            
+            const weekPnl = dayData.reduce((s, d) => s + d.pnl, 0);
+            const tradedDays = dayData.filter(d => d.dayTrades.length > 0).length;
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px;">
+                    ${dayData.map(d => {
+                        let bg, border, textColor;
+                        if (d.isFuture) {
+                            bg = '#f8f9fa'; border = '#e0e0e0'; textColor = '#bdc3c7';
+                        } else if (d.dayTrades.length === 0) {
+                            bg = '#f8f9fa'; border = '#e0e0e0'; textColor = '#95a5a6';
+                        } else if (d.pnl > 0) {
+                            bg = '#f0fff4'; border = '#27ae60'; textColor = '#27ae60';
+                        } else if (d.pnl < 0) {
+                            bg = '#fff5f5'; border = '#e74c3c'; textColor = '#e74c3c';
+                        } else {
+                            bg = '#fffbf0'; border = '#f39c12'; textColor = '#f39c12';
+                        }
+                        const todayRing = d.isToday ? 'box-shadow: 0 0 0 2px #3498db;' : '';
+                        return `
+                            <div style="background:${bg}; border: 2px solid ${border}; border-radius: 10px; padding: 12px 8px; text-align: center; ${todayRing}">
+                                <div style="font-size: 0.8em; color: #7f8c8d; font-weight: 600; margin-bottom: 4px;">
+                                    ${d.label}${d.isToday ? ' <span style="color:#3498db;">●</span>' : ''}
+                                </div>
+                                <div style="font-size: 0.75em; color: #aaa; margin-bottom: 6px;">
+                                    ${d.date.getDate()}/${d.date.getMonth() + 1}
+                                </div>
+                                <div style="font-size: 1.1em; font-weight: 700; color: ${textColor};">
+                                    ${d.isFuture ? '-' : d.dayTrades.length === 0 ? 'REST' : (d.pnl >= 0 ? '+' : '') + '$' + d.pnl.toFixed(0)}
+                                </div>
+                                ${!d.isFuture && d.dayTrades.length > 0 ? `<div style="font-size: 0.75em; color: #aaa; margin-top: 3px;">${d.dayTrades.length} trade${d.dayTrades.length !== 1 ? 's' : ''}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${weekPnl >= 0 ? '#27ae60' : '#e74c3c'};">
+                    <span style="color: #7f8c8d; font-weight: 600;">Week Total</span>
+                    <span style="font-size: 1.2em; font-weight: 700; color: ${weekPnl >= 0 ? '#27ae60' : '#e74c3c'};">
+                        ${weekPnl >= 0 ? '+' : ''}$${weekPnl.toFixed(2)}
+                    </span>
+                    <span style="color: #aaa; font-size: 0.9em;">${tradedDays} day${tradedDays !== 1 ? 's' : ''} traded</span>
+                </div>
+            `;
+            
+            // Week stats - all unique trades this week
+            const weekTrades = dayData.flatMap(d => d.dayTrades);
+            const weekWins = weekTrades.filter(t => t.result === 'win').length;
+            const weekLosses = weekTrades.filter(t => t.result === 'loss').length;
+            const weekBeWin = weekTrades.filter(t => t.result === 'be_win').length;
+            const weekBeLoss = weekTrades.filter(t => t.result === 'be_loss').length;
+            const weekWinRate = (weekWins + weekLosses) > 0 
+                ? Math.round(weekWins / (weekWins + weekLosses) * 100) 
+                : 0;
+            const winRateColor = weekWinRate >= 60 ? '#27ae60' : weekWinRate >= 45 ? '#f39c12' : '#e74c3c';
+            // Exclude BE trades from R calculation (only count wins and losses)
+            const weekR = weekTrades
+                .filter(t => t.result === 'win' || t.result === 'loss')
+                .reduce((sum, t) => sum + (t.rValue || 0), 0);
+            const weekRColor = weekR > 0 ? '#27ae60' : weekR < 0 ? '#e74c3c' : '#f39c12';
+            
+            html += `
+                <div style="margin-top: 15px;">
+                    <div style="font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 1em;">Current Week Stats</div>
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+                        <div style="background: #f0fff4; border: 2px solid #27ae60; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: #27ae60;">${weekWins}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Wins</div>
+                        </div>
+                        <div style="background: #fff5f5; border: 2px solid #e74c3c; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: #e74c3c;">${weekLosses}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Losses</div>
+                        </div>
+                        <div style="background: #fffbf0; border: 2px solid #f39c12; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: #f39c12;">${weekBeWin}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">BE/Win</div>
+                        </div>
+                        <div style="background: #fffbf0; border: 2px solid #f39c12; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: #f39c12;">${weekBeLoss}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">BE/Loss</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f5f7fa, #c3cfe2); border: 2px solid #bdc3c7; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: ${winRateColor};">${weekWinRate}%</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Win Rate</div>
+                        </div>
+                        <div style="background: ${weekR >= 0 ? '#f0fff4' : '#fff5f5'}; border: 2px solid ${weekRColor}; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: ${weekRColor};">${weekR >= 0 ? '+' : ''}${weekR.toFixed(2)}R</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Total R</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function updateDisciplineStats() {
+            const uniqueTrades = getUniqueTrades();
+            const systemTrades = uniqueTrades.filter(t => t.type === 'system');
+            const bullshitTrades = uniqueTrades.filter(t => t.type === 'bullshit');
+            
+            document.getElementById('totalTrades').textContent = uniqueTrades.length;
+            document.getElementById('systemTrades').textContent = systemTrades.length;
+            document.getElementById('bullshitTrades').textContent = bullshitTrades.length;
+            
+            const disciplineRate = uniqueTrades.length > 0 ? 
+                Math.round((systemTrades.length / uniqueTrades.length) * 100) : 0;
+            document.getElementById('disciplineRate').textContent = disciplineRate + '%';
+            
+            // System trade stats - BE trades excluded from win/loss calculation
+            if (systemTrades.length > 0) {
+                // Only count actual wins and losses, not BE trades
+                const systemWinLossTrades = systemTrades.filter(t => 
+                    !t.result || t.result === 'win' || t.result === 'loss'
+                );
+                const systemWinners = systemTrades.filter(t => 
+                    (!t.result && t.pnl > 0) || t.result === 'win'
+                );
+                const systemLosers = systemTrades.filter(t => 
+                    (!t.result && t.pnl < 0) || t.result === 'loss'
+                );
+                
+                const systemWinRate = systemWinLossTrades.length > 0 ? 
+                    Math.round((systemWinners.length / systemWinLossTrades.length) * 100) : 0;
+                const systemPnl = systemTrades.reduce((sum, t) => sum + t.pnl, 0);
+                const systemAvgWin = systemWinners.length > 0 ? 
+                    systemWinners.reduce((sum, t) => sum + t.pnl, 0) / systemWinners.length : 0;
+                const systemAvgLoss = systemLosers.length > 0 ? 
+                    systemLosers.reduce((sum, t) => sum + t.pnl, 0) / systemLosers.length : 0;
+                
+                document.getElementById('systemWinRate').textContent = systemWinRate + '%';
+                document.getElementById('systemPnl').textContent = '$' + systemPnl.toFixed(2);
+                document.getElementById('systemPnl').className = 'stat-value ' + (systemPnl >= 0 ? 'positive' : 'negative');
+                document.getElementById('systemAvgWin').textContent = '$' + systemAvgWin.toFixed(2);
+                document.getElementById('systemAvgLoss').textContent = '$' + systemAvgLoss.toFixed(2);
+            } else {
+                document.getElementById('systemWinRate').textContent = '-';
+                document.getElementById('systemPnl').textContent = '-';
+                document.getElementById('systemAvgWin').textContent = '-';
+                document.getElementById('systemAvgLoss').textContent = '-';
+            }
+            
+            // Bullshit trade stats - BE trades excluded from win/loss calculation
+            if (bullshitTrades.length > 0) {
+                // Only count actual wins and losses, not BE trades
+                const bullshitWinLossTrades = bullshitTrades.filter(t => 
+                    !t.result || t.result === 'win' || t.result === 'loss'
+                );
+                const bullshitWinners = bullshitTrades.filter(t => 
+                    (!t.result && t.pnl > 0) || t.result === 'win'
+                );
+                const bullshitLosers = bullshitTrades.filter(t => 
+                    (!t.result && t.pnl < 0) || t.result === 'loss'
+                );
+                
+                const bullshitWinRate = bullshitWinLossTrades.length > 0 ? 
+                    Math.round((bullshitWinners.length / bullshitWinLossTrades.length) * 100) : 0;
+                const bullshitPnl = bullshitTrades.reduce((sum, t) => sum + t.pnl, 0);
+                const bullshitAvgWin = bullshitWinners.length > 0 ? 
+                    bullshitWinners.reduce((sum, t) => sum + t.pnl, 0) / bullshitWinners.length : 0;
+                const bullshitAvgLoss = bullshitLosers.length > 0 ? 
+                    bullshitLosers.reduce((sum, t) => sum + t.pnl, 0) / bullshitLosers.length : 0;
+                
+                document.getElementById('bullshitWinRate').textContent = bullshitWinRate + '%';
+                document.getElementById('bullshitPnl').textContent = '$' + bullshitPnl.toFixed(2);
+                document.getElementById('bullshitPnl').className = 'stat-value ' + (bullshitPnl >= 0 ? 'positive' : 'negative');
+                document.getElementById('bullshitAvgWin').textContent = '$' + bullshitAvgWin.toFixed(2);
+                document.getElementById('bullshitAvgLoss').textContent = '$' + bullshitAvgLoss.toFixed(2);
+            } else {
+                document.getElementById('bullshitWinRate').textContent = '-';
+                document.getElementById('bullshitPnl').textContent = '-';
+                document.getElementById('bullshitAvgWin').textContent = '-';
+                document.getElementById('bullshitAvgLoss').textContent = '-';
+            }
+            
+            // Bullshit tax
+        }
+        
+        function generateTradeHistoryFilters() {
+            const container = document.getElementById('tradeHistoryFilters');
+            if (!container) return;
+            
+            const accountButtons = Object.keys(ACCOUNTS).map(id => 
+                `<div class="filter-btn" onclick="filterTrades('${id}', this)">${ACCOUNTS[id].name}</div>`
+            ).join('');
+            
+            container.innerHTML = `
+                <div class="filter-btn ${currentFilter === 'system' ? 'active' : ''}" onclick="filterTrades('system', this)">System Only</div>
+                <div class="filter-btn ${currentFilter === 'bullshit' ? 'active' : ''}" onclick="filterTrades('bullshit', this)">Bullshit Only</div>
+                ${accountButtons}
+                <div class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="filterTrades('all', this)">All Accounts</div>
+            `;
+        }
+        
+        function displayTrades() {
+            let displayTrades = trades.filter(t => t.type !== 'adjustment');
+            
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                    displayTrades = displayTrades.filter(t => t.type === currentFilter);
+                    
+                    const uniqueTrades = [];
+                    const seenBatches = new Set();
+                    
+                    displayTrades.forEach(trade => {
+                        const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+                        if (!seenBatches.has(batchKey)) {
+                            seenBatches.add(batchKey);
+                            uniqueTrades.push(trade);
+                        }
+                    });
+                    
+                    displayTrades = uniqueTrades;
+                } else {
+                    displayTrades = displayTrades.filter(t => t.account === currentFilter && t.type !== 'adjustment');
+                }
+            }
+            
+            displayTrades.sort((a, b) => {
+                const dateCompare = b.date.localeCompare(a.date);
+                if (dateCompare !== 0) return dateCompare;
+                const timeA = a.entryTime || a.time || '';
+                const timeB = b.entryTime || b.time || '';
+                return timeB.localeCompare(timeA);
+            });
+            
+            const logDiv = document.getElementById('tradeLog');
+            
+            if (displayTrades.length === 0) {
+                logDiv.innerHTML = '<div class="no-data">No trades to display</div>';
+                return;
+            }
+            
+            logDiv.innerHTML = displayTrades.map(trade => {
+                const account = ACCOUNTS[trade.account];
+                
+                // If viewing System Only or Bullshit Only, count accounts and sum PNL across batch
+                let accountCount = 1;
+                let displayPnl = trade.pnl;
+                let displayR = trade.rValue !== undefined ? trade.rValue : null;
+                let riskSizeLabel = trade.riskSize === 0.5 ? '½R' : '1R';
+                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                    const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+                    const batchTrades = trades.filter(t => {
+                        const tBatchKey = String(t.batchId || Math.floor(t.id / 10) * 10);
+                        return tBatchKey === batchKey;
+                    });
+                    accountCount = batchTrades.length;
+                    displayPnl = batchTrades.reduce((sum, t) => sum + t.pnl, 0);
+                    // R value from first trade in batch (all same riskSize)
+                    const firstWithR = batchTrades.find(t => t.rValue !== undefined);
+                    displayR = firstWithR ? firstWithR.rValue : null;
+                    riskSizeLabel = firstWithR && firstWithR.riskSize === 0.5 ? '½R' : '1R';
+                }
+                
+                
+                const resultClass = trade.result ? 
+                    (trade.result === "win" ? "win" : 
+                     trade.result === "loss" ? "loss" : "be") : 
+                    (displayPnl >= 0 ? "win" : "loss");
+
+                return `
+                    <div class="trade-entry ${trade.type} ${resultClass}">
+                        <div class="trade-header">
+                            <div>
+                                <span class="trade-type-badge ${trade.type}">
+                                    ${trade.type === 'system' ? '✅ System' : '❌ Bullshit'}
+                                </span>
+                                ${trade.result ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: ${
+                                    trade.result === 'win' ? '#d4edda' : 
+                                    trade.result === 'loss' ? '#f8d7da' : '#fff3cd'
+                                }; color: ${
+                                    trade.result === 'win' ? '#155724' : 
+                                    trade.result === 'loss' ? '#721c24' : '#856404'
+                                };">${
+                                    trade.result === 'win' ? '🟢 WIN' : 
+                                    trade.result === 'loss' ? '🔴 LOSS' : 
+                                    trade.result === 'be_win' ? '🟡 BE/WIN' : '🟡 BE/LOSS'
+                                }</span>` : ''}
+                                ${accountCount > 1 ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: #e3f2fd; color: #0d47a1;">📊 ${accountCount} accounts</span>` : `<span style="margin-left: 10px; font-weight: 600; color: #2c3e50;">${account.name}</span>`}
+                            </div>
+                            <div class="trade-pnl ${displayPnl >= 0 ? 'profit' : 'loss'}">
+                                <div>${displayPnl >= 0 ? '+' : ''}$${displayPnl.toFixed(2)}</div>
+                                ${displayR !== null && trade.result !== 'be_win' && trade.result !== 'be_loss' ? `<div style="font-size:0.78em; opacity:0.8; font-weight:600; margin-top:2px;">${displayR >= 0 ? '+' : ''}${displayR.toFixed(2)}R <span style="opacity:0.6;">(${riskSizeLabel})</span></div>` : ''}
+                            </div>
+                        </div>
+                        <div class="trade-details">
+                            <span>${formatDate(trade.date)}</span>
+                            ${trade.entryTime && trade.exitTime ? `
+                                <span>⏱️ ${trade.entryTime} → ${trade.exitTime} (${calculateDuration(trade.entryTime, trade.exitTime)})</span>
+                            ` : trade.time ? `<span>${trade.time}</span>` : ''}
+                            ${trade.symbol ? `<span style="padding: 2px 8px; border-radius: 4px; font-weight: 700; background: #e8f0fe; color: #1a56db; font-size:0.85em;">${trade.symbol}</span>` : ''}
+                            ${trade.direction ? `<span>${trade.direction === 'long' ? '📈 LONG' : '📉 SHORT'}</span>` : ''}
+                            ${trade.model ? `<span>${MODELS[trade.model] ? MODELS[trade.model].name : trade.model}</span>` : ''}
+                            ${trade.grade ? `<span style="padding: 2px 6px; border-radius: 4px; font-weight: 600; background: ${
+                                trade.grade === 'A' ? '#d4edda' : 
+                                trade.grade === 'B' ? '#d4edda' : 
+                                trade.grade === 'C' ? '#fff3cd' : '#f8d7da'
+                            }; color: ${
+                                trade.grade === 'A' || trade.grade === 'B' ? '#155724' : 
+                                trade.grade === 'C' ? '#856404' : '#721c24'
+                            };">Grade ${trade.grade === 'troll' ? 'TROLL' : trade.grade}</span>` : ''}
+                        </div>
+                        ${trade.note ? `<div style="margin-top: 8px; color: #666; font-size: 0.95em;">${trade.note}</div>` : ''}
+                        ${trade.screenshot ? `
+                            <button class="btn" onclick="openModal('${trade.screenshot}'); return false;" style="width: auto; padding: 8px 16px; margin-top: 10px; font-size: 0.9em;">
+                                📸 View Screenshot
+                            </button>
+                        ` : ''}
+                        <div style="margin-top: 10px; display: flex; gap: 8px;">
+                            <button class="btn" onclick="editTrade(${trade.id}, '${currentFilter}'); return false;" style="width: auto; padding: 8px 16px; font-size: 0.9em; background: #3498db;">✏️ Edit</button>
+                            <button class="delete-btn" onclick="deleteTrade(${trade.id}); return false;">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Initialize
+        generateAccountOptions();
+        generateModelOptions();
+        generateSymbolOptions();
+        applyToAll(); // Select all accounts by default
+        document.getElementById('adj-date').valueAsDate = new Date();
+        renderSettingsPage();
+        updateDisplay();
+    </script>
+</body>
+</html>
