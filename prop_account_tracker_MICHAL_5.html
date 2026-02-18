@@ -1475,8 +1475,14 @@
         }
         
         function maybeEnableButtons() {
-            if (gapiInited && gisInited && !useDriveSync) {
-                checkForLocalDataMigration();
+            if (gapiInited && gisInited) {
+                if (useDriveSync) {
+                    // User has Drive sync enabled - load data from Drive
+                    loadDataFromDrive();
+                } else {
+                    // Check if user wants to enable Drive sync
+                    checkForLocalDataMigration();
+                }
             }
         }
         
@@ -1531,7 +1537,12 @@
             
             try {
                 await saveDataToDrive(data);
-                alert('✅ Success! Your trades are now synced to Google Drive.\n\nRefresh the page to continue.');
+                // Clear localStorage to free up space - data is now in Drive
+                localStorage.removeItem('propTrades');
+                localStorage.removeItem('propAccounts');
+                localStorage.removeItem('propModels');
+                localStorage.removeItem('propSymbols');
+                alert('✅ Success! Data migrated to Google Drive and browser storage cleared.\n\nRefresh to load from Drive.');
             } catch (err) {
                 console.error('Migration error:', err);
                 alert('❌ Error migrating data. Your trades are still safe in browser storage.');
@@ -1612,6 +1623,64 @@
                 await saveDataToDrive(data);
             } catch (err) {
                 console.error('Auto-sync error:', err);
+            }
+        }
+        
+        async function loadDataFromDrive() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    console.error('Auth error loading from Drive:', resp);
+                    return;
+                }
+                accessToken = gapi.client.getToken().access_token;
+                
+                try {
+                    driveFileId = await findDriveFile();
+                    if (driveFileId) {
+                        const response = await gapi.client.drive.files.get({
+                            fileId: driveFileId,
+                            alt: 'media'
+                        });
+                        const data = response.result;
+                        
+                        // Load data into memory for this session
+                        if (data.trades) {
+                            trades = data.trades;
+                            localStorage.setItem('propTrades', JSON.stringify(data.trades));
+                        }
+                        if (data.accounts) {
+                            ACCOUNTS = data.accounts;
+                            localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
+                        }
+                        if (data.models) {
+                            MODELS = data.models;
+                            localStorage.setItem('propModels', JSON.stringify(data.models));
+                        }
+                        if (data.symbols) {
+                            SYMBOLS = data.symbols;
+                            localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
+                        }
+                        
+                        console.log('✅ Data loaded from Google Drive');
+                        
+                        // Reinitialize UI with loaded data
+                        generateAccountOptions();
+                        generateModelOptions();
+                        generateSymbolOptions();
+                        updateDisplay();
+                    } else {
+                        console.log('No Drive file found yet');
+                    }
+                } catch (err) {
+                    console.error('Error loading from Drive:', err);
+                    alert('⚠️ Could not load data from Drive. Check console for details.');
+                }
+            };
+            
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
             }
         }
         
