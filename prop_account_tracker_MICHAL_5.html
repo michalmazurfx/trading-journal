@@ -1407,6 +1407,30 @@
                             <button class="btn" onclick="addSymbol()" style="margin:0; width:auto; padding:10px 24px;">Add Symbol</button>
                         </div>
                     </div>
+                    
+                    <!-- Google Drive Sync -->
+                    <div class="card" style="margin-top: 30px;">
+                        <h2>☁️ Google Drive Sync</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">
+                            <span id="drive-status">Status: <strong>Checking...</strong></span><br>
+                            Sync your trades to Google Drive for unlimited storage and multi-device access.
+                        </p>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn" onclick="manualLoadFromDrive()" style="width:auto; padding:10px 20px; background:#4285f4;">
+                                📥 Load from Drive
+                            </button>
+                            <button class="btn" onclick="manualSaveToDrive()" style="width:auto; padding:10px 20px; background:#34a853;">
+                                📤 Save to Drive
+                            </button>
+                            <button class="btn" onclick="disableDriveSync()" style="width:auto; padding:10px 20px; background:#95a5a6;">
+                                🔌 Disable Sync
+                            </button>
+                        </div>
+                        <div id="drive-info" style="margin-top:15px; padding:12px; background:#f8f9fa; border-radius:6px; font-size:0.9em; color:#555; display:none;">
+                            <div><strong>Last sync:</strong> <span id="drive-last-sync">Never</span></div>
+                            <div><strong>File ID:</strong> <span id="drive-file-id" style="font-family:monospace; font-size:0.85em;">-</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1478,9 +1502,11 @@
             if (gapiInited && gisInited) {
                 if (useDriveSync) {
                     // User has Drive sync enabled - load data from Drive
+                    updateDriveStatus('Loading...', null);
                     loadDataFromDrive();
                 } else {
                     // Check if user wants to enable Drive sync
+                    updateDriveStatus('Not enabled', null);
                     checkForLocalDataMigration();
                 }
             }
@@ -1662,6 +1688,7 @@
                         }
                         
                         console.log('✅ Data loaded from Google Drive');
+                        updateDriveStatus('Loaded from Drive', data.lastUpdated);
                         
                         // Reinitialize UI with loaded data
                         generateAccountOptions();
@@ -1670,6 +1697,7 @@
                         updateDisplay();
                     } else {
                         console.log('No Drive file found yet');
+                        updateDriveStatus('No file in Drive', null);
                     }
                 } catch (err) {
                     console.error('Error loading from Drive:', err);
@@ -1681,6 +1709,74 @@
                 tokenClient.requestAccessToken({prompt: 'consent'});
             } else {
                 tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+        
+        function manualLoadFromDrive() {
+            if (!gapiInited || !gisInited) {
+                alert('⏳ Google APIs still loading... Please wait a moment and try again.');
+                return;
+            }
+            loadDataFromDrive();
+        }
+        
+        async function manualSaveToDrive() {
+            if (!gapiInited || !gisInited) {
+                alert('⏳ Google APIs still loading... Please wait a moment and try again.');
+                return;
+            }
+            
+            if (!accessToken) {
+                alert('🔐 Please load from Drive first to authenticate.');
+                manualLoadFromDrive();
+                return;
+            }
+            
+            const data = {
+                trades: JSON.parse(localStorage.getItem('propTrades') || '[]'),
+                accounts: JSON.parse(localStorage.getItem('propAccounts') || '{}'),
+                models: JSON.parse(localStorage.getItem('propModels') || '{}'),
+                symbols: JSON.parse(localStorage.getItem('propSymbols') || '[]'),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            try {
+                await saveDataToDrive(data);
+                updateDriveStatus('Synced', data.lastUpdated);
+                alert('✅ Data saved to Google Drive!');
+            } catch (err) {
+                console.error('Manual save error:', err);
+                alert('❌ Error saving to Drive. Check console for details.');
+            }
+        }
+        
+        function disableDriveSync() {
+            if (confirm('Disable Google Drive sync?\n\nYour data will stay in Drive, but auto-sync will stop. You can re-enable it anytime.')) {
+                useDriveSync = false;
+                localStorage.setItem('useDriveSync', 'false');
+                updateDriveStatus('Disabled', null);
+                alert('🔌 Drive sync disabled. Data remains in Drive.');
+            }
+        }
+        
+        function updateDriveStatus(status, lastSync) {
+            const statusEl = document.getElementById('drive-status');
+            const infoEl = document.getElementById('drive-info');
+            const lastSyncEl = document.getElementById('drive-last-sync');
+            const fileIdEl = document.getElementById('drive-file-id');
+            
+            if (statusEl) {
+                let color = '#7f8c8d';
+                if (status.includes('Synced') || status.includes('Loaded')) color = '#27ae60';
+                if (status.includes('Error') || status.includes('Disabled')) color = '#e74c3c';
+                
+                statusEl.innerHTML = `Status: <strong style="color:${color}">${status}</strong>`;
+            }
+            
+            if (infoEl && lastSync) {
+                infoEl.style.display = 'block';
+                if (lastSyncEl) lastSyncEl.textContent = new Date(lastSync).toLocaleString();
+                if (fileIdEl && driveFileId) fileIdEl.textContent = driveFileId;
             }
         }
         
