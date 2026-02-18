@@ -1419,6 +1419,248 @@
     </div>
     
     <script>
+        // ========================================
+        // GOOGLE DRIVE SYNC CONFIGURATION
+        // ========================================
+        const GOOGLE_CLIENT_ID = '672858126629-g1lc0rrcadpcd9545t305nfof80rnnhv.apps.googleusercontent.com';
+        const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        const DRIVE_FILE_NAME = 'trading_journal_data.json';
+        
+        let gapiInited = false;
+        let gisInited = false;
+        let tokenClient;
+        let accessToken = null;
+        let driveFileId = null;
+        let useDriveSync = localStorage.getItem('useDriveSync') === 'true';
+        
+        // Load Google API scripts
+        function loadGoogleAPIs() {
+            // Load GAPI
+            const gapiScript = document.createElement('script');
+            gapiScript.src = 'https://apis.google.com/js/api.js';
+            gapiScript.onload = gapiLoaded;
+            document.head.appendChild(gapiScript);
+            
+            // Load GIS
+            const gisScript = document.createElement('script');
+            gisScript.src = 'https://accounts.google.com/gsi/client';
+            gisScript.onload = gisLoaded;
+            document.head.appendChild(gisScript);
+        }
+        
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+        
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+        }
+        
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: GOOGLE_SCOPES,
+                callback: '', // Will be set per request
+            });
+            gisInited = true;
+            maybeEnableButtons();
+        }
+        
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                checkForLocalDataMigration();
+            }
+        }
+        
+        // Check if user has local data to migrate
+        function checkForLocalDataMigration() {
+            if (useDriveSync) {
+                loadDataFromDrive();
+            } else {
+                const localTrades = localStorage.getItem('propTrades');
+                const localAccounts = localStorage.getItem('propAccounts');
+                if (localTrades || localAccounts) {
+                    const tradeCount = localTrades ? JSON.parse(localTrades).length : 0;
+                    if (tradeCount > 0) {
+                        setTimeout(() => {
+                            if (confirm(`Found ${tradeCount} trades in browser storage.\n\nEnable Google Drive sync for unlimited storage and multi-device access?\n\n✓ Never lose data\n✓ Sync across devices\n✓ Unlimited screenshot storage`)) {
+                                enableDriveSync();
+                            }
+                        }, 1000);
+                    }
+                }
+            }
+        }
+        
+        function enableDriveSync() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                accessToken = gapi.client.getToken().access_token;
+                useDriveSync = true;
+                localStorage.setItem('useDriveSync', 'true');
+                await migrateLocalDataToDrive();
+            };
+            
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+        
+        async function migrateLocalDataToDrive() {
+            const localTrades = localStorage.getItem('propTrades');
+            const localAccounts = localStorage.getItem('propAccounts');
+            const localModels = localStorage.getItem('propModels');
+            const localSymbols = localStorage.getItem('propSymbols');
+            
+            const data = {
+                trades: localTrades ? JSON.parse(localTrades) : [],
+                accounts: localAccounts ? JSON.parse(localAccounts) : DEFAULT_ACCOUNTS,
+                models: localModels ? JSON.parse(localModels) : DEFAULT_MODELS,
+                symbols: localSymbols ? JSON.parse(localSymbols) : ['NQ', 'ES', 'MNQ', 'MES'],
+                lastUpdated: new Date().toISOString()
+            };
+            
+            await saveDataToDrive(data);
+            alert('✅ Data migrated to Google Drive!\n\nYour trades are now synced across all devices.');
+            location.reload();
+        }
+        
+        async function findDriveFile() {
+            const response = await gapi.client.drive.files.list({
+                q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
+                spaces: 'drive',
+                fields: 'files(id, name)'
+            });
+            const files = response.result.files;
+            if (files && files.length > 0) {
+                return files[0].id;
+            }
+            return null;
+        }
+        
+        async function loadDataFromDrive() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                accessToken = gapi.client.getToken().access_token;
+                
+                try {
+                    driveFileId = await findDriveFile();
+                    if (driveFileId) {
+                        const response = await gapi.client.drive.files.get({
+                            fileId: driveFileId,
+                            alt: 'media'
+                        });
+                        const data = response.result;
+                        
+                        // Load data into localStorage
+                        if (data.trades) localStorage.setItem('propTrades', JSON.stringify(data.trades));
+                        if (data.accounts) localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
+                        if (data.models) localStorage.setItem('propModels', JSON.stringify(data.models));
+                        if (data.symbols) localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
+                        
+                        console.log('✅ Data loaded from Google Drive');
+                        location.reload();
+                    }
+                } catch (err) {
+                    console.error('Error loading from Drive:', err);
+                }
+            };
+            
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+        
+        async function saveDataToDrive(data) {
+            driveFileId = await findDriveFile();
+            
+            const boundary = '-------314159265358979323846';
+            const delimiter = "\r\n--" + boundary + "\r\n";
+            const close_delim = "\r\n--" + boundary + "--";
+            
+            const contentType = 'application/json';
+            const metadata = {
+                name: DRIVE_FILE_NAME,
+                mimeType: contentType
+            };
+            
+            const multipartRequestBody =
+                delimiter +
+                'Content-Type: application/json\r\n\r\n' +
+                JSON.stringify(metadata) +
+                delimiter +
+                'Content-Type: ' + contentType + '\r\n\r\n' +
+                JSON.stringify(data) +
+                close_delim;
+            
+            const method = driveFileId ? 'PATCH' : 'POST';
+            const path = driveFileId 
+                ? `/upload/drive/v3/files/${driveFileId}`
+                : '/upload/drive/v3/files';
+            
+            const response = await gapi.client.request({
+                path: path,
+                method: method,
+                params: { uploadType: 'multipart' },
+                headers: {
+                    'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+                },
+                body: multipartRequestBody
+            });
+            
+            if (!driveFileId && response.result.id) {
+                driveFileId = response.result.id;
+            }
+            
+            console.log('✅ Data saved to Google Drive');
+        }
+        
+        async function syncToDrive() {
+            if (!useDriveSync || !accessToken) return;
+            
+            const data = {
+                trades: JSON.parse(localStorage.getItem('propTrades') || '[]'),
+                accounts: JSON.parse(localStorage.getItem('propAccounts') || '{}'),
+                models: JSON.parse(localStorage.getItem('propModels') || '{}'),
+                symbols: JSON.parse(localStorage.getItem('propSymbols') || '[]'),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            await saveDataToDrive(data);
+        }
+        
+        // Override localStorage setItem to auto-sync
+        const originalSetItem = localStorage.setItem;
+        localStorage.setItem = function(key, value) {
+            originalSetItem.apply(this, arguments);
+            if (key.startsWith('prop') && useDriveSync) {
+                // Debounce sync - wait 2 seconds after last change
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            }
+        };
+        
+        // Load Google APIs on page load
+        if (typeof gapi === 'undefined') {
+            loadGoogleAPIs();
+        }
+        
+        // ========================================
+        // END GOOGLE DRIVE SYNC
+        // ========================================
+        
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
