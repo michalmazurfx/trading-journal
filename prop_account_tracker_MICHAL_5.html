@@ -1439,12 +1439,16 @@
             const gapiScript = document.createElement('script');
             gapiScript.src = 'https://apis.google.com/js/api.js';
             gapiScript.onload = gapiLoaded;
+            gapiScript.async = true;
+            gapiScript.defer = true;
             document.head.appendChild(gapiScript);
             
             // Load GIS
             const gisScript = document.createElement('script');
             gisScript.src = 'https://accounts.google.com/gsi/client';
             gisScript.onload = gisLoaded;
+            gisScript.async = true;
+            gisScript.defer = true;
             document.head.appendChild(gisScript);
         }
         
@@ -1471,27 +1475,22 @@
         }
         
         function maybeEnableButtons() {
-            if (gapiInited && gisInited) {
+            if (gapiInited && gisInited && !useDriveSync) {
                 checkForLocalDataMigration();
             }
         }
         
         // Check if user has local data to migrate
         function checkForLocalDataMigration() {
-            if (useDriveSync) {
-                loadDataFromDrive();
-            } else {
-                const localTrades = localStorage.getItem('propTrades');
-                const localAccounts = localStorage.getItem('propAccounts');
-                if (localTrades || localAccounts) {
-                    const tradeCount = localTrades ? JSON.parse(localTrades).length : 0;
-                    if (tradeCount > 0) {
-                        setTimeout(() => {
-                            if (confirm(`Found ${tradeCount} trades in browser storage.\n\nEnable Google Drive sync for unlimited storage and multi-device access?\n\n✓ Never lose data\n✓ Sync across devices\n✓ Unlimited screenshot storage`)) {
-                                enableDriveSync();
-                            }
-                        }, 1000);
-                    }
+            const localTrades = localStorage.getItem('propTrades');
+            if (localTrades) {
+                const tradeCount = JSON.parse(localTrades).length;
+                if (tradeCount > 0) {
+                    setTimeout(() => {
+                        if (confirm(`📊 Found ${tradeCount} trades in browser storage.\n\n🔄 Enable Google Drive sync?\n\n✓ Unlimited storage\n✓ Never lose data\n✓ Sync across devices\n\nClick OK to enable, or Cancel to continue with browser storage.`)) {
+                            enableDriveSync();
+                        }
+                    }, 2000);
                 }
             }
         }
@@ -1499,7 +1498,9 @@
         function enableDriveSync() {
             tokenClient.callback = async (resp) => {
                 if (resp.error !== undefined) {
-                    throw (resp);
+                    console.error('Auth error:', resp);
+                    alert('❌ Authentication failed. Please try again.');
+                    return;
                 }
                 accessToken = gapi.client.getToken().access_token;
                 useDriveSync = true;
@@ -1522,15 +1523,21 @@
             
             const data = {
                 trades: localTrades ? JSON.parse(localTrades) : [],
-                accounts: localAccounts ? JSON.parse(localAccounts) : DEFAULT_ACCOUNTS,
-                models: localModels ? JSON.parse(localModels) : DEFAULT_MODELS,
+                accounts: localAccounts ? JSON.parse(localAccounts) : {},
+                models: localModels ? JSON.parse(localModels) : {},
                 symbols: localSymbols ? JSON.parse(localSymbols) : ['NQ', 'ES', 'MNQ', 'MES'],
                 lastUpdated: new Date().toISOString()
             };
             
-            await saveDataToDrive(data);
-            alert('✅ Data migrated to Google Drive!\n\nYour trades are now synced across all devices.');
-            location.reload();
+            try {
+                await saveDataToDrive(data);
+                alert('✅ Success! Your trades are now synced to Google Drive.\n\nRefresh the page to continue.');
+            } catch (err) {
+                console.error('Migration error:', err);
+                alert('❌ Error migrating data. Your trades are still safe in browser storage.');
+                useDriveSync = false;
+                localStorage.setItem('useDriveSync', 'false');
+            }
         }
         
         async function findDriveFile() {
@@ -1544,43 +1551,6 @@
                 return files[0].id;
             }
             return null;
-        }
-        
-        async function loadDataFromDrive() {
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) {
-                    throw (resp);
-                }
-                accessToken = gapi.client.getToken().access_token;
-                
-                try {
-                    driveFileId = await findDriveFile();
-                    if (driveFileId) {
-                        const response = await gapi.client.drive.files.get({
-                            fileId: driveFileId,
-                            alt: 'media'
-                        });
-                        const data = response.result;
-                        
-                        // Load data into localStorage
-                        if (data.trades) localStorage.setItem('propTrades', JSON.stringify(data.trades));
-                        if (data.accounts) localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
-                        if (data.models) localStorage.setItem('propModels', JSON.stringify(data.models));
-                        if (data.symbols) localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
-                        
-                        console.log('✅ Data loaded from Google Drive');
-                        location.reload();
-                    }
-                } catch (err) {
-                    console.error('Error loading from Drive:', err);
-                }
-            };
-            
-            if (gapi.client.getToken() === null) {
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            } else {
-                tokenClient.requestAccessToken({prompt: ''});
-            }
         }
         
         async function saveDataToDrive(data) {
@@ -1638,7 +1608,11 @@
                 lastUpdated: new Date().toISOString()
             };
             
-            await saveDataToDrive(data);
+            try {
+                await saveDataToDrive(data);
+            } catch (err) {
+                console.error('Auto-sync error:', err);
+            }
         }
         
         // Override localStorage setItem to auto-sync
@@ -1652,10 +1626,12 @@
             }
         };
         
-        // Load Google APIs on page load
-        if (typeof gapi === 'undefined') {
-            loadGoogleAPIs();
-        }
+        // Load Google APIs on page load - but don't block the app
+        setTimeout(() => {
+            if (typeof gapi === 'undefined') {
+                loadGoogleAPIs();
+            }
+        }, 1000);
         
         // ========================================
         // END GOOGLE DRIVE SYNC
