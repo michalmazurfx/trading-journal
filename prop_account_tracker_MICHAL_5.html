@@ -1686,8 +1686,9 @@
         async function syncToDrive() {
             if (!useDriveSync || !accessToken) return;
             
+            // Use data from MEMORY (includes screenshots), not localStorage
             const data = {
-                trades: trades,  // Use memory, not localStorage
+                trades: trades,  // Full trades with screenshots
                 accounts: ACCOUNTS,
                 models: MODELS,
                 symbols: SYMBOLS,
@@ -1696,7 +1697,7 @@
             
             try {
                 await saveDataToDrive(data);
-                console.log('✅ Synced to Drive from memory');
+                console.log('✅ Synced to Drive from memory (with screenshots)');
             } catch (err) {
                 console.error('Auto-sync error:', err);
             }
@@ -2020,9 +2021,8 @@
         let ACCOUNTS = JSON.parse(localStorage.getItem('propAccounts')) || DEFAULT_ACCOUNTS;
         
         function saveAccounts() {
-            if (!useDriveSync) {
-                localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
-            } else {
+            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
@@ -2038,9 +2038,8 @@
         let MODELS = JSON.parse(localStorage.getItem('propModels')) || DEFAULT_MODELS;
         
         function saveModels() {
-            if (!useDriveSync) {
-                localStorage.setItem('propModels', JSON.stringify(MODELS));
-            } else {
+            localStorage.setItem('propModels', JSON.stringify(MODELS));
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
@@ -2051,9 +2050,8 @@
         let SYMBOLS = JSON.parse(localStorage.getItem('propSymbols')) || DEFAULT_SYMBOLS;
         
         function saveSymbols() {
-            if (!useDriveSync) {
-                localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
-            } else {
+            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
@@ -2508,16 +2506,17 @@
             
             // Remove all trades for this account
             trades = trades.filter(t => t.account !== accountId);
-            if (!useDriveSync) {
-                localStorage.setItem('propTrades', JSON.stringify(trades));
-            } else {
-                clearTimeout(window.syncTimeout);
-                window.syncTimeout = setTimeout(syncToDrive, 2000);
-            }
+            localStorage.setItem('propTrades', JSON.stringify(trades));
             
             // Remove account
             delete ACCOUNTS[accountId];
             saveAccounts();
+            
+            // Sync to Drive if enabled
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            }
             
             generateAccountOptions();
             applyToAll();
@@ -2672,11 +2671,10 @@
             };
             
             trades.push(adjustment);
+            localStorage.setItem('propTrades', JSON.stringify(trades));
             
-            // Save based on Drive sync status
-            if (!useDriveSync) {
-                localStorage.setItem('propTrades', JSON.stringify(trades));
-            } else {
+            // Also sync to Drive if enabled
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
@@ -2692,12 +2690,13 @@
         function deleteAdjustment(id) {
             if (!confirm('Remove this adjustment?')) return;
             trades = trades.filter(t => t.id !== id);
-            if (!useDriveSync) {
-                localStorage.setItem('propTrades', JSON.stringify(trades));
-            } else {
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
+            
             renderSettingsPage();
             updateDisplay();
         }
@@ -3099,13 +3098,20 @@
                     trades.push(trade);
                 });
                 
-                // Only save to localStorage if Drive sync is disabled
-                if (!useDriveSync) {
-                    localStorage.setItem('propTrades', JSON.stringify(trades));
-                } else {
-                    // Trigger Drive sync instead
+                // Save to localStorage WITHOUT screenshots (to avoid quota)
+                const tradesWithoutScreenshots = trades.map(t => {
+                    if (t.screenshot) {
+                        const { screenshot, ...tradeWithoutScreenshot } = t;
+                        return tradeWithoutScreenshot;
+                    }
+                    return t;
+                });
+                localStorage.setItem('propTrades', JSON.stringify(tradesWithoutScreenshots));
+                
+                // Trigger Drive sync for full data INCLUDING screenshots
+                if (useDriveSync) {
                     clearTimeout(window.syncTimeout);
-                    window.syncTimeout = setTimeout(syncToDrive, 2000);
+                    window.syncTimeout = setTimeout(syncToDrive, 1000);
                 }
                 
                 // Clear inputs
@@ -3159,9 +3165,9 @@
                     trades = trades.filter(t => t.id !== id);
                 }
                 
-                if (!useDriveSync) {
-                    localStorage.setItem('propTrades', JSON.stringify(trades));
-                } else {
+                localStorage.setItem('propTrades', JSON.stringify(trades));
+                
+                if (useDriveSync) {
                     clearTimeout(window.syncTimeout);
                     window.syncTimeout = setTimeout(syncToDrive, 2000);
                 }
@@ -3347,12 +3353,13 @@
                 t.note = note;
             });
             
-            if (!useDriveSync) {
-                localStorage.setItem('propTrades', JSON.stringify(trades));
-            } else {
+            localStorage.setItem('propTrades', JSON.stringify(trades));
+            
+            if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
+            
             closeEditModal();
             updateDisplay();
         }
