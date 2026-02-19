@@ -2847,16 +2847,29 @@
         
         function deleteAdjustment(id) {
             if (!confirm('Remove this adjustment?')) return;
+            
+            // Remove from trades array
             trades = trades.filter(t => t.id !== id);
+            
+            // Save to localStorage
             saveTradesToLocalStorage();
             
+            // Sync to Drive
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
             
+            // Force complete UI refresh
             renderSettingsPage();
             updateDisplay();
+            
+            // Force update the adjustment balance field
+            setTimeout(() => {
+                updateAdjustmentBalance();
+            }, 100);
+            
+            console.log('Deleted adjustment', id, 'Remaining trades:', trades.length);
         }
         
         function renderSettingsPage() {
@@ -3563,6 +3576,14 @@
             
             const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             const currentProfit = currentBalance - account.size;
+            
+            console.log(`Calculate stats for ${account.name}:`, {
+                initialBalance: account.initialBalance,
+                totalPnl,
+                totalPayouts,
+                currentBalance,
+                adjustments: accountTrades.filter(t => t.type === 'adjustment').length
+            });
             
             // Calculate drawdown
             // Peak starts at initialBalance (already accounts for profits before tracking started)
