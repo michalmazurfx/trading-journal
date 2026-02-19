@@ -1687,18 +1687,16 @@
             if (!useDriveSync || !accessToken) return;
             
             const data = {
-                trades: JSON.parse(localStorage.getItem('propTrades') || '[]'),
-                accounts: JSON.parse(localStorage.getItem('propAccounts') || '{}'),
-                models: JSON.parse(localStorage.getItem('propModels') || '{}'),
-                symbols: JSON.parse(localStorage.getItem('propSymbols') || '[]'),
+                trades: trades,  // Use memory, not localStorage
+                accounts: ACCOUNTS,
+                models: MODELS,
+                symbols: SYMBOLS,
                 lastUpdated: new Date().toISOString()
             };
             
             try {
                 await saveDataToDrive(data);
-                // Clear localStorage after successful sync to prevent quota issues
-                localStorage.removeItem('propTrades');
-                console.log('✅ Synced to Drive, localStorage cleared');
+                console.log('✅ Synced to Drive from memory');
             } catch (err) {
                 console.error('Auto-sync error:', err);
             }
@@ -3077,7 +3075,14 @@
                     trades.push(trade);
                 });
                 
-                localStorage.setItem('propTrades', JSON.stringify(trades));
+                // Only save to localStorage if Drive sync is disabled
+                if (!useDriveSync) {
+                    localStorage.setItem('propTrades', JSON.stringify(trades));
+                } else {
+                    // Trigger Drive sync instead
+                    clearTimeout(window.syncTimeout);
+                    window.syncTimeout = setTimeout(syncToDrive, 2000);
+                }
                 
                 // Clear inputs
                 document.getElementById('tradePnl').value = '';
@@ -3129,7 +3134,14 @@
                     // Delete just this one account's trade
                     trades = trades.filter(t => t.id !== id);
                 }
-                localStorage.setItem('propTrades', JSON.stringify(trades));
+                
+                if (!useDriveSync) {
+                    localStorage.setItem('propTrades', JSON.stringify(trades));
+                } else {
+                    clearTimeout(window.syncTimeout);
+                    window.syncTimeout = setTimeout(syncToDrive, 2000);
+                }
+                
                 updateDisplay();
             }
             return false;
