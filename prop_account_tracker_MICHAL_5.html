@@ -1719,22 +1719,18 @@
                         });
                         const data = response.result;
                         
-                        // Load data into memory for this session
+                        // Load data into memory for this session (no localStorage when Drive sync is on)
                         if (data.trades) {
                             trades = data.trades;
-                            localStorage.setItem('propTrades', JSON.stringify(data.trades));
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
-                            localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
                         }
                         if (data.models) {
                             MODELS = data.models;
-                            localStorage.setItem('propModels', JSON.stringify(data.models));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
-                            localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
                         }
                         
                         console.log('✅ Data loaded from Google Drive');
@@ -1831,22 +1827,18 @@
                             return;
                         }
                         
-                        // Load into localStorage
+                        // Load into memory only (not localStorage when Drive sync is on)
                         if (data.trades) {
                             trades = data.trades;
-                            localStorage.setItem('propTrades', JSON.stringify(data.trades));
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
-                            localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
                         }
                         if (data.models) {
                             MODELS = data.models;
-                            localStorage.setItem('propModels', JSON.stringify(data.models));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
-                            localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
                         }
                         
                         // Save to Drive if sync enabled and APIs ready
