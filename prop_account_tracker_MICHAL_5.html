@@ -2876,7 +2876,10 @@
                 };
                 
                 // Always update balance to reflect current state (including payouts)
-                updateAdjustmentBalance();
+                // Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    updateAdjustmentBalance();
+                }, 50);
             }
             
             // Render symbol list
