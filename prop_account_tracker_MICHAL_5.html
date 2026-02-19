@@ -2821,7 +2821,12 @@
         }
         
         function updateAdjustmentBalance() {
-            const accountId = document.getElementById('adj-account').value;
+            const accountIdEl = document.getElementById('adj-account');
+            const amountEl = document.getElementById('adj-amount');
+            
+            if (!accountIdEl || !amountEl) return; // Elements don't exist yet
+            
+            const accountId = accountIdEl.value;
             if (!accountId) return;
             
             const account = ACCOUNTS[accountId];
@@ -2832,7 +2837,9 @@
             const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             
             // Pre-fill with current balance
-            document.getElementById('adj-amount').value = currentBalance.toFixed(2);
+            amountEl.value = currentBalance.toFixed(2);
+            
+            console.log(`Updated balance for ${account.name}: $${currentBalance.toFixed(2)} (Payouts: $${totalPayouts.toFixed(2)})`);
         }
         
         function deleteAdjustment(id) {
@@ -4410,10 +4417,12 @@
             renderPayoutsTab();
             updateDisplay();
             
-            // Update adjustment balance if on settings tab
-            if (document.getElementById('settings').classList.contains('active')) {
-                updateAdjustmentBalance();
-            }
+            // Update adjustment balance if Settings tab exists
+            setTimeout(() => {
+                if (document.getElementById('adj-amount')) {
+                    updateAdjustmentBalance();
+                }
+            }, 100);
             
             alert(`✅ Payout of $${amount.toFixed(2)} recorded for ${ACCOUNTS[accountId].name}`);
         }
