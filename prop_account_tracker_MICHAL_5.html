@@ -2351,7 +2351,7 @@
                 ? (t => calSelectedAccounts.includes(t.account))
                 : (() => true);
             return trades
-                .filter(t => t.date === dateStr && accountFilter(t))
+                .filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t))
                 .reduce((sum, t) => sum + t.pnl, 0);
         }
         
@@ -3784,7 +3784,7 @@
             const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
             
             const monthlyPnl = trades
-                .filter(t => t.date && t.date.startsWith(currentMonth))
+                .filter(t => t.type !== 'adjustment' && t.date && t.date.startsWith(currentMonth))
                 .reduce((sum, t) => sum + t.pnl, 0);
             
             const totalProfitEl = document.getElementById('totalProfit');
@@ -4123,14 +4123,12 @@
             
             // Get unique trades (one per batch), P&L summed across all accounts
             const unique = getUniqueTrades();
-            const adjustments = trades.filter(t => t.type === 'adjustment');
             
             // Build day data - match using local date string
             const dayData = dayDates.map((date, i) => {
                 const dateStr = toLocalDateStr(date);
                 const dayTrades = unique.filter(t => t.date === dateStr);
-                const dayAdjustments = adjustments.filter(t => t.date === dateStr);
-                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
+                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0);
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
                 return { label: days[i], date, dateStr, dayTrades, pnl, isToday, isFuture };
