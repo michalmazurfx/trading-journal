@@ -852,20 +852,10 @@
         <!-- Overview Tab -->
         <div id="overview" class="tab-content active">
             <div class="container">
-                <div class="header" style="position: relative;">
+                <div class="header">
                     <h1>📊 Overview</h1>
                     <div class="total-profit" id="totalProfit">$0</div>
                     <div class="subtitle" id="totalProfitLabel">Combined Profit Across All Accounts</div>
-                    
-                    <!-- Drive Sync Widget - Positioned absolutely in top right -->
-                    <div id="drive-status-widget" style="position: absolute; top: 0; right: 0; background: rgba(255,255,255,0.95); padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-width: 180px;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <span style="font-size: 18px;">☁️</span>
-                            <span style="font-weight: 600; font-size: 0.9em; color: #2c3e50;">Drive Sync</span>
-                        </div>
-                        <div id="drive-status-overview" style="font-size: 0.85em; color: #7f8c8d;">Checking...</div>
-                        <div id="drive-last-sync-overview" style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;"></div>
-                    </div>
                 </div>
                 
                 <!-- Account Dashboard -->
@@ -4130,5 +4120,15 @@
         renderSettingsPage();
         updateDisplay();
     </script>
+    <!-- Drive Sync Status Widget - Fixed Bottom Left -->
+    <div id="drive-status-widget" style="position: fixed; bottom: 20px; left: 20px; background: rgba(255,255,255,0.98); padding: 14px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 200px; z-index: 999; border: 2px solid #e0e0e0;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+            <span style="font-size: 20px;">☁️</span>
+            <span style="font-weight: 700; font-size: 1em; color: #2c3e50;">Drive Sync</span>
+        </div>
+        <div id="drive-status-overview" style="font-size: 0.9em; color: #7f8c8d; font-weight: 500;">Checking...</div>
+        <div id="drive-last-sync-overview" style="font-size: 0.8em; color: #95a5a6; margin-top: 4px;"></div>
+    </div>
+    
 </body>
 </html>
