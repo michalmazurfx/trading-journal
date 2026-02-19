@@ -2773,11 +2773,13 @@
                 return;
             }
             
-            // Calculate current balance from existing trades
+            // Calculate current balance from existing trades and payouts
             const account = ACCOUNTS[accountId];
             const accountTrades = trades.filter(t => t.account === accountId);
             const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0);
-            const currentBalance = account.initialBalance + totalPnl;
+            const accountPayouts = payouts.filter(p => p.accountId === accountId);
+            const totalPayouts = accountPayouts.reduce((sum, p) => sum + p.amount, 0);
+            const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             
             // The adjustment is the difference
             const amount = newBalance - currentBalance;
