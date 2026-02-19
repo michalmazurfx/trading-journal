@@ -2640,7 +2640,7 @@
             
             // Remove all trades for this account
             trades = trades.filter(t => t.account !== accountId);
-            localStorage.setItem('propTrades', JSON.stringify(trades));
+            saveTradesToLocalStorage();
             
             // Remove account
             delete ACCOUNTS[accountId];
@@ -2807,7 +2807,7 @@
             };
             
             trades.push(adjustment);
-            localStorage.setItem('propTrades', JSON.stringify(trades));
+            saveTradesToLocalStorage();
             
             // Also sync to Drive if enabled
             if (useDriveSync) {
@@ -2848,7 +2848,7 @@
         function deleteAdjustment(id) {
             if (!confirm('Remove this adjustment?')) return;
             trades = trades.filter(t => t.id !== id);
-            localStorage.setItem('propTrades', JSON.stringify(trades));
+            saveTradesToLocalStorage();
             
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
@@ -3274,14 +3274,7 @@
                 });
                 
                 // Save to localStorage WITHOUT screenshots (to avoid quota)
-                const tradesWithoutScreenshots = trades.map(t => {
-                    if (t.screenshot) {
-                        const { screenshot, ...tradeWithoutScreenshot } = t;
-                        return tradeWithoutScreenshot;
-                    }
-                    return t;
-                });
-                localStorage.setItem('propTrades', JSON.stringify(tradesWithoutScreenshots));
+                saveTradesToLocalStorage();
                 
                 // Trigger Drive sync for full data INCLUDING screenshots
                 if (useDriveSync) {
@@ -3340,7 +3333,7 @@
                     trades = trades.filter(t => t.id !== id);
                 }
                 
-                localStorage.setItem('propTrades', JSON.stringify(trades));
+                saveTradesToLocalStorage();
                 
                 if (useDriveSync) {
                     clearTimeout(window.syncTimeout);
@@ -3528,7 +3521,7 @@
                 t.note = note;
             });
             
-            localStorage.setItem('propTrades', JSON.stringify(trades));
+            saveTradesToLocalStorage();
             
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
@@ -4386,6 +4379,18 @@
         // Payouts and Costs data
         let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
+        
+        // Helper function to save trades to localStorage without screenshots
+        function saveTradesToLocalStorage() {
+            const tradesWithoutScreenshots = trades.map(t => {
+                if (t.screenshot) {
+                    const { screenshot, ...tradeWithoutScreenshot } = t;
+                    return tradeWithoutScreenshot;
+                }
+                return t;
+            });
+            localStorage.setItem('propTrades', JSON.stringify(tradesWithoutScreenshots));
+        }
         
         function addPayout() {
             const accountId = document.getElementById('payout-account').value;
