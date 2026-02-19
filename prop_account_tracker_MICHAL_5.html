@@ -2784,8 +2784,8 @@
             // The adjustment is the difference
             const amount = newBalance - currentBalance;
             
-            if (Math.abs(amount) < 0.001) {
-                alert('Balance is already at that value, no adjustment needed.');
+            if (Math.abs(amount) < 0.01) {
+                alert(`Balance is already at that value.\n\nCalculated current balance: $${currentBalance.toFixed(2)}\nYou entered: $${newBalance.toFixed(2)}\nDifference: $${amount.toFixed(2)}\n\nNo adjustment needed.`);
                 return;
             }
             
@@ -2820,6 +2820,21 @@
             alert(`✅ Adjusted ${ACCOUNTS[accountId].name}\n\nPrevious balance: $${currentBalance.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\nAdjustment: ${amount >= 0 ? '+' : ''}$${amount.toFixed(2)}\n\nThis adjustment is included in all P&L displays.`);
         }
         
+        function updateAdjustmentBalance() {
+            const accountId = document.getElementById('adj-account').value;
+            if (!accountId) return;
+            
+            const account = ACCOUNTS[accountId];
+            const accountTrades = trades.filter(t => t.account === accountId);
+            const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0);
+            const accountPayouts = payouts.filter(p => p.accountId === accountId);
+            const totalPayouts = accountPayouts.reduce((sum, p) => sum + p.amount, 0);
+            const currentBalance = account.initialBalance + totalPnl - totalPayouts;
+            
+            // Pre-fill with current balance
+            document.getElementById('adj-amount').value = currentBalance.toFixed(2);
+        }
+        
         function deleteAdjustment(id) {
             if (!confirm('Remove this adjustment?')) return;
             trades = trades.filter(t => t.id !== id);
@@ -2838,9 +2853,23 @@
             // Populate account dropdown for adjustments
             const adjSelect = document.getElementById('adj-account');
             if (adjSelect) {
+                const currentAccountId = adjSelect.value; // Preserve current selection
                 adjSelect.innerHTML = Object.keys(ACCOUNTS).map(id =>
                     `<option value="${id}">${ACCOUNTS[id].name}</option>`
                 ).join('');
+                
+                // Restore selection if it still exists
+                if (currentAccountId && ACCOUNTS[currentAccountId]) {
+                    adjSelect.value = currentAccountId;
+                }
+                
+                // Add event listener to update current balance when account changes
+                adjSelect.onchange = function() {
+                    updateAdjustmentBalance();
+                };
+                
+                // Always update balance to reflect current state (including payouts)
+                updateAdjustmentBalance();
             }
             
             // Render symbol list
@@ -4380,6 +4409,12 @@
             
             renderPayoutsTab();
             updateDisplay();
+            
+            // Update adjustment balance if on settings tab
+            if (document.getElementById('settings').classList.contains('active')) {
+                updateAdjustmentBalance();
+            }
+            
             alert(`✅ Payout of $${amount.toFixed(2)} recorded for ${ACCOUNTS[accountId].name}`);
         }
         
@@ -4395,6 +4430,11 @@
             
             renderPayoutsTab();
             updateDisplay();
+            
+            // Update adjustment balance if on settings tab
+            if (document.getElementById('settings').classList.contains('active')) {
+                updateAdjustmentBalance();
+            }
         }
         
         function addCost() {
