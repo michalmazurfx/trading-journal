@@ -2848,8 +2848,11 @@
         function deleteAdjustment(id) {
             if (!confirm('Remove this adjustment?')) return;
             
+            // Convert id to number to ensure comparison works
+            const adjustmentId = Number(id);
+            
             // Remove from trades array
-            trades = trades.filter(t => t.id !== id);
+            trades = trades.filter(t => Number(t.id) !== adjustmentId);
             
             // Save to localStorage
             saveTradesToLocalStorage();
@@ -2869,7 +2872,7 @@
                 updateAdjustmentBalance();
             }, 100);
             
-            console.log('Deleted adjustment', id, 'Remaining trades:', trades.length);
+            console.log('Deleted adjustment', adjustmentId, 'Remaining trades:', trades.length);
         }
         
         function renderSettingsPage() {
@@ -4461,7 +4464,8 @@
         
         function deletePayout(id) {
             if (!confirm('Delete this payout record?')) return;
-            payouts = payouts.filter(p => p.id !== id);
+            const payoutId = Number(id);
+            payouts = payouts.filter(p => Number(p.id) !== payoutId);
             localStorage.setItem('propPayouts', JSON.stringify(payouts));
             
             if (useDriveSync) {
@@ -4521,7 +4525,8 @@
         
         function deleteCost(id) {
             if (!confirm('Delete this cost record?')) return;
-            costs = costs.filter(c => c.id !== id);
+            const costId = Number(id);
+            costs = costs.filter(c => Number(c.id) !== costId);
             localStorage.setItem('propCosts', JSON.stringify(costs));
             
             if (useDriveSync) {
@@ -4533,7 +4538,8 @@
         }
         
         function updateCostStatus(id, newStatus) {
-            const cost = costs.find(c => c.id === id);
+            const costId = Number(id);
+            const cost = costs.find(c => Number(c.id) === costId);
             if (cost) {
                 cost.status = newStatus;
                 localStorage.setItem('propCosts', JSON.stringify(costs));
