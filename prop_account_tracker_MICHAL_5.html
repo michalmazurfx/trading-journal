@@ -1696,6 +1696,9 @@
             
             try {
                 await saveDataToDrive(data);
+                // Clear localStorage after successful sync to prevent quota issues
+                localStorage.removeItem('propTrades');
+                console.log('✅ Synced to Drive, localStorage cleared');
             } catch (err) {
                 console.error('Auto-sync error:', err);
             }
@@ -1933,6 +1936,45 @@
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
         };
+        
+        // Helper function to save trades - uses Drive if enabled, localStorage if not
+        function saveTrades() {
+            if (useDriveSync) {
+                // Just trigger Drive sync, don't fill localStorage
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            } else {
+                // Save to localStorage
+                localStorage.setItem('propTrades', JSON.stringify(trades));
+            }
+        }
+        
+        function saveAccounts() {
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            } else {
+                localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
+            }
+        }
+        
+        function saveModels() {
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            } else {
+                localStorage.setItem('propModels', JSON.stringify(MODELS));
+            }
+        }
+        
+        function saveSymbols() {
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            } else {
+                localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
+            }
+        }
         
         // Load Google APIs on page load - but don't block the app
         setTimeout(() => {
