@@ -853,9 +853,21 @@
         <div id="overview" class="tab-content active">
             <div class="container">
                 <div class="header">
-                    <h1>📊 Overview</h1>
-                    <div class="total-profit" id="totalProfit">$0</div>
-                    <div class="subtitle" id="totalProfitLabel">Combined Profit Across All Accounts</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h1>📊 Overview</h1>
+                            <div class="total-profit" id="totalProfit">$0</div>
+                            <div class="subtitle" id="totalProfitLabel">Combined Profit Across All Accounts</div>
+                        </div>
+                        <div id="drive-status-widget" style="background: rgba(255,255,255,0.95); padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-width: 180px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="font-size: 18px;">☁️</span>
+                                <span style="font-weight: 600; font-size: 0.9em; color: #2c3e50;">Drive Sync</span>
+                            </div>
+                            <div id="drive-status-overview" style="font-size: 0.85em; color: #7f8c8d;">Checking...</div>
+                            <div id="drive-last-sync-overview" style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;"></div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Account Dashboard -->
@@ -1422,6 +1434,9 @@
                             <button class="btn" onclick="manualSaveToDrive()" style="width:auto; padding:10px 20px; background:#34a853;">
                                 📤 Save to Drive
                             </button>
+                            <button class="btn" onclick="importJSON()" style="width:auto; padding:10px 20px; background:#f39c12;">
+                                📂 Import JSON
+                            </button>
                             <button class="btn" onclick="disableDriveSync()" style="width:auto; padding:10px 20px; background:#95a5a6;">
                                 🔌 Disable Sync
                             </button>
@@ -1501,15 +1516,61 @@
         function maybeEnableButtons() {
             if (gapiInited && gisInited) {
                 if (useDriveSync) {
-                    // User has Drive sync enabled - load data from Drive
+                    // User has Drive sync enabled - auto-load data from Drive
+                    console.log('🔄 Auto-loading from Drive...');
                     updateDriveStatus('Loading...', null);
+                    showLoadingOverlay();
                     loadDataFromDrive();
                 } else {
                     // Check if user wants to enable Drive sync
                     updateDriveStatus('Not enabled', null);
                     checkForLocalDataMigration();
                 }
+            } else {
+                // Still waiting for APIs
+                console.log('⏳ Waiting for Google APIs to load...');
             }
+        }
+        
+        // Show loading overlay when Drive sync is enabled but data not loaded yet
+        function showLoadingOverlay() {
+            if (useDriveSync && gapiInited && gisInited) {
+                const overlay = document.createElement('div');
+                overlay.id = 'drive-loading-overlay';
+                overlay.innerHTML = `
+                    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; align-items:center; justify-content:center;">
+                        <div style="background:white; padding:40px; border-radius:12px; text-align:center; max-width:400px;">
+                            <div style="font-size:48px; margin-bottom:20px;">☁️</div>
+                            <h2 style="margin:0 0 10px 0; color:#2c3e50;">Loading from Drive</h2>
+                            <p style="color:#7f8c8d; margin:0;">Syncing your trades...</p>
+                            <div style="margin-top:20px;">
+                                <div style="width:200px; height:4px; background:#ecf0f1; border-radius:2px; overflow:hidden; margin:0 auto;">
+                                    <div style="width:100%; height:100%; background:#4285f4; animation:loading 1.5s ease-in-out infinite;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes loading {
+                            0% { transform: translateX(-100%); }
+                            50% { transform: translateX(100%); }
+                            100% { transform: translateX(-100%); }
+                        }
+                    </style>
+                `;
+                document.body.appendChild(overlay);
+                
+                // Remove overlay after 10 seconds max (fallback)
+                setTimeout(() => {
+                    const el = document.getElementById('drive-loading-overlay');
+                    if (el) el.remove();
+                }, 10000);
+            }
+        }
+        
+        function hideLoadingOverlay() {
+            const overlay = document.getElementById('drive-loading-overlay');
+            if (overlay) overlay.remove();
         }
         
         // Check if user has local data to migrate
@@ -1689,6 +1750,7 @@
                         
                         console.log('✅ Data loaded from Google Drive');
                         updateDriveStatus('Loaded from Drive', data.lastUpdated);
+                        hideLoadingOverlay();
                         
                         // Reinitialize UI with loaded data
                         generateAccountOptions();
@@ -1698,9 +1760,11 @@
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
+                        hideLoadingOverlay();
                     }
                 } catch (err) {
                     console.error('Error loading from Drive:', err);
+                    hideLoadingOverlay();
                     alert('⚠️ Could not load data from Drive. Check console for details.');
                 }
             };
@@ -1759,18 +1823,109 @@
             }
         }
         
+        function importJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        // Validate data structure
+                        if (!data.trades || !Array.isArray(data.trades)) {
+                            alert('❌ Invalid JSON file. Must contain a "trades" array.');
+                            return;
+                        }
+                        
+                        // Load into localStorage
+                        if (data.trades) {
+                            trades = data.trades;
+                            localStorage.setItem('propTrades', JSON.stringify(data.trades));
+                        }
+                        if (data.accounts) {
+                            ACCOUNTS = data.accounts;
+                            localStorage.setItem('propAccounts', JSON.stringify(data.accounts));
+                        }
+                        if (data.models) {
+                            MODELS = data.models;
+                            localStorage.setItem('propModels', JSON.stringify(data.models));
+                        }
+                        if (data.symbols) {
+                            SYMBOLS = data.symbols;
+                            localStorage.setItem('propSymbols', JSON.stringify(data.symbols));
+                        }
+                        
+                        // Save to Drive if sync enabled and APIs ready
+                        if (useDriveSync && gapiInited && gisInited && accessToken) {
+                            data.lastUpdated = new Date().toISOString();
+                            await saveDataToDrive(data);
+                            updateDriveStatus('Imported & Synced', data.lastUpdated);
+                            alert('✅ JSON imported and saved to Drive!\n\nRefreshing page...');
+                        } else {
+                            alert('✅ JSON imported to browser!\n\nClick "Save to Drive" to sync it, or refresh to see your trades.');
+                        }
+                        
+                        // Refresh UI
+                        generateAccountOptions();
+                        generateModelOptions();
+                        generateSymbolOptions();
+                        updateDisplay();
+                        
+                    } catch (err) {
+                        console.error('Import error:', err);
+                        alert('❌ Error importing JSON: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
         function updateDriveStatus(status, lastSync) {
             const statusEl = document.getElementById('drive-status');
             const infoEl = document.getElementById('drive-info');
             const lastSyncEl = document.getElementById('drive-last-sync');
             const fileIdEl = document.getElementById('drive-file-id');
             
+            // Overview widget elements
+            const overviewStatusEl = document.getElementById('drive-status-overview');
+            const overviewLastSyncEl = document.getElementById('drive-last-sync-overview');
+            
+            let color = '#7f8c8d';
+            let emoji = '⏳';
+            if (status.includes('Synced') || status.includes('Loaded')) {
+                color = '#27ae60';
+                emoji = '✅';
+            }
+            if (status.includes('Error') || status.includes('Disabled')) {
+                color = '#e74c3c';
+                emoji = '❌';
+            }
+            if (status.includes('Not enabled')) {
+                color = '#f39c12';
+                emoji = '⚠️';
+            }
+            
+            // Update Settings tab status
             if (statusEl) {
-                let color = '#7f8c8d';
-                if (status.includes('Synced') || status.includes('Loaded')) color = '#27ae60';
-                if (status.includes('Error') || status.includes('Disabled')) color = '#e74c3c';
-                
                 statusEl.innerHTML = `Status: <strong style="color:${color}">${status}</strong>`;
+            }
+            
+            // Update Overview widget
+            if (overviewStatusEl) {
+                overviewStatusEl.innerHTML = `${emoji} <strong style="color:${color}">${status}</strong>`;
+            }
+            
+            if (overviewLastSyncEl && lastSync) {
+                const date = new Date(lastSync);
+                overviewLastSyncEl.textContent = `Last: ${date.toLocaleTimeString()}`;
+            } else if (overviewLastSyncEl) {
+                overviewLastSyncEl.textContent = '';
             }
             
             if (infoEl && lastSync) {
