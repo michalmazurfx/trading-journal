@@ -1257,8 +1257,60 @@
         <div id="trade-history" class="tab-content">
             <div class="container">
                 <div class="header">
-                    <h1>📋 Trade History</h1>
-                    <p style="font-size: 1.1em; color: #7f8c8d; margin-top: 10px;">Coming soon - Full trade history and filtering</p>
+                    <h1>📋 Trade History Journal</h1>
+                    <div class="subtitle">Review every trade with screenshots, notes, and details</div>
+                </div>
+                
+                <!-- Filters -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                        <!-- Time Range Filter -->
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Time Range</label>
+                            <select id="history-time-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week" selected>This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="last-week">Last Week</option>
+                                <option value="last-month">Last Month</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Account Filter -->
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Account</label>
+                            <select id="history-account-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">All Accounts</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Trade Type Filter -->
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Type</label>
+                            <select id="history-type-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">All Trades</option>
+                                <option value="system">System Only</option>
+                                <option value="bullshit">Bullshit Only</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Result Filter -->
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Result</label>
+                            <select id="history-result-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                                <option value="all">All Results</option>
+                                <option value="win">Wins Only</option>
+                                <option value="loss">Losses Only</option>
+                                <option value="be">BE Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trade History Content -->
+                <div id="trade-history-content">
+                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -1268,7 +1320,7 @@
             <div class="container">
                 <div class="header">
                     <h1>📖 Trading Journal</h1>
-                    <p style="font-size: 1.1em; color: #7f8c8d; margin-top: 10px;">Coming soon - Review your trades with screenshots and notes</p>
+                    <p style="font-size: 1.1em; color: #7f8c8d; margin-top: 10px;">Use Trade History tab to review your trades with screenshots and notes</p>
                 </div>
             </div>
         </div>
@@ -2118,6 +2170,7 @@
             event.target.closest('.nav-item').classList.add('active');
             if (tabName === 'settings') renderSettingsPage();
             if (tabName === 'payouts') renderPayoutsTab();
+            if (tabName === 'trade-history') renderTradeHistory();
             if (tabName === 'calendar') {
                 generateCalendarAccountFilter();
                 renderCalendar();
@@ -4658,6 +4711,299 @@
             }
         }
         
+        // Trade History rendering
+        function renderTradeHistory() {
+            const timeFilter = document.getElementById('history-time-filter').value;
+            const accountFilter = document.getElementById('history-account-filter').value;
+            const typeFilter = document.getElementById('history-type-filter').value;
+            const resultFilter = document.getElementById('history-result-filter').value;
+            
+            // Populate account filter dropdown
+            const accountSelect = document.getElementById('history-account-filter');
+            if (accountSelect.options.length === 1) { // Only has "All Accounts"
+                Object.keys(ACCOUNTS).forEach(id => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = ACCOUNTS[id].name;
+                    accountSelect.appendChild(option);
+                });
+            }
+            
+            // Filter trades by time range
+            const now = new Date();
+            let filteredTrades = trades.filter(t => t.type !== 'adjustment');
+            
+            if (timeFilter !== 'all') {
+                filteredTrades = filteredTrades.filter(t => {
+                    if (!t.date) return false;
+                    const tradeDate = new Date(t.date);
+                    
+                    if (timeFilter === 'today') {
+                        return t.date === now.toISOString().split('T')[0];
+                    } else if (timeFilter === 'week') {
+                        const weekStart = new Date(now);
+                        weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
+                        weekStart.setHours(0,0,0,0);
+                        return tradeDate >= weekStart;
+                    } else if (timeFilter === 'month') {
+                        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                        return tradeDate >= monthStart;
+                    } else if (timeFilter === 'last-week') {
+                        const lastWeekStart = new Date(now);
+                        lastWeekStart.setDate(now.getDate() - now.getDay() - 6); // Last Monday
+                        lastWeekStart.setHours(0,0,0,0);
+                        const lastWeekEnd = new Date(lastWeekStart);
+                        lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+                        lastWeekEnd.setHours(23,59,59,999);
+                        return tradeDate >= lastWeekStart && tradeDate <= lastWeekEnd;
+                    } else if (timeFilter === 'last-month') {
+                        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+                        return tradeDate >= lastMonthStart && tradeDate <= lastMonthEnd;
+                    }
+                    return true;
+                });
+            }
+            
+            // Filter by account
+            if (accountFilter !== 'all') {
+                filteredTrades = filteredTrades.filter(t => t.account === accountFilter);
+            }
+            
+            // Filter by type
+            if (typeFilter !== 'all') {
+                filteredTrades = filteredTrades.filter(t => t.type === typeFilter);
+            }
+            
+            // Filter by result
+            if (resultFilter !== 'all') {
+                if (resultFilter === 'be') {
+                    filteredTrades = filteredTrades.filter(t => t.result && t.result.startsWith('be'));
+                } else {
+                    filteredTrades = filteredTrades.filter(t => t.result === resultFilter);
+                }
+            }
+            
+            // Group by date
+            const tradesByDate = {};
+            filteredTrades.forEach(trade => {
+                if (!trade.date) return;
+                if (!tradesByDate[trade.date]) {
+                    tradesByDate[trade.date] = [];
+                }
+                tradesByDate[trade.date].push(trade);
+            });
+            
+            // Sort dates descending (newest first)
+            const sortedDates = Object.keys(tradesByDate).sort((a, b) => b.localeCompare(a));
+            
+            const content = document.getElementById('trade-history-content');
+            
+            if (sortedDates.length === 0) {
+                content.innerHTML = '<div class="card"><div class="no-data">No trades found for selected filters</div></div>';
+                return;
+            }
+            
+            // Render trades grouped by date
+            content.innerHTML = sortedDates.map(date => {
+                const dayTrades = tradesByDate[date];
+                const dayPnl = dayTrades.reduce((sum, t) => sum + t.pnl, 0);
+                const dayR = dayTrades.reduce((sum, t) => sum + (t.rValue || 0), 0);
+                const dateObj = new Date(date + 'T00:00:00');
+                const dateLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                
+                return `
+                    <div class="card" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e0e0e0;">
+                            <h2 style="margin: 0; color: #2c3e50;">📅 ${dateLabel}</h2>
+                            <div style="display: flex; gap: 20px;">
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.85em; color: #7f8c8d;">P&L</div>
+                                    <div style="font-size: 1.2em; font-weight: bold; color: ${dayPnl >= 0 ? '#27ae60' : '#e74c3c'};">
+                                        ${dayPnl >= 0 ? '+' : ''}$${dayPnl.toFixed(2)}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.85em; color: #7f8c8d;">Total R</div>
+                                    <div style="font-size: 1.2em; font-weight: bold; color: ${dayR >= 0 ? '#27ae60' : '#e74c3c'};">
+                                        ${dayR >= 0 ? '+' : ''}${dayR.toFixed(2)}R
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.85em; color: #7f8c8d;">Trades</div>
+                                    <div style="font-size: 1.2em; font-weight: bold; color: #3498db;">
+                                        ${dayTrades.length}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${dayTrades.map(trade => renderTradeCard(trade)).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function renderTradeCard(trade) {
+            const account = ACCOUNTS[trade.account];
+            const resultColors = {
+                win: '#27ae60',
+                loss: '#e74c3c',
+                'be-win': '#f39c12',
+                'be-loss': '#f39c12'
+            };
+            const resultLabels = {
+                win: '🟢 WIN',
+                loss: '🔴 LOSS',
+                'be-win': '🟡 BE/WIN',
+                'be-loss': '🟡 BE/LOSS'
+            };
+            const typeLabels = {
+                system: '✅ System',
+                bullshit: '❌ Bullshit'
+            };
+            
+            return `
+                <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 15px; background: #f8f9fa;">
+                    <div style="display: grid; grid-template-columns: ${trade.screenshot ? '300px 1fr' : '1fr'}; gap: 20px;">
+                        ${trade.screenshot ? `
+                            <div>
+                                <img src="${trade.screenshot}" 
+                                     onclick="openImageModal('${trade.screenshot}')" 
+                                     style="width: 100%; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                     alt="Trade screenshot">
+                            </div>
+                        ` : ''}
+                        
+                        <div>
+                            <!-- Trade Header -->
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                <div>
+                                    <div style="font-size: 1.1em; font-weight: 700; color: #2c3e50; margin-bottom: 5px;">
+                                        ${trade.symbol} ${trade.direction === 'long' ? '📈' : '📉'} ${trade.direction.toUpperCase()}
+                                    </div>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <span style="background: ${resultColors[trade.result]}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
+                                            ${resultLabels[trade.result]}
+                                        </span>
+                                        <span style="background: ${trade.type === 'system' ? '#3498db' : '#95a5a6'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
+                                            ${typeLabels[trade.type]}
+                                        </span>
+                                        <span style="background: #ecf0f1; color: #2c3e50; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
+                                            ${account.name}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.5em; font-weight: bold; color: ${trade.pnl >= 0 ? '#27ae60' : '#e74c3c'};">
+                                        ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}
+                                    </div>
+                                    ${trade.rValue ? `
+                                        <div style="font-size: 1.1em; font-weight: 600; color: ${trade.rValue >= 0 ? '#27ae60' : '#e74c3c'};">
+                                            ${trade.rValue >= 0 ? '+' : ''}${trade.rValue.toFixed(2)}R
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Trade Details Grid -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                                ${trade.entryTime ? `
+                                    <div>
+                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Entry</div>
+                                        <div style="font-weight: 600; color: #2c3e50;">${trade.entryTime}</div>
+                                    </div>
+                                ` : ''}
+                                ${trade.exitTime ? `
+                                    <div>
+                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Exit</div>
+                                        <div style="font-weight: 600; color: #2c3e50;">${trade.exitTime}</div>
+                                    </div>
+                                ` : ''}
+                                ${trade.duration ? `
+                                    <div>
+                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Duration</div>
+                                        <div style="font-weight: 600; color: #2c3e50;">${trade.duration}</div>
+                                    </div>
+                                ` : ''}
+                                <div>
+                                    <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Risk</div>
+                                    <div style="font-weight: 600; color: #2c3e50;">${trade.risk ? '$' + trade.risk.toFixed(2) : 'N/A'}</div>
+                                </div>
+                                ${trade.model ? `
+                                    <div>
+                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Model</div>
+                                        <div style="font-weight: 600; color: #2c3e50;">${MODELS[trade.model] ? MODELS[trade.model].name : 'N/A'}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Notes Section -->
+                            <div style="background: white; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                                <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Notes</div>
+                                <textarea 
+                                    id="trade-note-${trade.id}" 
+                                    onblur="updateTradeNote(${trade.id})"
+                                    style="width: 100%; min-height: 60px; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; font-size: 0.95em; font-family: inherit; resize: vertical;"
+                                    placeholder="Add your trade notes here...">${trade.note || ''}</textarea>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="editTradeFromHistory(${trade.id})" style="flex: 1; padding: 8px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                    ✏️ Edit Trade
+                                </button>
+                                <button onclick="deleteTrade(${trade.id})" style="flex: 1; padding: 8px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function updateTradeNote(tradeId) {
+            const noteEl = document.getElementById(`trade-note-${tradeId}`);
+            if (!noteEl) return;
+            
+            const trade = trades.find(t => t.id === tradeId);
+            if (!trade) return;
+            
+            trade.note = noteEl.value;
+            saveTradesToLocalStorage();
+            
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            }
+            
+            console.log('Updated trade note for trade', tradeId);
+        }
+        
+        function editTradeFromHistory(tradeId) {
+            // Find the trade and open edit modal (existing functionality)
+            const trade = trades.find(t => t.id === tradeId);
+            if (!trade) return;
+            
+            // Switch to trade-history tab if not already there, then open modal
+            // For now, just alert - you can connect this to your existing edit modal
+            alert('Edit functionality: This will open the existing edit modal. Connect to openEditModal() function.');
+        }
+        
+        function openImageModal(imageSrc) {
+            const modal = document.getElementById('image-modal');
+            const img = document.getElementById('modal-image');
+            img.src = imageSrc;
+            modal.style.display = 'flex';
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('image-modal');
+            modal.style.display = 'none';
+        }
+        
         // Initialize
         generateAccountOptions();
         generateModelOptions();
@@ -4673,6 +5019,7 @@
         document.getElementById('cost-date').valueAsDate = new Date();
         renderSettingsPage();
         renderPayoutsTab();
+        renderTradeHistory(); // Initialize trade history
         updateDisplay();
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
@@ -4683,6 +5030,14 @@
         </div>
         <div id="drive-status-overview" style="font-size: 0.9em; color: #7f8c8d; font-weight: 500;">Checking...</div>
         <div id="drive-last-sync-overview" style="font-size: 0.8em; color: #95a5a6; margin-top: 4px;"></div>
+    </div>
+    
+    <!-- Image Modal for Screenshots -->
+    <div id="image-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; align-items: center; justify-content: center;" onclick="closeImageModal()">
+        <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;">
+            <img id="modal-image" src="" style="max-width: 100%; max-height: 90vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <button onclick="closeImageModal()" style="position: absolute; top: 20px; right: 20px; background: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 20px; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">✕</button>
+        </div>
     </div>
     
 </body>
