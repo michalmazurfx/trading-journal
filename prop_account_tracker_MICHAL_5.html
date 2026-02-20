@@ -1833,22 +1833,32 @@
         }
         
         async function findDriveFile() {
-            const response = await gapi.client.drive.files.list({
-                q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
-                spaces: 'drive',
-                fields: 'files(id, name, size)',
-                orderBy: 'createdTime desc'
-            });
-            const files = response.result.files;
-            if (files && files.length > 0) {
-                // If multiple files exist, pick the largest one (most data)
-                if (files.length > 1) {
-                    console.warn(`⚠️ Found ${files.length} files with same name. Picking the largest.`);
-                    files.sort((a, b) => (parseInt(b.size) || 0) - (parseInt(a.size) || 0));
+            try {
+                console.log('🔍 Searching for Drive file:', DRIVE_FILE_NAME);
+                const response = await gapi.client.drive.files.list({
+                    q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
+                    spaces: 'drive',
+                    fields: 'files(id, name, size, createdTime)',
+                    orderBy: 'createdTime desc'
+                });
+                const files = response.result.files;
+                console.log('📁 Files found:', files);
+                
+                if (files && files.length > 0) {
+                    // If multiple files exist, pick the largest one (most data)
+                    if (files.length > 1) {
+                        console.warn(`⚠️ Found ${files.length} files with same name. Picking the largest.`);
+                        files.sort((a, b) => (parseInt(b.size) || 0) - (parseInt(a.size) || 0));
+                    }
+                    console.log('✅ Using file:', files[0].name, 'Size:', files[0].size, 'ID:', files[0].id);
+                    return files[0].id;
                 }
-                return files[0].id;
+                console.log('❌ No files found');
+                return null;
+            } catch (error) {
+                console.error('Error searching for Drive file:', error);
+                return null;
             }
-            return null;
         }
         
         async function saveDataToDrive(data) {
