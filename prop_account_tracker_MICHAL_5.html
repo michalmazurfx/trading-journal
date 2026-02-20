@@ -1931,17 +1931,6 @@
                         // Load data into memory for this session (no localStorage when Drive sync is on)
                         if (data.trades) {
                             trades = data.trades;
-                            // Clean up trades that reference deleted accounts
-                            const validAccountIds = new Set(Object.keys(data.accounts || ACCOUNTS));
-                            const beforeCount = trades.length;
-                            trades = trades.filter(t => {
-                                if (t.type === 'adjustment') return true; // Keep adjustments
-                                return validAccountIds.has(t.account);
-                            });
-                            const removedCount = beforeCount - trades.length;
-                            if (removedCount > 0) {
-                                console.log(`🧹 Cleaned up ${removedCount} trades with deleted account references`);
-                            }
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
@@ -1954,9 +1943,6 @@
                         }
                         if (data.payouts) {
                             payouts = data.payouts;
-                            // Clean up payouts for deleted accounts
-                            const validAccountIds = new Set(Object.keys(data.accounts || ACCOUNTS));
-                            payouts = payouts.filter(p => validAccountIds.has(p.accountId));
                         }
                         if (data.costs) {
                             costs = data.costs;
@@ -2297,19 +2283,6 @@
             }
             return t;
         });
-        
-        // Clean up trades that reference deleted accounts
-        const validAccountIds = new Set(Object.keys(ACCOUNTS));
-        const beforeCount = trades.length;
-        trades = trades.filter(t => {
-            if (t.type === 'adjustment') return true; // Keep adjustments
-            return validAccountIds.has(t.account);
-        });
-        const removedCount = beforeCount - trades.length;
-        if (removedCount > 0) {
-            console.log(`🧹 Cleaned up ${removedCount} trades with deleted account references on startup`);
-            // Will be saved to localStorage when page initializes properly
-        }
         
         let currentFilter = 'system';
         
@@ -4539,9 +4512,6 @@
         // Payouts and Costs data
         let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
-        
-        // Clean up payouts for deleted accounts
-        payouts = payouts.filter(p => ACCOUNTS[p.accountId]);
         
         function updatePayoutPreview() {
             const grossAmount = parseFloat(document.getElementById('payout-amount').value) || 0;
