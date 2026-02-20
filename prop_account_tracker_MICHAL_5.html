@@ -4200,25 +4200,27 @@
                 </div>
             `;
             
-            // Week stats - all unique trades this week
+            // Week stats - ONLY system trades for win/loss/R stats
+            // But P&L above includes ALL trades (system + bullshit)
             const weekTrades = dayData.flatMap(d => d.dayTrades);
-            const weekWins = weekTrades.filter(t => t.result === 'win').length;
-            const weekLosses = weekTrades.filter(t => t.result === 'loss').length;
-            const weekBeWin = weekTrades.filter(t => t.result === 'be_win').length;
-            const weekBeLoss = weekTrades.filter(t => t.result === 'be_loss').length;
+            const weekSystemTrades = weekTrades.filter(t => t.type === 'system');
+            const weekWins = weekSystemTrades.filter(t => t.result === 'win').length;
+            const weekLosses = weekSystemTrades.filter(t => t.result === 'loss').length;
+            const weekBeWin = weekSystemTrades.filter(t => t.result === 'be_win').length;
+            const weekBeLoss = weekSystemTrades.filter(t => t.result === 'be_loss').length;
             const weekWinRate = (weekWins + weekLosses) > 0 
                 ? Math.round(weekWins / (weekWins + weekLosses) * 100) 
                 : 0;
             const winRateColor = weekWinRate >= 60 ? '#27ae60' : weekWinRate >= 45 ? '#f39c12' : '#e74c3c';
             // Exclude BE trades from R calculation (only count wins and losses)
-            const weekR = weekTrades
+            const weekR = weekSystemTrades
                 .filter(t => t.result === 'win' || t.result === 'loss')
                 .reduce((sum, t) => sum + (t.rValue || 0), 0);
             const weekRColor = weekR > 0 ? '#27ae60' : weekR < 0 ? '#e74c3c' : '#f39c12';
             
             html += `
                 <div style="margin-top: 15px;">
-                    <div style="font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 1em;">Current Week Stats</div>
+                    <div style="font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 1em;">Current Week Stats — System Trades Only</div>
                     <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
                         <div style="background: #f0fff4; border: 2px solid #27ae60; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: #27ae60;">${weekWins}</div>
