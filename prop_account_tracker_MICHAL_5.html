@@ -1170,6 +1170,14 @@
                         </div>
                     </div>
                     <div style="flex:1; min-width:250px;">
+                        <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Trade Type:</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            <button class="filter-btn active" id="perf-type-all" onclick="setPerfDiscipline('all')">All Trades</button>
+                            <button class="filter-btn" id="perf-type-system" onclick="setPerfDiscipline('system')">✅ System Only</button>
+                            <button class="filter-btn" id="perf-type-offsystem" onclick="setPerfDiscipline('offsystem')">❌ Off-System Only</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; min-width:250px;">
                         <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Accounts:</label>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                             <button type="button" class="btn" onclick="perfSelectAll(event)" style="width: auto; padding: 8px 16px; margin: 0; font-size:0.9em;">All Accounts</button>
@@ -3895,6 +3903,7 @@
         
         let perfSelectedAccounts = [];
         let perfTimeRange = 'week';
+        let perfDiscipline = 'all'; // 'all', 'system', or 'offsystem'
         
         function generatePerfAccountFilter() {
             const menu = document.getElementById('perfDropdownMenu');
@@ -3952,6 +3961,17 @@
             updatePerformanceTab();
         }
         
+        function setPerfDiscipline(discipline) {
+            perfDiscipline = discipline;
+            // Remove active from all discipline buttons
+            document.getElementById('perf-type-all').classList.remove('active');
+            document.getElementById('perf-type-system').classList.remove('active');
+            document.getElementById('perf-type-offsystem').classList.remove('active');
+            // Add active to clicked button
+            document.getElementById(`perf-type-${discipline}`).classList.add('active');
+            updatePerformanceTab();
+        }
+        
         function getFilteredPerfTrades() {
             let filtered = getUniqueTrades();
             
@@ -3980,6 +4000,11 @@
                         accountCount: batchTrades.length
                     };
                 });
+            }
+            
+            // Filter by discipline (system/off-system/all)
+            if (perfDiscipline !== 'all') {
+                filtered = filtered.filter(t => t.type === perfDiscipline);
             }
             
             // Filter by time range
