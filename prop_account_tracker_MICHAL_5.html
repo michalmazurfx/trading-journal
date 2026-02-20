@@ -1334,18 +1334,26 @@
                 </div>
                 
                 <!-- Summary Cards -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
                     <div class="card" style="text-align: center; padding: 25px;">
-                        <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Total Payouts</div>
-                        <div id="totalPayouts" style="font-size: 2em; font-weight: bold; color: #27ae60;">$0</div>
+                        <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Gross Payouts</div>
+                        <div id="totalPayoutsGross" style="font-size: 2em; font-weight: bold; color: #27ae60;">$0</div>
+                        <div style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;">Withdrawn from accounts</div>
+                    </div>
+                    <div class="card" style="text-align: center; padding: 25px;">
+                        <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Net Payouts</div>
+                        <div id="totalPayoutsNet" style="font-size: 2em; font-weight: bold; color: #27ae60;">$0</div>
+                        <div style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;">What you received</div>
                     </div>
                     <div class="card" style="text-align: center; padding: 25px;">
                         <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Total Costs</div>
                         <div id="totalCosts" style="font-size: 2em; font-weight: bold; color: #e74c3c;">$0</div>
+                        <div style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;">Challenges & resets</div>
                     </div>
                     <div class="card" style="text-align: center; padding: 25px;">
-                        <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Net (Payouts - Costs)</div>
+                        <div style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 8px;">Net Profit</div>
                         <div id="netPayouts" style="font-size: 2em; font-weight: bold;">$0</div>
+                        <div style="font-size: 0.75em; color: #95a5a6; margin-top: 4px;">Net payouts - costs</div>
                     </div>
                 </div>
                 
@@ -1353,7 +1361,7 @@
                     <!-- Add Payout -->
                     <div class="card">
                         <h2>💸 Add Payout (Withdrawal)</h2>
-                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Record money withdrawn from your account. This reduces balance but doesn't affect P&L stats.</p>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">Record money withdrawn from your account. Gross amount deducted from balance, net amount is what you receive after split.</p>
                         
                         <div class="input-group">
                             <label>Account</label>
@@ -1361,12 +1369,26 @@
                         </div>
                         <div class="input-row">
                             <div class="input-group">
-                                <label>Amount ($)</label>
-                                <input type="number" id="payout-amount" step="0.01" placeholder="e.g. 5000">
+                                <label>Gross Amount ($) <span style="color:#7f8c8d; font-weight:400; font-size:0.9em;">— withdrawn from account</span></label>
+                                <input type="number" id="payout-amount" step="0.01" placeholder="e.g. 5000" oninput="updatePayoutPreview()">
                             </div>
+                            <div class="input-group">
+                                <label>Profit Split</label>
+                                <select id="payout-split" onchange="updatePayoutPreview()">
+                                    <option value="100">100/0 (You keep 100%)</option>
+                                    <option value="90" selected>90/10 (You keep 90%)</option>
+                                    <option value="80">80/20 (You keep 80%)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-row">
                             <div class="input-group">
                                 <label>Date</label>
                                 <input type="date" id="payout-date">
+                            </div>
+                            <div class="input-group">
+                                <label>Net Amount <span style="color:#7f8c8d; font-weight:400; font-size:0.9em;">— what you receive</span></label>
+                                <input type="number" id="payout-net" step="0.01" readonly style="background: #f8f9fa; color: #27ae60; font-weight: 700; font-size: 1.1em;">
                             </div>
                         </div>
                         <div class="input-group">
@@ -2834,7 +2856,7 @@
             const accountTrades = trades.filter(t => t.account === accountId);
             const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0);
             const accountPayouts = payouts.filter(p => p.accountId === accountId);
-            const totalPayouts = accountPayouts.reduce((sum, p) => sum + p.amount, 0);
+            const totalPayouts = accountPayouts.reduce((sum, p) => sum + (p.grossAmount || p.amount || 0), 0);
             const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             
             // The adjustment is the difference
@@ -2889,7 +2911,7 @@
             const accountTrades = trades.filter(t => t.account === accountId);
             const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0);
             const accountPayouts = payouts.filter(p => p.accountId === accountId);
-            const totalPayouts = accountPayouts.reduce((sum, p) => sum + p.amount, 0);
+            const totalPayouts = accountPayouts.reduce((sum, p) => sum + (p.grossAmount || p.amount || 0), 0);
             const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             
             // Pre-fill with current balance
@@ -3626,9 +3648,9 @@
             
             const totalPnl = accountTrades.reduce((sum, t) => sum + t.pnl, 0); // includes adjustments
             
-            // Subtract payouts from this account
+            // Subtract payouts from this account (GROSS amount withdrawn)
             const accountPayouts = payouts.filter(p => p.accountId === accountId);
-            const totalPayouts = accountPayouts.reduce((sum, p) => sum + p.amount, 0);
+            const totalPayouts = accountPayouts.reduce((sum, p) => sum + (p.grossAmount || p.amount || 0), 0);
             
             const currentBalance = account.initialBalance + totalPnl - totalPayouts;
             const currentProfit = currentBalance - account.size;
@@ -4455,6 +4477,14 @@
         let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
         
+        function updatePayoutPreview() {
+            const grossAmount = parseFloat(document.getElementById('payout-amount').value) || 0;
+            const splitPercent = parseInt(document.getElementById('payout-split').value) || 100;
+            const netAmount = grossAmount * (splitPercent / 100);
+            
+            document.getElementById('payout-net').value = netAmount.toFixed(2);
+        }
+        
         // Helper function to save trades to localStorage without screenshots
         function saveTradesToLocalStorage() {
             const tradesWithoutScreenshots = trades.map(t => {
@@ -4469,11 +4499,13 @@
         
         function addPayout() {
             const accountId = document.getElementById('payout-account').value;
-            const amount = parseFloat(document.getElementById('payout-amount').value);
+            const grossAmount = parseFloat(document.getElementById('payout-amount').value);
+            const splitPercent = parseInt(document.getElementById('payout-split').value);
+            const netAmount = grossAmount * (splitPercent / 100);
             const date = document.getElementById('payout-date').value;
             const note = document.getElementById('payout-note').value || 'Payout';
             
-            if (!accountId || isNaN(amount) || amount <= 0 || !date) {
+            if (!accountId || isNaN(grossAmount) || grossAmount <= 0 || !date) {
                 alert('Please fill in all required fields');
                 return;
             }
@@ -4482,7 +4514,9 @@
                 id: Date.now(),
                 accountId: accountId,
                 accountName: ACCOUNTS[accountId].name,
-                amount: amount,
+                grossAmount: grossAmount,
+                netAmount: netAmount,
+                splitPercent: splitPercent,
                 date: date,
                 note: note,
                 timestamp: new Date().toISOString()
@@ -4498,6 +4532,7 @@
             
             // Clear inputs
             document.getElementById('payout-amount').value = '';
+            document.getElementById('payout-net').value = '';
             document.getElementById('payout-note').value = '';
             
             renderPayoutsTab();
@@ -4510,7 +4545,7 @@
                 }
             }, 100);
             
-            alert(`✅ Payout of $${amount.toFixed(2)} recorded for ${ACCOUNTS[accountId].name}`);
+            alert(`✅ Payout recorded for ${ACCOUNTS[accountId].name}\n\nGross (withdrawn): $${grossAmount.toFixed(2)}\nSplit: ${splitPercent}%\nNet (received): $${netAmount.toFixed(2)}`);
         }
         
         function deletePayout(id) {
@@ -4606,14 +4641,16 @@
         
         function renderPayoutsTab() {
             // Update summary
-            const totalPayouts = payouts.reduce((sum, p) => sum + p.amount, 0);
+            const totalPayoutsGross = payouts.reduce((sum, p) => sum + (p.grossAmount || p.amount || 0), 0);
+            const totalPayoutsNet = payouts.reduce((sum, p) => sum + (p.netAmount || p.amount || 0), 0);
             const totalCosts = costs.reduce((sum, c) => sum + c.price, 0);
-            const netPayouts = totalPayouts - totalCosts;
+            const netProfit = totalPayoutsNet - totalCosts;
             
-            document.getElementById('totalPayouts').textContent = '+$' + totalPayouts.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('totalCosts').textContent = '-$' + totalCosts.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('netPayouts').textContent = (netPayouts >= 0 ? '+' : '') + '$' + netPayouts.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('netPayouts').style.color = netPayouts >= 0 ? '#27ae60' : '#e74c3c';
+            document.getElementById('totalPayoutsGross').textContent = '$' + totalPayoutsGross.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('totalPayoutsNet').textContent = '$' + totalPayoutsNet.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('totalCosts').textContent = '$' + totalCosts.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('netPayouts').textContent = (netProfit >= 0 ? '+' : '') + '$' + netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('netPayouts').style.color = netProfit >= 0 ? '#27ae60' : '#e74c3c';
             
             // Populate account dropdown
             const payoutAccountSelect = document.getElementById('payout-account');
@@ -4636,23 +4673,31 @@
                                 <tr style="border-bottom: 2px solid #e0e0e0;">
                                     <th style="text-align: left; padding: 10px; font-weight: 600;">Date</th>
                                     <th style="text-align: left; padding: 10px; font-weight: 600;">Account</th>
-                                    <th style="text-align: right; padding: 10px; font-weight: 600;">Amount</th>
+                                    <th style="text-align: right; padding: 10px; font-weight: 600;">Gross</th>
+                                    <th style="text-align: center; padding: 10px; font-weight: 600;">Split</th>
+                                    <th style="text-align: right; padding: 10px; font-weight: 600;">Net</th>
                                     <th style="text-align: left; padding: 10px; font-weight: 600;">Note</th>
                                     <th style="text-align: center; padding: 10px; font-weight: 600;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${sortedPayouts.map(p => `
+                                ${sortedPayouts.map(p => {
+                                    const gross = p.grossAmount || p.amount || 0;
+                                    const net = p.netAmount || p.amount || 0;
+                                    const split = p.splitPercent || 100;
+                                    return `
                                     <tr style="border-bottom: 1px solid #f0f0f0;">
                                         <td style="padding: 10px;">${p.date}</td>
                                         <td style="padding: 10px;">${p.accountName}</td>
-                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">+$${p.amount.toFixed(2)}</td>
+                                        <td style="padding: 10px; text-align: right; color: #e67e22; font-weight: 600;">-$${gross.toFixed(2)}</td>
+                                        <td style="padding: 10px; text-align: center; font-weight: 600; color: #7f8c8d;">${split}%</td>
+                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">+$${net.toFixed(2)}</td>
                                         <td style="padding: 10px;">${p.note}</td>
                                         <td style="padding: 10px; text-align: center;">
                                             <button onclick="deletePayout(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
                                         </td>
                                     </tr>
-                                `).join('')}
+                                `}).join('')}
                             </tbody>
                         </table>
                     `;
