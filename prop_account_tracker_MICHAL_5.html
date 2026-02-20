@@ -2522,9 +2522,17 @@
             const accountFilter = calSelectedAccounts.length > 0 
                 ? (t => calSelectedAccounts.includes(t.account))
                 : (() => true);
-            return trades
-                .filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t))
+            
+            // Calculate P&L from system trades + adjustments only
+            const systemPnl = trades
+                .filter(t => t.type === 'system' && t.date === dateStr && accountFilter(t))
                 .reduce((sum, t) => sum + t.pnl, 0);
+            
+            const adjustmentPnl = trades
+                .filter(t => t.type === 'adjustment' && t.date === dateStr && accountFilter(t))
+                .reduce((sum, t) => sum + t.pnl, 0);
+            
+            return systemPnl + adjustmentPnl;
         }
         
         function getDayTrades(dateStr) {
@@ -4312,13 +4320,15 @@
             });
             
             // Get unique trades (one per batch), P&L summed across all accounts
+            // Only count SYSTEM trades + adjustments
             const unique = getUniqueTrades();
+            const systemUnique = unique.filter(t => t.type === 'system');
             const adjustments = trades.filter(t => t.type === 'adjustment');
             
             // Build day data - match using local date string
             const dayData = dayDates.map((date, i) => {
                 const dateStr = toLocalDateStr(date);
-                const dayTrades = unique.filter(t => t.date === dateStr);
+                const dayTrades = systemUnique.filter(t => t.date === dateStr);
                 const dayAdjustments = adjustments.filter(t => t.date === dateStr);
                 const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
                 const isToday = dateStr === todayStr;
