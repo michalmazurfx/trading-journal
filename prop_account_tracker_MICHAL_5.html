@@ -4541,8 +4541,7 @@
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
         
         // Clean up payouts for deleted accounts
-        const validAccountIds = new Set(Object.keys(ACCOUNTS));
-        payouts = payouts.filter(p => validAccountIds.has(p.accountId));
+        payouts = payouts.filter(p => ACCOUNTS[p.accountId]);
         
         function updatePayoutPreview() {
             const grossAmount = parseFloat(document.getElementById('payout-amount').value) || 0;
