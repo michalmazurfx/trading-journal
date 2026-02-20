@@ -2308,8 +2308,7 @@
         const removedCount = beforeCount - trades.length;
         if (removedCount > 0) {
             console.log(`🧹 Cleaned up ${removedCount} trades with deleted account references on startup`);
-            // Save cleaned data back
-            saveTradesToLocalStorage();
+            // Will be saved to localStorage when page initializes properly
         }
         
         let currentFilter = 'system';
