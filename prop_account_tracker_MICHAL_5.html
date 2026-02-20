@@ -2537,6 +2537,11 @@
         }
         
         function calChangeMonth(delta) {
+            calMonth += delta;
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            renderCalendar();
+        }
         
         function generateCalendarAccountFilter() {
             const container = document.getElementById('cal-account-filter');
