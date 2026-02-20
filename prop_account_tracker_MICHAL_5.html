@@ -4925,17 +4925,26 @@
         
         function renderTradeCard(trade) {
             const account = ACCOUNTS[trade.account];
+            if (!account) {
+                console.warn('Trade references deleted account:', trade.account);
+                return ''; // Skip trades with deleted accounts
+            }
+            
             const resultColors = {
                 win: '#27ae60',
                 loss: '#e74c3c',
                 'be-win': '#f39c12',
-                'be-loss': '#f39c12'
+                'be-loss': '#f39c12',
+                'be_win': '#f39c12',
+                'be_loss': '#f39c12'
             };
             const resultLabels = {
                 win: '🟢 WIN',
                 loss: '🔴 LOSS',
                 'be-win': '🟡 BE/WIN',
-                'be-loss': '🟡 BE/LOSS'
+                'be-loss': '🟡 BE/LOSS',
+                'be_win': '🟡 BE/WIN',
+                'be_loss': '🟡 BE/LOSS'
             };
             const typeLabels = {
                 system: '✅ System',
@@ -5098,7 +5107,15 @@
         document.getElementById('cost-date').valueAsDate = new Date();
         renderSettingsPage();
         renderPayoutsTab();
-        renderTradeHistory(); // Initialize trade history
+        
+        // Initialize trade history with error handling
+        try {
+            renderTradeHistory();
+        } catch (error) {
+            console.error('Error rendering trade history:', error);
+            // Don't let trade history errors break the whole app
+        }
+        
         updateDisplay();
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
