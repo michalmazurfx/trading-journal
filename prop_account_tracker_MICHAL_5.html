@@ -1614,12 +1614,35 @@
                         </div>
                     </div>
                     
+                    <!-- Backup & Restore System -->
+                    <div class="card" style="margin-top: 30px;">
+                        <h2>💾 Backup & Restore</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">
+                            Download your data as JSON file or restore from a previous backup. Your data includes all trades, accounts, models, symbols, payouts, and costs.
+                        </p>
+                        
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                            <button class="btn" onclick="exportToJSON()" style="width:auto; padding:10px 20px; background:#27ae60;">
+                                📥 Export Backup (Download JSON)
+                            </button>
+                            <button class="btn" onclick="document.getElementById('import-file').click()" style="width:auto; padding:10px 20px; background:#3498db;">
+                                📤 Import Backup (Restore JSON)
+                            </button>
+                        </div>
+                        
+                        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importFromJSON(event)">
+                        
+                        <div style="padding:12px; background:#fff3cd; border:1px solid #ffc107; border-radius:6px; font-size:0.9em;">
+                            <strong>💡 Tip:</strong> Export a backup before making big changes. Keep backups in a safe place!
+                        </div>
+                    </div>
+                    
                     <!-- Google Drive Sync -->
                     <div class="card" style="margin-top: 30px;">
-                        <h2>☁️ Google Drive Sync</h2>
+                        <h2>☁️ Google Drive Sync (Optional)</h2>
                         <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">
                             <span id="drive-status">Status: <strong>Checking...</strong></span><br>
-                            Sync your trades to Google Drive for unlimited storage and multi-device access.
+                            Auto-sync to Google Drive. <strong style="color:#e74c3c;">Warning:</strong> Use manual backup instead if you experience issues.
                         </p>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <button class="btn" onclick="manualLoadFromDrive()" style="width:auto; padding:10px 20px; background:#4285f4;">
@@ -1627,9 +1650,6 @@
                             </button>
                             <button class="btn" onclick="manualSaveToDrive()" style="width:auto; padding:10px 20px; background:#34a853;">
                                 📤 Save to Drive
-                            </button>
-                            <button class="btn" onclick="importJSON()" style="width:auto; padding:10px 20px; background:#f39c12;">
-                                📂 Import JSON
                             </button>
                             <button class="btn" onclick="disableDriveSync()" style="width:auto; padding:10px 20px; background:#95a5a6;">
                                 🔌 Disable Sync
@@ -2029,6 +2049,103 @@
                 console.error('Manual save error:', err);
                 alert('❌ Error saving to Drive. Check console for details.');
             }
+        }
+        
+        // Export/Import Backup Functions
+        function exportToJSON() {
+            const data = {
+                trades: trades,
+                accounts: ACCOUNTS,
+                models: MODELS,
+                symbols: SYMBOLS,
+                payouts: payouts,
+                costs: costs,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `trading_journal_backup_${timestamp}.json`;
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ Backup exported!\n\nFile: ${filename}\n\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}`);
+        }
+        
+        function importFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!confirm('⚠️ This will REPLACE all current data with the backup.\n\nMake sure you have a backup of your current data first!\n\nContinue?')) {
+                event.target.value = ''; // Reset file input
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Validate data structure
+                    if (!data.trades && !data.accounts) {
+                        throw new Error('Invalid backup file - missing required data');
+                    }
+                    
+                    // Restore data
+                    if (data.trades) trades = data.trades;
+                    if (data.accounts) ACCOUNTS = data.accounts;
+                    if (data.models) MODELS = data.models;
+                    if (data.symbols) SYMBOLS = data.symbols;
+                    if (data.payouts) payouts = data.payouts || [];
+                    if (data.costs) costs = data.costs || [];
+                    
+                    // Save to localStorage
+                    saveTradesToLocalStorage();
+                    localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
+                    localStorage.setItem('propModels', JSON.stringify(MODELS));
+                    localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
+                    localStorage.setItem('propPayouts', JSON.stringify(payouts));
+                    localStorage.setItem('propCosts', JSON.stringify(costs));
+                    
+                    // Refresh entire UI
+                    generateAccountOptions();
+                    generateModelOptions();
+                    generateSymbolOptions();
+                    renderSettingsPage();
+                    renderPayoutsTab();
+                    updateDisplay();
+                    
+                    const exportDate = data.exportDate ? new Date(data.exportDate).toLocaleString() : 'Unknown';
+                    alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nPage will reload to apply changes.`);
+                    
+                    // Reload page to ensure everything is fresh
+                    setTimeout(() => location.reload(), 1000);
+                    
+                } catch (error) {
+                    alert('❌ Error importing backup:\n\n' + error.message + '\n\nPlease make sure you selected a valid backup file.');
+                    console.error('Import error:', error);
+                }
+                
+                // Reset file input
+                event.target.value = '';
+            };
+            
+            reader.onerror = function() {
+                alert('❌ Error reading file. Please try again.');
+                event.target.value = '';
+            };
+            
+            reader.readAsText(file);
         }
         
         function disableDriveSync() {
