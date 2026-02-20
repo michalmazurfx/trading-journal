@@ -1836,10 +1836,16 @@
             const response = await gapi.client.drive.files.list({
                 q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
                 spaces: 'drive',
-                fields: 'files(id, name)'
+                fields: 'files(id, name, size)',
+                orderBy: 'createdTime desc'
             });
             const files = response.result.files;
             if (files && files.length > 0) {
+                // If multiple files exist, pick the largest one (most data)
+                if (files.length > 1) {
+                    console.warn(`⚠️ Found ${files.length} files with same name. Picking the largest.`);
+                    files.sort((a, b) => (parseInt(b.size) || 0) - (parseInt(a.size) || 0));
+                }
                 return files[0].id;
             }
             return null;
