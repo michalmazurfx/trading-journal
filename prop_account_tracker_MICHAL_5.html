@@ -447,7 +447,7 @@
             transform: translateX(3px);
         }
         
-        .trade-entry.bullshit {
+        .trade-entry.offsystem {
             border-left-color: #e74c3c;
             background: #fff5f5;
         }
@@ -492,7 +492,7 @@
             color: white;
         }
         
-        .trade-type-badge.bullshit {
+        .trade-type-badge.offsystem {
             background: #e74c3c;
             color: white;
         }
@@ -895,7 +895,7 @@
                         <label>Trade Type</label>
                         <select id="tradeType">
                             <option value="system">✅ System Trade (Following Rules)</option>
-                            <option value="bullshit">❌ Bullshit Trade (Off-System)</option>
+                            <option value="offsystem">❌ Off-System Trade (Broke Rules)</option>
                         </select>
                     </div>
                     <div class="input-group">
@@ -1033,8 +1033,8 @@
                         <div class="label">System Trades</div>
                     </div>
                     <div class="stat-box">
-                        <div class="value" id="bullshitTrades">0</div>
-                        <div class="label">Bullshit Trades</div>
+                        <div class="value" id="offsystemTrades">0</div>
+                        <div class="label">Off-System Trades</div>
                     </div>
                     <div class="stat-box">
                         <div class="value" id="disciplineRate">0%</div>
@@ -1065,27 +1065,27 @@
                     </div>
                     
                     <div class="comparison-box">
-                        <h4>Bullshit Trades</h4>
+                        <h4>Off-System Trades</h4>
                         <div class="stat-row">
                             <span class="stat-label">Win Rate</span>
-                            <span class="stat-value" id="bullshitWinRate">-</span>
+                            <span class="stat-value" id="offsystemWinRate">-</span>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">Total P&L</span>
-                            <span class="stat-value" id="bullshitPnl">-</span>
+                            <span class="stat-value" id="offsystemPnl">-</span>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">Avg Win</span>
-                            <span class="stat-value" id="bullshitAvgWin">-</span>
+                            <span class="stat-value" id="offsystemAvgWin">-</span>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">Avg Loss</span>
-                            <span class="stat-value" id="bullshitAvgLoss">-</span>
+                            <span class="stat-value" id="offsystemAvgLoss">-</span>
                         </div>
                     </div>
                 </div>
                 
-                <div id="bullshitTaxDisplay" style="display:none;"></div>
+                <div id="offsystemTaxDisplay" style="display:none;"></div>
                 
                 <h3>📅 This Week</h3>
                 <div id="weeklyPerformance"></div>
@@ -1238,7 +1238,7 @@
                         <div id="perf-byDirection"><div class="no-data">No trades yet</div></div>
                     </div>
                     
-                    <!-- System vs Bullshit -->
+                    <!-- System vs Off-System -->
                     <div class="card">
                         <h2>🧠 Discipline Impact</h2>
                         <div id="perf-discipline"><div class="no-data">No trades yet</div></div>
@@ -1291,7 +1291,7 @@
                             <select id="history-type-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
                                 <option value="all">All Trades</option>
                                 <option value="system">System Only</option>
-                                <option value="bullshit">Bullshit Only</option>
+                                <option value="offsystem">Off-System Only</option>
                             </select>
                         </div>
                         
@@ -2267,6 +2267,15 @@
         }
         
         let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
+        
+        // Migrate old "bullshit" trades to "offsystem"
+        trades = trades.map(t => {
+            if (t.type === 'bullshit') {
+                return { ...t, type: 'offsystem' };
+            }
+            return t;
+        });
+        
         let currentFilter = 'system';
         
         // Set current date/time
@@ -3412,7 +3421,7 @@
         function deleteTrade(id) {
             if (confirm('Delete this trade from all accounts?')) {
                 const trade = trades.find(t => t.id === id);
-                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                if (currentFilter === 'system' || currentFilter === 'offsystem') {
                     // Delete entire batch (all accounts)
                     const batchKey = String(trade ? (trade.batchId || Math.floor(trade.id / 10) * 10) : id);
                     trades = trades.filter(t => {
@@ -3441,7 +3450,7 @@
             if (!trade) return;
             
             // Build edit form in modal
-            const isBatch = filter === 'system' || filter === 'bullshit';
+            const isBatch = filter === 'system' || filter === 'offsystem';
             const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
             const batchTrades = isBatch 
                 ? trades.filter(t => String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey)
@@ -3457,7 +3466,7 @@
                                 <label>Type</label>
                                 <select id="edit-type">
                                     <option value="system" ${trade.type === 'system' ? 'selected' : ''}>System</option>
-                                    <option value="bullshit" ${trade.type === 'bullshit' ? 'selected' : ''}>Bullshit</option>
+                                    <option value="offsystem" ${trade.type === 'offsystem' ? 'selected' : ''}>Off-System</option>
                                 </select>
                             </div>
                             <div class="input-group">
@@ -3563,7 +3572,7 @@
             const trade = trades.find(t => t.id === id);
             if (!trade) return;
             
-            const isBatch = filter === 'system' || filter === 'bullshit';
+            const isBatch = filter === 'system' || filter === 'offsystem';
             const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
             const tradesToEdit = isBatch
                 ? trades.filter(t => String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey)
@@ -4075,10 +4084,10 @@
             
             // Discipline Impact
             const systemTrades = all.filter(t => t.type === 'system');
-            const bullshitTrades = all.filter(t => t.type === 'bullshit');
+            const offsystemTrades = all.filter(t => t.type === 'offsystem');
             const discGroups = [
                 { label: '✅ System Trades', trades: systemTrades },
-                { label: '❌ Bullshit Trades', trades: bullshitTrades }
+                { label: '❌ Off-System Trades', trades: offsystemTrades }
             ].filter(g => g.trades.length > 0);
             document.getElementById('perf-discipline').innerHTML = renderPerfBreakdown(discGroups);
             
@@ -4201,7 +4210,7 @@
             `;
             
             // Week stats - ONLY system trades for win/loss/R stats
-            // But P&L above includes ALL trades (system + bullshit)
+            // But P&L above includes ALL trades (system + offsystem)
             const weekTrades = dayData.flatMap(d => d.dayTrades);
             const weekSystemTrades = weekTrades.filter(t => t.type === 'system');
             const weekWins = weekSystemTrades.filter(t => t.result === 'win').length;
@@ -4256,11 +4265,11 @@
         function updateDisciplineStats() {
             const uniqueTrades = getUniqueTrades();
             const systemTrades = uniqueTrades.filter(t => t.type === 'system');
-            const bullshitTrades = uniqueTrades.filter(t => t.type === 'bullshit');
+            const offsystemTrades = uniqueTrades.filter(t => t.type === 'offsystem');
             
             document.getElementById('totalTrades').textContent = uniqueTrades.length;
             document.getElementById('systemTrades').textContent = systemTrades.length;
-            document.getElementById('bullshitTrades').textContent = bullshitTrades.length;
+            document.getElementById('offsystemTrades').textContent = offsystemTrades.length;
             
             const disciplineRate = uniqueTrades.length > 0 ? 
                 Math.round((systemTrades.length / uniqueTrades.length) * 100) : 0;
@@ -4299,40 +4308,40 @@
                 document.getElementById('systemAvgLoss').textContent = '-';
             }
             
-            // Bullshit trade stats - BE trades excluded from win/loss calculation
-            if (bullshitTrades.length > 0) {
+            // Off-System trade stats - BE trades excluded from win/loss calculation
+            if (offsystemTrades.length > 0) {
                 // Only count actual wins and losses, not BE trades
-                const bullshitWinLossTrades = bullshitTrades.filter(t => 
+                const offsystemWinLossTrades = offsystemTrades.filter(t => 
                     !t.result || t.result === 'win' || t.result === 'loss'
                 );
-                const bullshitWinners = bullshitTrades.filter(t => 
+                const offsystemWinners = offsystemTrades.filter(t => 
                     (!t.result && t.pnl > 0) || t.result === 'win'
                 );
-                const bullshitLosers = bullshitTrades.filter(t => 
+                const offsystemLosers = offsystemTrades.filter(t => 
                     (!t.result && t.pnl < 0) || t.result === 'loss'
                 );
                 
-                const bullshitWinRate = bullshitWinLossTrades.length > 0 ? 
-                    Math.round((bullshitWinners.length / bullshitWinLossTrades.length) * 100) : 0;
-                const bullshitPnl = bullshitTrades.reduce((sum, t) => sum + t.pnl, 0);
-                const bullshitAvgWin = bullshitWinners.length > 0 ? 
-                    bullshitWinners.reduce((sum, t) => sum + t.pnl, 0) / bullshitWinners.length : 0;
-                const bullshitAvgLoss = bullshitLosers.length > 0 ? 
-                    bullshitLosers.reduce((sum, t) => sum + t.pnl, 0) / bullshitLosers.length : 0;
+                const offsystemWinRate = offsystemWinLossTrades.length > 0 ? 
+                    Math.round((offsystemWinners.length / offsystemWinLossTrades.length) * 100) : 0;
+                const offsystemPnl = offsystemTrades.reduce((sum, t) => sum + t.pnl, 0);
+                const offsystemAvgWin = offsystemWinners.length > 0 ? 
+                    offsystemWinners.reduce((sum, t) => sum + t.pnl, 0) / offsystemWinners.length : 0;
+                const offsystemAvgLoss = offsystemLosers.length > 0 ? 
+                    offsystemLosers.reduce((sum, t) => sum + t.pnl, 0) / offsystemLosers.length : 0;
                 
-                document.getElementById('bullshitWinRate').textContent = bullshitWinRate + '%';
-                document.getElementById('bullshitPnl').textContent = '$' + bullshitPnl.toFixed(2);
-                document.getElementById('bullshitPnl').className = 'stat-value ' + (bullshitPnl >= 0 ? 'positive' : 'negative');
-                document.getElementById('bullshitAvgWin').textContent = '$' + bullshitAvgWin.toFixed(2);
-                document.getElementById('bullshitAvgLoss').textContent = '$' + bullshitAvgLoss.toFixed(2);
+                document.getElementById('offsystemWinRate').textContent = offsystemWinRate + '%';
+                document.getElementById('offsystemPnl').textContent = '$' + offsystemPnl.toFixed(2);
+                document.getElementById('offsystemPnl').className = 'stat-value ' + (offsystemPnl >= 0 ? 'positive' : 'negative');
+                document.getElementById('offsystemAvgWin').textContent = '$' + offsystemAvgWin.toFixed(2);
+                document.getElementById('offsystemAvgLoss').textContent = '$' + offsystemAvgLoss.toFixed(2);
             } else {
-                document.getElementById('bullshitWinRate').textContent = '-';
-                document.getElementById('bullshitPnl').textContent = '-';
-                document.getElementById('bullshitAvgWin').textContent = '-';
-                document.getElementById('bullshitAvgLoss').textContent = '-';
+                document.getElementById('offsystemWinRate').textContent = '-';
+                document.getElementById('offsystemPnl').textContent = '-';
+                document.getElementById('offsystemAvgWin').textContent = '-';
+                document.getElementById('offsystemAvgLoss').textContent = '-';
             }
             
-            // Bullshit tax
+            // Off-System tax
         }
         
         function generateTradeHistoryFilters() {
@@ -4345,7 +4354,7 @@
             
             container.innerHTML = `
                 <div class="filter-btn ${currentFilter === 'system' ? 'active' : ''}" onclick="filterTrades('system', this)">System Only</div>
-                <div class="filter-btn ${currentFilter === 'bullshit' ? 'active' : ''}" onclick="filterTrades('bullshit', this)">Bullshit Only</div>
+                <div class="filter-btn ${currentFilter === 'offsystem' ? 'active' : ''}" onclick="filterTrades('offsystem', this)">Off-System Only</div>
                 ${accountButtons}
                 <div class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="filterTrades('all', this)">All Accounts</div>
             `;
@@ -4355,7 +4364,7 @@
             let displayTrades = trades.filter(t => t.type !== 'adjustment');
             
             if (currentFilter !== 'all') {
-                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                if (currentFilter === 'system' || currentFilter === 'offsystem') {
                     displayTrades = displayTrades.filter(t => t.type === currentFilter);
                     
                     const uniqueTrades = [];
@@ -4393,12 +4402,12 @@
             logDiv.innerHTML = displayTrades.map(trade => {
                 const account = ACCOUNTS[trade.account];
                 
-                // If viewing System Only or Bullshit Only, count accounts and sum PNL across batch
+                // If viewing System Only or Off-System Only, count accounts and sum PNL across batch
                 let accountCount = 1;
                 let displayPnl = trade.pnl;
                 let displayR = trade.rValue !== undefined ? trade.rValue : null;
                 let riskSizeLabel = trade.riskSize === 0.5 ? '½R' : '1R';
-                if (currentFilter === 'system' || currentFilter === 'bullshit') {
+                if (currentFilter === 'system' || currentFilter === 'offsystem') {
                     const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
                     const batchTrades = trades.filter(t => {
                         const tBatchKey = String(t.batchId || Math.floor(t.id / 10) * 10);
@@ -4423,7 +4432,7 @@
                         <div class="trade-header">
                             <div>
                                 <span class="trade-type-badge ${trade.type}">
-                                    ${trade.type === 'system' ? '✅ System' : '❌ Bullshit'}
+                                    ${trade.type === 'system' ? '✅ System' : '❌ Off-System'}
                                 </span>
                                 ${trade.result ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: ${
                                     trade.result === 'win' ? '#d4edda' : 
@@ -4905,7 +4914,7 @@
             };
             const typeLabels = {
                 system: '✅ System',
-                bullshit: '❌ Bullshit'
+                offsystem: '❌ Off-System'
             };
             
             return `
