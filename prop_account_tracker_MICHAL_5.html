@@ -2541,8 +2541,9 @@
         function getDayR(dateStr) {
             // R from unique batches only, excluding BE trades
             // R is per batch, not per account - all accounts in a batch have same R
+            // Only count SYSTEM trades for R calculation
             const unique = getUniqueTrades();
-            const dayBatches = unique.filter(t => t.date === dateStr && (t.result === 'win' || t.result === 'loss'));
+            const dayBatches = unique.filter(t => t.date === dateStr && t.type === 'system' && (t.result === 'win' || t.result === 'loss'));
             
             if (calSelectedAccounts.length === 0) {
                 // No filter - sum R from all batches
@@ -4312,12 +4313,14 @@
             
             // Get unique trades (one per batch), P&L summed across all accounts
             const unique = getUniqueTrades();
+            const adjustments = trades.filter(t => t.type === 'adjustment');
             
             // Build day data - match using local date string
             const dayData = dayDates.map((date, i) => {
                 const dateStr = toLocalDateStr(date);
                 const dayTrades = unique.filter(t => t.date === dateStr);
-                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0);
+                const dayAdjustments = adjustments.filter(t => t.date === dateStr);
+                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
                 return { label: days[i], date, dateStr, dayTrades, pnl, isToday, isFuture };
@@ -4858,9 +4861,9 @@
                                     <tr style="border-bottom: 1px solid #f0f0f0;">
                                         <td style="padding: 10px;">${p.date}</td>
                                         <td style="padding: 10px;">${p.accountName}</td>
-                                        <td style="padding: 10px; text-align: right; color: #e67e22; font-weight: 600;">-$${gross.toFixed(2)}</td>
+                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">$${gross.toFixed(2)}</td>
                                         <td style="padding: 10px; text-align: center; font-weight: 600; color: #7f8c8d;">${split}%</td>
-                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">+$${net.toFixed(2)}</td>
+                                        <td style="padding: 10px; text-align: right; color: #27ae60; font-weight: 600;">$${net.toFixed(2)}</td>
                                         <td style="padding: 10px;">${p.note}</td>
                                         <td style="padding: 10px; text-align: center;">
                                             <button onclick="deletePayout(${p.id})" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Delete</button>
