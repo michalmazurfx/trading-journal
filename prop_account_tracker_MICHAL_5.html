@@ -809,6 +809,28 @@
         .collapsible-content.collapsed {
             display: none;
         }
+        
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .switch input:checked + span {
+            background-color: #27ae60;
+        }
+        
+        .switch input:checked + span + span {
+            transform: translateX(26px);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -1122,6 +1144,17 @@
                 <div style="margin-bottom: 20px;">
                     <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Select Accounts:</label>
                     <div id="cal-account-filter" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+                </div>
+                
+                <!-- Display Toggle -->
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <label style="font-weight:600; color:#2c3e50;">Show $ P&L:</label>
+                    <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                        <input type="checkbox" id="cal-show-pnl" checked onchange="toggleCalendarDisplay()" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27ae60; transition: .4s; border-radius: 24px;"></span>
+                        <span style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;"></span>
+                    </label>
+                    <span id="cal-display-label" style="font-size: 0.9em; color: #7f8c8d;">ON (showing $)</span>
                 </div>
                 
                 <div id="cal-exportTarget" style="background:#fff; border-radius:16px; padding:28px; box-shadow:0 4px 24px rgba(0,0,0,0.07);">
@@ -2483,6 +2516,27 @@
         let calYear = new Date().getFullYear();
         let calMonth = new Date().getMonth(); // 0-indexed
         let calSelectedAccounts = []; // empty = all
+        let calShowPnl = true; // true = show $, false = show R only
+        
+        function toggleCalendarDisplay() {
+            const checkbox = document.getElementById('cal-show-pnl');
+            const label = document.getElementById('cal-display-label');
+            calShowPnl = checkbox.checked;
+            
+            label.textContent = calShowPnl ? 'ON (showing $)' : 'OFF (showing R)';
+            
+            // Update toggle background color
+            const toggleBg = checkbox.nextElementSibling;
+            toggleBg.style.backgroundColor = calShowPnl ? '#27ae60' : '#95a5a6';
+            
+            // Update toggle position
+            const toggleCircle = toggleBg.nextElementSibling;
+            toggleCircle.style.transform = calShowPnl ? 'translateX(0)' : 'translateX(26px)';
+            
+            renderCalendar();
+        }
+        
+        function calChangeMonth(delta) {
         
         function generateCalendarAccountFilter() {
             const container = document.getElementById('cal-account-filter');
@@ -2675,8 +2729,10 @@
                         </div>
                         <div style="text-align:center; padding:4px 0;">
                             ${hasTraded
-                                ? `<div style="font-size:1.05em; font-weight:800; color:${pnlColor}; letter-spacing:-0.3px;">${formattedPnl}</div>
-                                   <div style="font-size:0.72em; font-weight:700; color:${pnlColor}; opacity:0.75; margin-top:1px;">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
+                                ? calShowPnl 
+                                    ? `<div style="font-size:1.05em; font-weight:800; color:${pnlColor}; letter-spacing:-0.3px;">${formattedPnl}</div>
+                                       <div style="font-size:0.72em; font-weight:700; color:${pnlColor}; opacity:0.75; margin-top:1px;">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
+                                    : `<div style="font-size:1.05em; font-weight:800; color:${pnlColor}; letter-spacing:-0.3px;">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
                                 : `<span style="font-size:0.8em; color:#dde1e7;">${isFuture ? '' : '—'}</span>`
                             }
                         </div>
@@ -2696,14 +2752,22 @@
                 ? `${monthPnl >= 0 ? '+' : '-'}$${(Math.abs(monthPnl)/1000).toFixed(1)}k`
                 : `${monthPnl >= 0 ? '+' : ''}$${monthPnl.toFixed(0)}`;
             
-            const summaryItems = [
-                { val: monthPnlFmt, label: 'Month P&L', color: monthPnl >= 0 ? '#27ae60' : '#e74c3c' },
-                { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
-                { val: winDays, label: 'Green Days', color: '#27ae60' },
-                { val: lossDays, label: 'Red Days', color: '#e74c3c' },
-                { val: beDays, label: 'BE Days', color: '#f39c12' },
-                { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
-            ];
+            const summaryItems = calShowPnl
+                ? [
+                    { val: monthPnlFmt, label: 'Month P&L', color: monthPnl >= 0 ? '#27ae60' : '#e74c3c' },
+                    { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
+                    { val: winDays, label: 'Green Days', color: '#27ae60' },
+                    { val: lossDays, label: 'Red Days', color: '#e74c3c' },
+                    { val: beDays, label: 'BE Days', color: '#f39c12' },
+                    { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
+                ]
+                : [
+                    { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
+                    { val: winDays, label: 'Green Days', color: '#27ae60' },
+                    { val: lossDays, label: 'Red Days', color: '#e74c3c' },
+                    { val: beDays, label: 'BE Days', color: '#f39c12' },
+                    { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
+                ];
             
             document.getElementById('cal-summary').innerHTML = `
                 <div style="background:#f8f9fb; border-radius:14px; padding:18px 10px; display:grid; grid-template-columns:repeat(6,1fr); gap:8px;">
