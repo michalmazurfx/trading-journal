@@ -2591,16 +2591,17 @@
                 ? (t => calSelectedAccounts.includes(t.account))
                 : (() => true);
             
-            // Calculate P&L from system trades + adjustments only
-            const systemPnl = trades
-                .filter(t => t.type === 'system' && t.date === dateStr && accountFilter(t))
+            // Calculate P&L from ALL trades (system + offsystem + excluded) + adjustments
+            // Only adjustments are filtered out
+            const tradePnl = trades
+                .filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t))
                 .reduce((sum, t) => sum + t.pnl, 0);
             
             const adjustmentPnl = trades
                 .filter(t => t.type === 'adjustment' && t.date === dateStr && accountFilter(t))
                 .reduce((sum, t) => sum + t.pnl, 0);
             
-            return systemPnl + adjustmentPnl;
+            return tradePnl + adjustmentPnl;
         }
         
         function getDayTrades(dateStr) {
@@ -3358,11 +3359,12 @@
                 const account = ACCOUNTS[accountId];
                 return `
                     <div class="dropdown-item" onclick="toggleAccountCheck(event, '${accountId}')">
-                        <input type="checkbox" id="acc_${accountId}" value="${accountId}" onchange="updateDropdownText(); updateBatchPreview();">
+                        <input type="checkbox" id="acc_${accountId}" value="${accountId}" checked onchange="updateDropdownText(); updateBatchPreview();">
                         <label for="acc_${accountId}">${account.name}</label>
                     </div>
                 `;
             }).join('');
+            updateDropdownText();
         }
         
         function toggleDropdown() {
@@ -4415,15 +4417,15 @@
             });
             
             // Get unique trades (one per batch), P&L summed across all accounts
-            // Only count SYSTEM trades + adjustments, exclude trades marked as excluded
+            // P&L includes ALL trades (system + excluded + offsystem)
+            // But stats count only non-excluded system trades
             const unique = getUniqueTrades();
-            const systemUnique = unique.filter(t => t.type === 'system' && !t.excludeFromStats);
             const adjustments = trades.filter(t => t.type === 'adjustment');
             
             // Build day data - match using local date string
             const dayData = dayDates.map((date, i) => {
                 const dateStr = toLocalDateStr(date);
-                const dayTrades = systemUnique.filter(t => t.date === dateStr);
+                const dayTrades = unique.filter(t => t.date === dateStr); // ALL trades, not just system
                 const dayAdjustments = adjustments.filter(t => t.date === dateStr);
                 const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
                 const isToday = dateStr === todayStr;
@@ -5339,11 +5341,6 @@
         generateAccountOptions();
         generateModelOptions();
         generateSymbolOptions();
-        
-        // Select all accounts by default - needs to run after DOM is ready
-        setTimeout(() => {
-            applyToAll();
-        }, 0);
         
         document.getElementById('adj-date').valueAsDate = new Date();
         document.getElementById('payout-date').valueAsDate = new Date();
