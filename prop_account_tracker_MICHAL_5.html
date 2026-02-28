@@ -4211,8 +4211,8 @@
         function getFilteredPerfTrades() {
             let filtered = getUniqueTrades();
             
-            // Filter out excluded trades
-            filtered = filtered.filter(t => !t.excludeFromStats);
+            // Don't filter excluded trades here - we need them for P&L
+            // They'll be filtered in the stats calculations instead
             
             // Filter by accounts - check if batch contains any selected account
             // AND recalculate P&L to only include selected accounts
@@ -4289,21 +4289,24 @@
                 return;
             }
             
+            // For stats: exclude trades marked as excludeFromStats
+            const statsOnly = all.filter(t => !t.excludeFromStats);
+            
             // Only WIN/LOSS count for stats - BE excluded
-            const winLoss = all.filter(t => t.result === 'win' || t.result === 'loss');
-            const wins = all.filter(t => t.result === 'win');
-            const losses = all.filter(t => t.result === 'loss');
-            const beTrades = all.filter(t => t.result === 'be_win' || t.result === 'be_loss');
+            const winLoss = statsOnly.filter(t => t.result === 'win' || t.result === 'loss');
+            const wins = statsOnly.filter(t => t.result === 'win');
+            const losses = statsOnly.filter(t => t.result === 'loss');
+            const beTrades = statsOnly.filter(t => t.result === 'be_win' || t.result === 'be_loss');
             
             const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
-            const totalPnl = all.reduce((s, t) => s + t.pnl, 0);
-            const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // Only wins/losses, not BE
+            const totalPnl = all.reduce((s, t) => s + t.pnl, 0); // P&L from ALL trades
+            const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // R only from non-excluded wins/losses
             const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
             const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0;
             const rr = avgLoss !== 0 ? Math.abs(avgWin / avgLoss).toFixed(2) : '-';
             
             // Top metrics
-            document.getElementById('perf-totalTrades').textContent = all.length;
+            document.getElementById('perf-totalTrades').textContent = statsOnly.length; // Count only non-excluded
             const wrEl = document.getElementById('perf-winRate');
             wrEl.textContent = winRate + '%';
             wrEl.style.color = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
@@ -4322,7 +4325,7 @@
             // By Model
             const modelGroups = Object.keys(MODELS).map(id => ({
                 label: MODELS[id].name,
-                trades: all.filter(t => t.model === id)
+                trades: statsOnly.filter(t => t.model === id)
             })).filter(g => g.trades.length > 0);
             document.getElementById('perf-byModel').innerHTML = renderPerfBreakdown(modelGroups);
             
@@ -4335,20 +4338,20 @@
             ];
             const gradeGroups = grades.map(g => ({
                 label: g.label,
-                trades: all.filter(t => t.grade === g.key)
+                trades: statsOnly.filter(t => t.grade === g.key)
             })).filter(g => g.trades.length > 0);
             document.getElementById('perf-byGrade').innerHTML = renderPerfBreakdown(gradeGroups);
             
             // By Direction
             const dirGroups = [
-                { label: '📈 Long', trades: all.filter(t => t.direction === 'long') },
-                { label: '📉 Short', trades: all.filter(t => t.direction === 'short') }
+                { label: '📈 Long', trades: statsOnly.filter(t => t.direction === 'long') },
+                { label: '📉 Short', trades: statsOnly.filter(t => t.direction === 'short') }
             ].filter(g => g.trades.length > 0);
             document.getElementById('perf-byDirection').innerHTML = renderPerfBreakdown(dirGroups);
             
             // Discipline Impact
-            const systemTrades = all.filter(t => t.type === 'system');
-            const offsystemTrades = all.filter(t => t.type === 'offsystem');
+            const systemTrades = statsOnly.filter(t => t.type === 'system');
+            const offsystemTrades = statsOnly.filter(t => t.type === 'offsystem');
             const discGroups = [
                 { label: '✅ System Trades', trades: systemTrades },
                 { label: '❌ Off-System Trades', trades: offsystemTrades }
@@ -4532,8 +4535,18 @@
         
         function updateDisciplineStats() {
             const uniqueTrades = getUniqueTrades();
+            
+            // Filter to current month only
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            const thisMonthTrades = uniqueTrades.filter(t => {
+                const tradeDate = new Date(t.date);
+                return tradeDate.getMonth() === currentMonth && tradeDate.getFullYear() === currentYear;
+            });
+            
             // Filter out excluded trades for stats
-            const statsOnlyTrades = uniqueTrades.filter(t => !t.excludeFromStats);
+            const statsOnlyTrades = thisMonthTrades.filter(t => !t.excludeFromStats);
             const systemTrades = statsOnlyTrades.filter(t => t.type === 'system');
             const offsystemTrades = statsOnlyTrades.filter(t => t.type === 'offsystem');
             
