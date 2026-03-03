@@ -1011,7 +1011,7 @@
         .theme-toggle-label {
             font-size: 0.9em;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: var(--sidebar-text);
         }
         
         .theme-toggle {
@@ -5668,13 +5668,13 @@
         updateDisplay();
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
-    <div id="drive-status-widget" style="position: fixed; bottom: 20px; left: 20px; width: 210px; background: rgba(255,255,255,0.98); padding: 14px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1001; border: 2px solid #4285f4;">
+    <div id="drive-status-widget" style="position: fixed; bottom: 90px; left: 20px; width: 210px; background: var(--card-bg); padding: 14px 20px; border-radius: 10px; box-shadow: 0 4px 12px var(--card-shadow); z-index: 1001; border: 2px solid #4285f4;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
             <span style="font-size: 20px;">☁️</span>
-            <span style="font-weight: 700; font-size: 1em; color: #2c3e50;">Drive Sync</span>
+            <span style="font-weight: 700; font-size: 1em; color: var(--text-primary);">Drive Sync</span>
         </div>
-        <div id="drive-status-overview" style="font-size: 0.9em; color: #7f8c8d; font-weight: 500;">Checking...</div>
-        <div id="drive-last-sync-overview" style="font-size: 0.8em; color: #95a5a6; margin-top: 4px;"></div>
+        <div id="drive-status-overview" style="font-size: 0.9em; color: var(--text-secondary); font-weight: 500;">Checking...</div>
+        <div id="drive-last-sync-overview" style="font-size: 0.8em; color: var(--text-secondary); margin-top: 4px;"></div>
     </div>
     
     <!-- Image Modal for Screenshots -->
