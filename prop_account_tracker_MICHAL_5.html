@@ -2375,6 +2375,10 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     
+                    console.log('🔍 Import Debug:');
+                    console.log('Total trades in backup:', data.trades?.length);
+                    console.log('Trades with screenshots in backup:', data.trades?.filter(t => t.screenshot)?.length);
+                    
                     // Validate data structure
                     if (!data.trades && !data.accounts) {
                         throw new Error('Invalid backup file - missing required data');
@@ -2388,8 +2392,13 @@
                     if (data.payouts) payouts = data.payouts || [];
                     if (data.costs) costs = data.costs || [];
                     
+                    console.log('After assignment - trades with screenshots:', trades.filter(t => t.screenshot).length);
+                    
                     // Save to localStorage (this strips screenshots to save space, but keeps them in memory)
                     saveTradesToLocalStorage();
+                    
+                    console.log('After localStorage save - trades with screenshots still in memory:', trades.filter(t => t.screenshot).length);
+                    
                     localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
                     localStorage.setItem('propModels', JSON.stringify(MODELS));
                     localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
@@ -2399,6 +2408,8 @@
                     // IMPORTANT: trades array still has screenshots in memory even though localStorage doesn't
                     // Re-assign trades from backup to preserve screenshots
                     trades = data.trades;
+                    
+                    console.log('After re-assignment - trades with screenshots:', trades.filter(t => t.screenshot).length);
                     
                     // Refresh entire UI
                     generateAccountOptions();
