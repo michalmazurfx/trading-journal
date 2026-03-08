@@ -5439,26 +5439,36 @@
             if (timeFilter !== 'all') {
                 filteredTrades = filteredTrades.filter(t => {
                     if (!t.date) return false;
-                    const tradeDate = new Date(t.date);
+                    
+                    // Parse date as local (YYYY-MM-DD format)
+                    const [year, month, day] = t.date.split('-').map(Number);
+                    const tradeDate = new Date(year, month - 1, day);
                     
                     if (timeFilter === 'today') {
-                        return t.date === now.toISOString().split('T')[0];
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        return tradeDate.getTime() === today.getTime();
                     } else if (timeFilter === 'week') {
-                        const weekStart = new Date(now);
-                        weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
-                        weekStart.setHours(0,0,0,0);
+                        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const dayOfWeek = weekStart.getDay();
+                        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday=6, Mon=0, Tue=1, etc
+                        weekStart.setDate(weekStart.getDate() - daysFromMonday);
                         return tradeDate >= weekStart;
                     } else if (timeFilter === 'month') {
                         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                         return tradeDate >= monthStart;
                     } else if (timeFilter === 'last-week') {
-                        const lastWeekStart = new Date(now);
-                        lastWeekStart.setDate(now.getDate() - now.getDay() - 6); // Last Monday
-                        lastWeekStart.setHours(0,0,0,0);
-                        const lastWeekEnd = new Date(lastWeekStart);
-                        lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-                        lastWeekEnd.setHours(23,59,59,999);
-                        return tradeDate >= lastWeekStart && tradeDate <= lastWeekEnd;
+                        const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const dayOfWeek = thisMonday.getDay();
+                        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                        thisMonday.setDate(thisMonday.getDate() - daysFromMonday);
+                        
+                        const lastMonday = new Date(thisMonday);
+                        lastMonday.setDate(lastMonday.getDate() - 7);
+                        
+                        const lastSunday = new Date(thisMonday);
+                        lastSunday.setDate(lastSunday.getDate() - 1);
+                        
+                        return tradeDate >= lastMonday && tradeDate <= lastSunday;
                     } else if (timeFilter === 'last-month') {
                         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
@@ -5495,6 +5505,15 @@
                     tradesByDate[trade.date] = [];
                 }
                 tradesByDate[trade.date].push(trade);
+            });
+            
+            // Sort each day's trades by time descending (latest first)
+            Object.keys(tradesByDate).forEach(date => {
+                tradesByDate[date].sort((a, b) => {
+                    const timeA = a.entryTime || '00:00';
+                    const timeB = b.entryTime || '00:00';
+                    return timeB.localeCompare(timeA); // Descending
+                });
             });
             
             // Sort dates descending (newest first)
@@ -5554,6 +5573,12 @@
                 return ''; // Skip trades with deleted accounts
             }
             
+            // Count how many accounts this trade was executed on
+            const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
+            const batchTrades = trades.filter(t => String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey);
+            const accountCount = batchTrades.length;
+            const accountLabel = accountCount > 1 ? `📊 ${accountCount} accounts` : account.name;
+            
             const resultColors = {
                 win: '#27ae60',
                 loss: '#e74c3c',
@@ -5579,7 +5604,7 @@
                 <div style="border: 2px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px; background: var(--card-bg); box-shadow: 0 4px 12px var(--card-shadow);">
                     <!-- Trade Header with P&L -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
-                        <div>
+                        <div style="flex: 1;">
                             <div style="font-size: 1.4em; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
                                 ${trade.symbol} ${trade.direction === 'long' ? '📈' : '📉'} ${trade.direction.toUpperCase()}
                             </div>
@@ -5591,12 +5616,22 @@
                                     ${typeLabels[trade.type]}
                                 </span>
                                 <span style="background: var(--stat-box-bg); color: var(--text-primary); padding: 6px 14px; border-radius: 20px; font-size: 0.9em; font-weight: 700; border: 2px solid var(--border-color);">
-                                    ${account.name}
+                                    ${accountLabel}
                                 </span>
                             </div>
                         </div>
                         
-                        <div style="text-align: right;">
+                        <!-- Screenshot Thumbnail (if exists) -->
+                        ${trade.screenshot ? `
+                            <div style="margin-left: 20px;">
+                                <img src="${trade.screenshot}" 
+                                     onclick="openImageModal('${trade.screenshot}')" 
+                                     style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color);"
+                                     alt="Trade screenshot">
+                            </div>
+                        ` : ''}
+                        
+                        <div style="text-align: right; margin-left: 20px;">
                             <div style="font-size: 2em; font-weight: 800; color: ${trade.pnl >= 0 ? '#27ae60' : '#e74c3c'}; margin-bottom: 5px;">
                                 ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}
                             </div>
@@ -5605,16 +5640,6 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Screenshot Section (if exists) -->
-                    ${trade.screenshot ? `
-                        <div style="margin-bottom: 20px;">
-                            <img src="${trade.screenshot}" 
-                                 onclick="openImageModal('${trade.screenshot}')" 
-                                 style="width: 100%; max-width: 100%; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border: 3px solid var(--border-color);"
-                                 alt="Trade screenshot">
-                        </div>
-                    ` : ''}
                     
                     <!-- Trade Details Grid -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
@@ -5646,7 +5671,7 @@
                     
                     <!-- Action Buttons -->
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        ${trade.screenshot ? `<button onclick="openImageModal('${trade.screenshot}')" class="btn-sm-edit">👁️ View Screenshot</button>` : ''}
+                        ${trade.screenshot ? `<button onclick="openImageModal('${trade.screenshot}')" class="btn-sm-edit">👁️ View Full Screenshot</button>` : ''}
                         <button onclick="editTrade(${trade.id}, '${trade.type}')" class="btn-sm-edit">✏️ Edit</button>
                         <button onclick="deleteTrade(${trade.id})" class="btn-sm-delete">🗑️ Delete</button>
                     </div>
