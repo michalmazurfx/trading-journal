@@ -4741,9 +4741,14 @@
                 const dayTrades = unique.filter(t => t.date === dateStr); // ALL trades, not just system
                 const dayAdjustments = adjustments.filter(t => t.date === dateStr);
                 const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
+                
+                // Calculate R for the day (only non-excluded system win/loss trades)
+                const daySystemTrades = dayTrades.filter(t => t.type === 'system' && !t.excludeFromStats && (t.result === 'win' || t.result === 'loss'));
+                const dayR = daySystemTrades.reduce((s, t) => s + (t.rValue || 0), 0);
+                
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
-                return { label: days[i], date, dateStr, dayTrades, pnl, isToday, isFuture };
+                return { label: days[i], date, dateStr, dayTrades, pnl, dayR, isToday, isFuture };
             });
             
             const weekPnl = dayData.reduce((s, d) => s + d.pnl, 0);
@@ -4776,7 +4781,12 @@
                                 <div style="font-size: 1.1em; font-weight: 700; color: ${textColor};">
                                     ${d.isFuture ? '-' : d.dayTrades.length === 0 ? 'REST' : (d.pnl >= 0 ? '+' : '') + '$' + d.pnl.toFixed(0)}
                                 </div>
-                                ${!d.isFuture && d.dayTrades.length > 0 ? `<div style="font-size: 0.75em; color: #aaa; margin-top: 3px;">${d.dayTrades.length} trade${d.dayTrades.length !== 1 ? 's' : ''}</div>` : ''}
+                                ${!d.isFuture && d.dayTrades.length > 0 ? `
+                                    <div style="font-size: 0.8em; font-weight: 600; color: ${d.dayR >= 0 ? '#27ae60' : '#e74c3c'}; margin-top: 2px;">
+                                        ${d.dayR >= 0 ? '+' : ''}${d.dayR.toFixed(2)}R
+                                    </div>
+                                    <div style="font-size: 0.75em; color: #aaa; margin-top: 3px;">${d.dayTrades.length} trade${d.dayTrades.length !== 1 ? 's' : ''}</div>
+                                ` : ''}
                             </div>
                         `;
                     }).join('')}
@@ -4808,10 +4818,41 @@
                 .reduce((sum, t) => sum + (t.rValue || 0), 0);
             const weekRColor = weekR > 0 ? '#27ae60' : weekR < 0 ? '#e74c3c' : '#f39c12';
             
+            // Calculate current streak (all time, not just this week)
+            // Sort all system trades by date/time descending (newest first)
+            const allSystemTrades = getUniqueTrades()
+                .filter(t => t.type === 'system' && !t.excludeFromStats && (t.result === 'win' || t.result === 'loss'))
+                .sort((a, b) => {
+                    const dateCompare = b.date.localeCompare(a.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    return (b.entryTime || '').localeCompare(a.entryTime || '');
+                });
+            
+            let streakCount = 0;
+            let streakType = null; // 'win' or 'loss'
+            
+            for (const trade of allSystemTrades) {
+                if (streakType === null) {
+                    // First trade sets the streak type
+                    streakType = trade.result;
+                    streakCount = 1;
+                } else if (trade.result === streakType) {
+                    // Continue streak
+                    streakCount++;
+                } else {
+                    // Streak broken
+                    break;
+                }
+            }
+            
+            const streakLabel = streakType === 'win' ? '🔥 WIN STREAK' : '❄️ LOSS STREAK';
+            const streakColor = streakType === 'win' ? '#27ae60' : '#e74c3c';
+            const streakBg = streakType === 'win' ? '#f0fff4' : '#fff5f5';
+            
             html += `
                 <div style="margin-top: 15px;">
-                    <div style="font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 1em;">Current Week Stats — System Trades Only</div>
-                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
+                    <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 10px; font-size: 1em;">Current Week Stats — System Trades Only</div>
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
                         <div style="background: #f0fff4; border: 2px solid #27ae60; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: #27ae60;">${weekWins}</div>
                             <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Wins</div>
@@ -4835,6 +4876,10 @@
                         <div style="background: ${weekR >= 0 ? '#f0fff4' : '#fff5f5'}; border: 2px solid ${weekRColor}; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: ${weekRColor};">${weekR >= 0 ? '+' : ''}${weekR.toFixed(2)}R</div>
                             <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Total R</div>
+                        </div>
+                        <div style="background: ${streakBg}; border: 2px solid ${streakColor}; border-radius: 8px; padding: 10px; text-align: center;">
+                            <div style="font-size: 1.6em; font-weight: 700; color: ${streakColor};">${streakCount}</div>
+                            <div style="font-size: 0.68em; color: #7f8c8d; font-weight: 600;">${streakLabel}</div>
                         </div>
                     </div>
                 </div>
