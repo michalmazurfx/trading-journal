@@ -1940,6 +1940,17 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Danger Zone -->
+                <div class="card" style="margin-top: 30px; border: 3px solid #e74c3c;">
+                    <h2 style="color: #e74c3c;">⚠️ Danger Zone</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        This action is irreversible. Make sure you have a backup before proceeding.
+                    </p>
+                    <button class="btn-danger" onclick="clearAllData()" style="background: linear-gradient(135deg, #e74c3c, #c0392b); width: auto; padding: 12px 24px;">
+                        🗑️ Clear All Trade Data
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -5565,101 +5576,79 @@
             };
             
             return `
-                <div style="border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin-bottom: 15px; background: #f8f9fa;">
-                    <div style="display: grid; grid-template-columns: ${trade.screenshot ? '300px 1fr' : '1fr'}; gap: 20px;">
-                        ${trade.screenshot ? `
-                            <div>
-                                <img src="${trade.screenshot}" 
-                                     onclick="openImageModal('${trade.screenshot}')" 
-                                     style="width: 100%; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                                     alt="Trade screenshot">
-                            </div>
-                        ` : ''}
-                        
+                <div style="border: 2px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px; background: var(--card-bg); box-shadow: 0 4px 12px var(--card-shadow);">
+                    <!-- Trade Header with P&L -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
                         <div>
-                            <!-- Trade Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                                <div>
-                                    <div style="font-size: 1.1em; font-weight: 700; color: #2c3e50; margin-bottom: 5px;">
-                                        ${trade.symbol} ${trade.direction === 'long' ? '📈' : '📉'} ${trade.direction.toUpperCase()}
-                                    </div>
-                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                        <span style="background: ${resultColors[trade.result]}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
-                                            ${resultLabels[trade.result]}
-                                        </span>
-                                        <span style="background: ${trade.type === 'system' ? '#3498db' : '#95a5a6'}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
-                                            ${typeLabels[trade.type]}
-                                        </span>
-                                        <span style="background: #ecf0f1; color: #2c3e50; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
-                                            ${account.name}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div style="text-align: right;">
-                                    <div style="font-size: 1.5em; font-weight: bold; color: ${trade.pnl >= 0 ? '#27ae60' : '#e74c3c'};">
-                                        ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}
-                                    </div>
-                                    ${trade.rValue ? `
-                                        <div style="font-size: 1.1em; font-weight: 600; color: ${trade.rValue >= 0 ? '#27ae60' : '#e74c3c'};">
-                                            ${trade.rValue >= 0 ? '+' : ''}${trade.rValue.toFixed(2)}R
-                                        </div>
-                                    ` : ''}
-                                </div>
+                            <div style="font-size: 1.4em; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+                                ${trade.symbol} ${trade.direction === 'long' ? '📈' : '📉'} ${trade.direction.toUpperCase()}
                             </div>
-                            
-                            <!-- Trade Details Grid -->
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 15px;">
-                                ${trade.entryTime ? `
-                                    <div>
-                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Entry</div>
-                                        <div style="font-weight: 600; color: #2c3e50;">${trade.entryTime}</div>
-                                    </div>
-                                ` : ''}
-                                ${trade.exitTime ? `
-                                    <div>
-                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Exit</div>
-                                        <div style="font-weight: 600; color: #2c3e50;">${trade.exitTime}</div>
-                                    </div>
-                                ` : ''}
-                                ${trade.duration ? `
-                                    <div>
-                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Duration</div>
-                                        <div style="font-weight: 600; color: #2c3e50;">${trade.duration}</div>
-                                    </div>
-                                ` : ''}
-                                <div>
-                                    <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Risk</div>
-                                    <div style="font-weight: 600; color: #2c3e50;">${trade.risk ? '$' + trade.risk.toFixed(2) : 'N/A'}</div>
-                                </div>
-                                ${trade.model ? `
-                                    <div>
-                                        <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px;">Model</div>
-                                        <div style="font-weight: 600; color: #2c3e50;">${MODELS[trade.model] ? MODELS[trade.model].name : 'N/A'}</div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            
-                            <!-- Notes Section -->
-                            <div style="background: white; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
-                                <div style="font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Notes</div>
-                                <textarea 
-                                    id="trade-note-${trade.id}" 
-                                    onblur="updateTradeNote(${trade.id})"
-                                    style="width: 100%; min-height: 60px; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; font-size: 0.95em; font-family: inherit; resize: vertical;"
-                                    placeholder="Add your trade notes here...">${trade.note || ''}</textarea>
-                            </div>
-                            
-                            <!-- Action Buttons -->
-                            <div style="display: flex; gap: 10px;">
-                                <button onclick="editTradeFromHistory(${trade.id})" style="flex: 1; padding: 8px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                                    ✏️ Edit Trade
-                                </button>
-                                <button onclick="deleteTrade(${trade.id})" style="flex: 1; padding: 8px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                                    🗑️ Delete
-                                </button>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <span style="background: ${resultColors[trade.result]}; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.9em; font-weight: 700;">
+                                    ${resultLabels[trade.result]}
+                                </span>
+                                <span style="background: ${trade.type === 'system' ? '#3498db' : '#95a5a6'}; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.9em; font-weight: 700;">
+                                    ${typeLabels[trade.type]}
+                                </span>
+                                <span style="background: var(--stat-box-bg); color: var(--text-primary); padding: 6px 14px; border-radius: 20px; font-size: 0.9em; font-weight: 700; border: 2px solid var(--border-color);">
+                                    ${account.name}
+                                </span>
                             </div>
                         </div>
+                        
+                        <div style="text-align: right;">
+                            <div style="font-size: 2em; font-weight: 800; color: ${trade.pnl >= 0 ? '#27ae60' : '#e74c3c'}; margin-bottom: 5px;">
+                                ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}
+                            </div>
+                            <div style="font-size: 1em; font-weight: 600; color: ${trade.rValue >= 0 ? '#27ae60' : '#e74c3c'};">
+                                ${trade.rValue >= 0 ? '+' : ''}${trade.rValue.toFixed(2)}R
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Screenshot Section (if exists) -->
+                    ${trade.screenshot ? `
+                        <div style="margin-bottom: 20px;">
+                            <img src="${trade.screenshot}" 
+                                 onclick="openImageModal('${trade.screenshot}')" 
+                                 style="width: 100%; max-width: 100%; border-radius: 12px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border: 3px solid var(--border-color);"
+                                 alt="Trade screenshot">
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Trade Details Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div>
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Model</div>
+                            <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">${MODELS[trade.model]?.name || trade.model}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Grade</div>
+                            <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">${trade.grade === 'A' ? '🟢 A' : trade.grade === 'B' ? '🟢 B' : trade.grade === 'C' ? '🟡 C' : '🔴 Troll'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Entry Time</div>
+                            <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">⏰ ${trade.entryTime || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Exit Time</div>
+                            <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">⏰ ${trade.exitTime || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes Section (if exists) -->
+                    ${trade.note ? `
+                        <div style="background: var(--stat-box-bg); border-left: 4px solid #3498db; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">📝 Notes</div>
+                            <div style="font-size: 1em; color: var(--text-primary); line-height: 1.6;">${trade.note}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        ${trade.screenshot ? `<button onclick="openImageModal('${trade.screenshot}')" class="btn-sm-edit">👁️ View Screenshot</button>` : ''}
+                        <button onclick="editTrade(${trade.id}, '${trade.type}')" class="btn-sm-edit">✏️ Edit</button>
+                        <button onclick="deleteTrade(${trade.id})" class="btn-sm-delete">🗑️ Delete</button>
                     </div>
                 </div>
             `;
