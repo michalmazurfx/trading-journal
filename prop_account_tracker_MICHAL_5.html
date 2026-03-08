@@ -1449,8 +1449,8 @@
                     <div style="flex:1; min-width:250px;">
                         <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Trade Type:</label>
                         <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            <button class="filter-btn active" id="perf-type-all" onclick="setPerfDiscipline('all')">All Trades</button>
-                            <button class="filter-btn" id="perf-type-system" onclick="setPerfDiscipline('system')">✅ System Only</button>
+                            <button class="filter-btn" id="perf-type-all" onclick="setPerfDiscipline('all')">All Trades</button>
+                            <button class="filter-btn active" id="perf-type-system" onclick="setPerfDiscipline('system')">✅ System Only</button>
                             <button class="filter-btn" id="perf-type-offsystem" onclick="setPerfDiscipline('offsystem')">❌ Off-System Only</button>
                         </div>
                     </div>
@@ -1575,7 +1575,7 @@
                             <label style="display: block; font-weight: 600; margin-bottom: 5px; color: #2c3e50;">Type</label>
                             <select id="history-type-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
                                 <option value="all">All Trades</option>
-                                <option value="system">System Only</option>
+                                <option value="system" selected>System Only</option>
                                 <option value="offsystem">Off-System Only</option>
                             </select>
                         </div>
@@ -4458,7 +4458,7 @@
         
         let perfSelectedAccounts = [];
         let perfTimeRange = 'week';
-        let perfDiscipline = 'all'; // 'all', 'system', or 'offsystem'
+        let perfDiscipline = 'system'; // 'all', 'system', or 'offsystem'
         
         function generatePerfAccountFilter() {
             const menu = document.getElementById('perfDropdownMenu');
