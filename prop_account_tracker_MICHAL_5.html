@@ -1368,8 +1368,6 @@
                 <!-- Filter buttons will be generated dynamically -->
             </div>
             
-            <button class="btn btn-danger" onclick="clearAllData()" style="width: auto; padding: 10px 20px; margin-bottom: 20px;">Clear All Data</button>
-            
             <div class="trade-log" id="tradeLog">
                 <div class="no-data">No trades logged yet</div>
             </div>
@@ -5432,9 +5430,11 @@
                 });
             }
             
+            // Start with unique trades (one per batch)
+            let filteredTrades = getUniqueTrades();
+            
             // Filter trades by time range
             const now = new Date();
-            let filteredTrades = trades.filter(t => t.type !== 'adjustment');
             
             if (timeFilter !== 'all') {
                 filteredTrades = filteredTrades.filter(t => {
@@ -5468,7 +5468,7 @@
                 });
             }
             
-            // Filter by account
+            // Filter by account (if specific account selected, show only that account's version)
             if (accountFilter !== 'all') {
                 filteredTrades = filteredTrades.filter(t => t.account === accountFilter);
             }
