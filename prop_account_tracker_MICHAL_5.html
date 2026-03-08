@@ -2420,31 +2420,10 @@
                     updateDisplay();
                     
                     const exportDate = data.exportDate ? new Date(data.exportDate).toLocaleString() : 'Unknown';
+                    alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nPage will reload to apply changes.`);
                     
-                    // If Drive sync is enabled, save imported data to Drive BEFORE reloading
-                    // Otherwise reload will pull old Drive data and overwrite the import
-                    if (useDriveSync && accessToken) {
-                        const driveData = {
-                            trades: trades,
-                            accounts: ACCOUNTS,
-                            models: MODELS,
-                            symbols: SYMBOLS,
-                            payouts: payouts,
-                            costs: costs,
-                            lastUpdated: new Date().toISOString()
-                        };
-                        alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nSaving to Google Drive then reloading...`);
-                        saveDataToDrive(driveData).then(() => {
-                            setTimeout(() => location.reload(), 500);
-                        }).catch(err => {
-                            console.error('Drive save after import failed:', err);
-                            alert('⚠️ Import saved locally but Drive sync failed. Please click "Save to Drive" manually after reload.');
-                            setTimeout(() => location.reload(), 1000);
-                        });
-                    } else {
-                        alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nPage will reload to apply changes.`);
-                        setTimeout(() => location.reload(), 1000);
-                    }
+                    // Reload page to ensure everything is fresh
+                    setTimeout(() => location.reload(), 1000);
                     
                 } catch (error) {
                     alert('❌ Error importing backup:\n\n' + error.message + '\n\nPlease make sure you selected a valid backup file.');
@@ -3849,37 +3828,10 @@
             // Convert screenshot to base64 if provided
             const processScreenshot = new Promise((resolve, reject) => {
                 if (screenshotFile) {
-                    // Compress image before storing
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Resize to max 1200px width while maintaining aspect ratio
-                        const maxWidth = 1200;
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        if (width > maxWidth) {
-                            height = (height * maxWidth) / width;
-                            width = maxWidth;
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Convert to JPEG with 0.7 quality for compression
-                        const compressedData = canvas.toDataURL('image/jpeg', 0.7);
-                        resolve(compressedData);
-                    };
-                    img.onerror = function() {
-                        reject(new Error('Failed to load screenshot image'));
-                    };
-                    
+                    // Load screenshot at full quality (no compression)
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        img.src = e.target.result;
+                        resolve(e.target.result);
                     };
                     reader.onerror = function() {
                         reject(new Error('Failed to read screenshot file'));
@@ -4103,6 +4055,20 @@
                             <input type="text" id="edit-note" value="${trade.note || ''}">
                         </div>
                         
+                        <div class="input-group">
+                            <label>Screenshot (Optional)</label>
+                            ${trade.screenshot ? `
+                                <div style="margin-bottom: 10px;">
+                                    <img src="${trade.screenshot}" style="width: 200px; border-radius: 8px; border: 2px solid var(--border-color);">
+                                    <div style="margin-top: 5px;">
+                                        <button type="button" onclick="document.getElementById('edit-screenshot-replace').click()" class="btn-sm-edit" style="margin-right: 5px;">Replace</button>
+                                        <button type="button" onclick="removeEditScreenshot()" class="btn-sm-delete">Remove</button>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            <input type="file" id="edit-screenshot-replace" accept="image/*" onchange="handleEditScreenshot(event)" style="${trade.screenshot ? 'display: none;' : ''}">
+                        </div>
+                        
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn" onclick="saveEditedTrade(${id}, '${filter}')" style="flex: 1;">Save Changes</button>
                             <button class="btn" onclick="closeEditModal()" style="flex: 1; background: #95a5a6;">Cancel</button>
@@ -4121,6 +4087,27 @@
             if (event && event.target !== event.currentTarget) return;
             const modal = document.getElementById('editTradeModal');
             if (modal) modal.remove();
+            // Clear temp screenshot
+            window.editScreenshotData = null;
+        }
+        
+        let editScreenshotData = null;
+        
+        function handleEditScreenshot(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                window.editScreenshotData = e.target.result;
+                alert('✅ Screenshot uploaded! Click "Save Changes" to apply.');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function removeEditScreenshot() {
+            window.editScreenshotData = 'REMOVE';
+            alert('Screenshot will be removed when you click "Save Changes"');
         }
         
         function saveEditedTrade(id, filter) {
@@ -4174,7 +4161,19 @@
                 t.entryTime = entryTime;
                 t.exitTime = exitTime;
                 t.note = note;
+                
+                // Handle screenshot update
+                if (window.editScreenshotData) {
+                    if (window.editScreenshotData === 'REMOVE') {
+                        delete t.screenshot;
+                    } else {
+                        t.screenshot = window.editScreenshotData;
+                    }
+                }
             });
+            
+            // Clear temp screenshot
+            window.editScreenshotData = null;
             
             saveTradesToLocalStorage();
             
