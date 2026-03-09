@@ -2429,10 +2429,27 @@
                     updateDisplay();
                     
                     const exportDate = data.exportDate ? new Date(data.exportDate).toLocaleString() : 'Unknown';
-                    alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nPage will reload to apply changes.`);
-                    
-                    // Reload page to ensure everything is fresh
-                    setTimeout(() => location.reload(), 1000);
+
+                    // If Drive sync is active, save to Drive FIRST then reload
+                    // Without this, reload pulls old Drive data and overwrites the import
+                    if (useDriveSync && accessToken) {
+                        alert(`✅ Backup restored!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\n\nSaving to Google Drive... page will reload when done.`);
+                        const driveData = {
+                            trades, accounts: ACCOUNTS, models: MODELS,
+                            symbols: SYMBOLS, payouts, costs,
+                            lastUpdated: new Date().toISOString()
+                        };
+                        saveDataToDrive(driveData)
+                            .then(() => { location.reload(); })
+                            .catch(err => {
+                                console.error('Drive save after import failed:', err);
+                                alert('⚠️ Saved locally but Drive sync failed.\nPlease click "Save to Drive" manually after reload.');
+                                location.reload();
+                            });
+                    } else {
+                        alert(`✅ Backup restored successfully!\n\nBackup date: ${exportDate}\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}\n\nPage will reload to apply changes.`);
+                        setTimeout(() => location.reload(), 1000);
+                    }
                     
                 } catch (error) {
                     alert('❌ Error importing backup:\n\n' + error.message + '\n\nPlease make sure you selected a valid backup file.');
