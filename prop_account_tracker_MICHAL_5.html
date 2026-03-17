@@ -2775,6 +2775,8 @@
         let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
         let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
+        let perfSelectedAccounts = ['default_account'];
+        let perfDiscipline = 'system';
         
         // Compatibility layer for R-based trades
         trades = trades.map(t => {
@@ -3788,7 +3790,7 @@
         }
         
         // Update batch preview when inputs change
-        document.getElementById('tradePnl').addEventListener('input', updateBatchPreview);
+        document.getElementById('tradeRValue').addEventListener('input', updateBatchPreview);
         
         function toggleSection(sectionId) {
             const section = document.getElementById(sectionId);
@@ -3827,7 +3829,7 @@
             const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
             const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
             
-            const basePnl = parseFloat(document.getElementById('tradePnl').value) || 0;
+            const basePnl = parseFloat(document.getElementById('tradeRValue').value) || 0;
             const riskSize = parseFloat(document.getElementById('tradeRiskSize').value) || 1;
             const baseRisk = Math.abs(basePnl);
             const rLabel = riskSize === 1 ? '1R' : '0.5R';
@@ -3880,7 +3882,7 @@
             const model = document.getElementById('tradeModel').value;
             const grade = document.getElementById('tradeGrade').value;
             const riskSize = parseFloat(document.getElementById('tradeRiskSize').value); // 1 or 0.5
-            const basePnl = parseFloat(document.getElementById('tradePnl').value);
+            const basePnl = parseFloat(document.getElementById('tradeRValue').value);
             const baseRisk = Math.abs(basePnl); // 1:1 RR
             const date = document.getElementById('tradeDate').value;
             const entryTime = document.getElementById('tradeEntryTime').value;
@@ -3957,7 +3959,7 @@
                 }
                 
                 // Clear inputs
-                document.getElementById('tradePnl').value = '';
+                document.getElementById('tradeRValue').value = '';
                 document.getElementById('tradeNote').value = '';
                 document.getElementById('tradeScreenshot').value = '';
                 document.getElementById('excludeFromStats').checked = false;
@@ -4534,9 +4536,8 @@
             }).join('');
         }
         
-        let perfSelectedAccounts = ['default_account']; // Default to show all R journal trades
+        // perfSelectedAccounts and perfDiscipline declared globally above
         let perfTimeRange = 'week';
-        let perfDiscipline = 'system'; // 'all', 'system', or 'offsystem'
         
         function generatePerfAccountFilter() {
             const menu = document.getElementById('perfDropdownMenu');
