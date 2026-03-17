@@ -2773,6 +2773,8 @@
         }
         
         let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
+        let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
+        let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
         
         // Compatibility layer for R-based trades
         trades = trades.map(t => {
@@ -5194,9 +5196,7 @@
             }).join('');
         }
         
-        // Payouts and Costs data
-        let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
-        let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
+        // Payouts and Costs data (declared globally above)
         
         function updatePayoutPreview() {
             const grossAmount = parseFloat(document.getElementById('payout-amount').value) || 0;
