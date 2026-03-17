@@ -4511,23 +4511,19 @@
         }
         
         function updateDisplay() {
-            // Render all account cards
+            // Hide account cards grid (we don't use accounts anymore)
             const accountsGrid = document.getElementById('accountsGrid');
-            accountsGrid.innerHTML = Object.keys(ACCOUNTS).map(id => renderAccountCard(id)).join('');
+            if (accountsGrid) accountsGrid.innerHTML = '';
             
-            // Calculate total profit for current month only
-            const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-            
-            const monthlyPnl = trades
-                .filter(t => t.type !== 'adjustment' && t.date && t.date.startsWith(currentMonth))
-                .reduce((sum, t) => sum + t.pnl, 0);
+            // Calculate total R for all time
+            const totalR = trades
+                .filter(t => t.rValue !== undefined)
+                .reduce((sum, t) => sum + (t.rValue || 0), 0);
             
             const totalProfitEl = document.getElementById('totalProfit');
-            totalProfitEl.textContent = (monthlyPnl >= 0 ? '+' : '') + '$' + monthlyPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            totalProfitEl.style.color = monthlyPnl >= 0 ? '#2ecc71' : '#e74c3c';
-            document.getElementById('totalProfitLabel').textContent = `${monthName} — All Accounts`;
+            totalProfitEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
+            totalProfitEl.style.color = totalR >= 0 ? '#2ecc71' : '#e74c3c';
+            document.getElementById('totalProfitLabel').textContent = `Total R — All Time`;
             
             // Update discipline stats
             updateDisciplineStats();
@@ -4890,17 +4886,14 @@
             // Build day data - match using local date string
             const dayData = dayDates.map((date, i) => {
                 const dateStr = toLocalDateStr(date);
-                const dayTrades = unique.filter(t => t.date === dateStr); // ALL trades, not just system
-                const dayAdjustments = adjustments.filter(t => t.date === dateStr);
-                const pnl = dayTrades.reduce((s, t) => s + t.pnl, 0) + dayAdjustments.reduce((s, t) => s + t.pnl, 0);
+                const dayTrades = unique.filter(t => t.date === dateStr);
                 
-                // Calculate R for the day (only non-excluded system win/loss trades)
-                const daySystemTrades = dayTrades.filter(t => t.type === 'system' && !t.excludeFromStats && (t.result === 'win' || t.result === 'loss'));
-                const dayR = daySystemTrades.reduce((s, t) => s + (t.rValue || 0), 0);
+                // Calculate total R for the day (all trades)
+                const dayR = dayTrades.reduce((s, t) => s + (t.rValue || 0), 0);
                 
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
-                return { label: days[i], date, dateStr, dayTrades, pnl, dayR, isToday, isFuture };
+                return { label: days[i], date, dateStr, dayTrades, pnl: dayR, dayR, isToday, isFuture };
             });
             
             const weekPnl = dayData.reduce((s, d) => s + d.pnl, 0);
@@ -4931,12 +4924,9 @@
                                     ${d.date.getDate()}/${d.date.getMonth() + 1}
                                 </div>
                                 <div style="font-size: 1.1em; font-weight: 700; color: ${textColor};">
-                                    ${d.isFuture ? '-' : d.dayTrades.length === 0 ? 'REST' : (d.pnl >= 0 ? '+' : '') + '$' + d.pnl.toFixed(0)}
+                                    ${d.isFuture ? '-' : d.dayTrades.length === 0 ? 'REST' : (d.pnl >= 0 ? '+' : '') + d.pnl.toFixed(2) + 'R'}
                                 </div>
                                 ${!d.isFuture && d.dayTrades.length > 0 ? `
-                                    <div style="font-size: 0.8em; font-weight: 600; color: ${d.dayR >= 0 ? '#27ae60' : '#e74c3c'}; margin-top: 2px;">
-                                        ${d.dayR >= 0 ? '+' : ''}${d.dayR.toFixed(2)}R
-                                    </div>
                                     <div style="font-size: 0.75em; color: #aaa; margin-top: 3px;">${d.dayTrades.length} trade${d.dayTrades.length !== 1 ? 's' : ''}</div>
                                 ` : ''}
                             </div>
@@ -4946,7 +4936,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${weekPnl >= 0 ? '#27ae60' : '#e74c3c'};">
                     <span style="color: #7f8c8d; font-weight: 600;">Week Total</span>
                     <span style="font-size: 1.2em; font-weight: 700; color: ${weekPnl >= 0 ? '#27ae60' : '#e74c3c'};">
-                        ${weekPnl >= 0 ? '+' : ''}$${weekPnl.toFixed(2)}
+                        ${weekPnl >= 0 ? '+' : ''}${weekPnl.toFixed(2)}R
                     </span>
                     <span style="color: #aaa; font-size: 0.9em;">${tradedDays} day${tradedDays !== 1 ? 's' : ''} traded</span>
                 </div>
