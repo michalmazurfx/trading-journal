@@ -2919,55 +2919,15 @@
         }
         
         function getDayTrades(dateStr) {
-            // unique batches for trade count display (exclude trades marked as excluded)
-            const accountFilter = calSelectedAccounts.length > 0 
-                ? (t => calSelectedAccounts.includes(t.account))
-                : (() => true);
-            const dayTrades = trades.filter(t => 
-                t.type !== 'adjustment' && 
-                !t.excludeFromStats &&
-                t.date === dateStr && 
-                accountFilter(t)
-            );
-            const seen = new Set();
-            dayTrades.forEach(t => seen.add(String(t.batchId || Math.floor(t.id/10)*10)));
-            return seen.size;
+            // Simple count of trades for the day
+            return trades.filter(t => t.date === dateStr).length;
         }
         
         function getDayR(dateStr) {
-            // R from unique batches only, excluding BE trades
-            // R is per batch, not per account - all accounts in a batch have same R
-            // Only count SYSTEM trades (non-excluded) for R calculation
-            const unique = getUniqueTrades();
-            const dayBatches = unique.filter(t => 
-                t.date === dateStr && 
-                t.type === 'system' && 
-                !t.excludeFromStats &&
-                (t.result === 'win' || t.result === 'loss')
-            );
-            
-            if (calSelectedAccounts.length === 0) {
-                // No filter - sum R from all batches
-                return dayBatches.reduce((sum, t) => sum + (t.rValue || 0), 0);
-            } else {
-                // Filtered - only include batches that have at least one selected account
-                // But R is still per batch, not summed across accounts
-                let totalR = 0;
-                dayBatches.forEach(uniqueTrade => {
-                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
-                    const batchTrades = trades.filter(t => 
-                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
-                    );
-                    // Check if this batch includes any selected accounts
-                    const hasSelectedAccount = batchTrades.some(t => calSelectedAccounts.includes(t.account));
-                    if (hasSelectedAccount) {
-                        // Add R once per batch (take from first trade, they all have same R)
-                        const firstTrade = batchTrades.find(t => t.rValue !== undefined);
-                        totalR += (firstTrade ? firstTrade.rValue : 0);
-                    }
-                });
-                return totalR;
-            }
+            // For R journal - just sum all R values for the day
+            return trades
+                .filter(t => t.date === dateStr)
+                .reduce((sum, t) => sum + (t.rValue || 0), 0);
         }
         
         function renderCalendar() {
@@ -4519,23 +4479,11 @@
         // Returns one entry per batch, with P&L summed across all accounts
         // Excludes adjustment entries - those affect balance only
         function getUniqueTrades() {
-            const unique = [];
-            const seen = new Set();
-            trades.filter(t => t.type !== 'adjustment').forEach(trade => {
-                const batchKey = String(trade.batchId || Math.floor(trade.id / 10) * 10);
-                if (!seen.has(batchKey)) {
-                    seen.add(batchKey);
-                    const batch = trades.filter(t => 
-                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
-                    );
-                    unique.push({
-                        ...trade,
-                        pnl: batch.reduce((sum, t) => sum + t.pnl, 0),
-                        accountCount: batch.length
-                    });
-                }
-            });
-            return unique;
+            // For R journal, just return all trades (no batching/grouping)
+            return trades.map(trade => ({
+                ...trade,
+                accountCount: 1  // For compatibility with existing code
+            }));
         }
         
         function renderPerfBreakdown(groups) {
@@ -4544,8 +4492,6 @@
                 const winLoss = g.trades.filter(t => t.result === 'win' || t.result === 'loss');
                 const wins = g.trades.filter(t => t.result === 'win');
                 const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
-                const totalPnl = g.trades.reduce((s, t) => s + t.pnl, 0);
-                // Calculate R - sum R from wins/losses only (not BE), R is already per batch in unique trades
                 const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0);
                 const winRateColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
                 return `
@@ -4731,14 +4677,13 @@
             const beTrades = statsOnly.filter(t => t.result === 'be_win' || t.result === 'be_loss');
             
             const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
-            const totalPnl = all.reduce((s, t) => s + t.pnl, 0); // P&L from ALL trades
-            const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // R only from non-excluded wins/losses
-            const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.pnl, 0) / wins.length : 0;
-            const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.pnl, 0) / losses.length : 0;
-            const rr = avgLoss !== 0 ? Math.abs(avgWin / avgLoss).toFixed(2) : '-';
+            const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // R only from wins/losses
+            const avgWinR = wins.length > 0 ? wins.reduce((s, t) => s + (t.rValue || 0), 0) / wins.length : 0;
+            const avgLossR = losses.length > 0 ? losses.reduce((s, t) => s + (t.rValue || 0), 0) / losses.length : 0;
+            const rr = avgLossR !== 0 ? Math.abs(avgWinR / avgLossR).toFixed(2) : '-';
             
             // Top metrics
-            document.getElementById('perf-totalTrades').textContent = statsOnly.length; // Count only non-excluded
+            document.getElementById('perf-totalTrades').textContent = statsOnly.length;
             const wrEl = document.getElementById('perf-winRate');
             wrEl.textContent = winRate + '%';
             wrEl.style.color = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
@@ -4748,10 +4693,10 @@
                 rEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
             }
             const pnlEl = document.getElementById('perf-totalPnl');
-            pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(0);
-            pnlEl.style.color = totalPnl >= 0 ? '#27ae60' : '#e74c3c';
-            document.getElementById('perf-avgWin').textContent = '$' + avgWin.toFixed(0);
-            document.getElementById('perf-avgLoss').textContent = '$' + Math.abs(avgLoss).toFixed(0);
+            pnlEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
+            pnlEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
+            document.getElementById('perf-avgWin').textContent = '+' + avgWinR.toFixed(2) + 'R';
+            document.getElementById('perf-avgLoss').textContent = avgLossR.toFixed(2) + 'R';
             document.getElementById('perf-rrRatio').textContent = rr;
             
             // By Model
@@ -4781,14 +4726,8 @@
             ].filter(g => g.trades.length > 0);
             document.getElementById('perf-byDirection').innerHTML = renderPerfBreakdown(dirGroups);
             
-            // Discipline Impact
-            const systemTrades = statsOnly.filter(t => t.type === 'system');
-            const offsystemTrades = statsOnly.filter(t => t.type === 'offsystem');
-            const discGroups = [
-                { label: '✅ System Trades', trades: systemTrades },
-                { label: '❌ Off-System Trades', trades: offsystemTrades }
-            ].filter(g => g.trades.length > 0);
-            document.getElementById('perf-discipline').innerHTML = renderPerfBreakdown(discGroups);
+            // Discipline Impact - hidden for R journal (no type field)
+            document.getElementById('perf-discipline').innerHTML = '<div class="no-data">All trades are system trades</div>';
             
             // BE trades
             if (beTrades.length === 0) {
