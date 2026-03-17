@@ -2725,6 +2725,7 @@
         
         // Account configurations - load from localStorage or use defaults
         const DEFAULT_ACCOUNTS = {
+            default_account: { name: 'R Journal', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 },
             lucid1: { name: 'Lucid 150k S2F 1', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151330, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
             lucid2: { name: 'Lucid 150k S2F 2', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151310, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
             lucid3: { name: 'Lucid 150k S2F 3', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
@@ -2774,10 +2775,27 @@
         
         let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
         
-        // Migrate old "bullshit" trades to "offsystem"
+        // Compatibility layer for R-based trades
         trades = trades.map(t => {
+            // If trade doesn't have pnl, calculate from rValue
+            if (t.pnl === undefined && t.rValue !== undefined) {
+                t.pnl = t.rValue * 100; // Fake $ value for display compatibility
+            }
+            // If trade doesn't have type, default to system
+            if (!t.type) {
+                t.type = 'system';
+            }
+            // If trade doesn't have account, add default
+            if (!t.account) {
+                t.account = 'default_account';
+            }
+            // If trade doesn't have batchId, use id
+            if (!t.batchId) {
+                t.batchId = t.id;
+            }
+            // Migrate old "bullshit" trades to "offsystem"
             if (t.type === 'bullshit') {
-                return { ...t, type: 'offsystem' };
+                t.type = 'offsystem';
             }
             return t;
         });
