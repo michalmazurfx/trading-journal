@@ -2590,18 +2590,9 @@
         
         // Dummy ACCOUNTS to prevent errors (will be removed as we simplify)
         let ACCOUNTS = {};
-            lucid5: { name: 'Lucid 150k S2F 5', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151272, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
-            tradeify1: { name: 'Tradeify Live 50k 1', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 },
-            tradeify2: { name: 'Tradeify Live 50k 2', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 }
-        };
-        let ACCOUNTS = JSON.parse(localStorage.getItem('propAccounts')) || DEFAULT_ACCOUNTS;
         
         function saveAccounts() {
-            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
-            if (useDriveSync) {
-                clearTimeout(window.syncTimeout);
-                window.syncTimeout = setTimeout(syncToDrive, 2000);
-            }
+            // Deprecated - kept for compatibility
         }
         
         // Models - load from localStorage or use defaults
