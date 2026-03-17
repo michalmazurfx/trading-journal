@@ -2575,39 +2575,21 @@
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.closest('.nav-item').classList.add('active');
+            if (tabName === 'overview') updateDisplay();
             if (tabName === 'settings') renderSettingsPage();
             if (tabName === 'payouts') renderPayoutsTab();
             if (tabName === 'trade-history') renderTradeHistory();
-            if (tabName === 'calendar') {
-                generateCalendarAccountFilter();
-                renderCalendar();
-            }
-            if (tabName === 'performance') {
-                generatePerfAccountFilter();
-                // Select all by default on first load
-                if (perfSelectedAccounts.length === 0) {
-                    // Set state to all account IDs
-                    perfSelectedAccounts = Object.keys(ACCOUNTS);
-                    // Update checkboxes to match state
-                    setTimeout(() => {
-                        document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
-                            cb.checked = true;
-                        });
-                        document.getElementById('perfDropdownText').textContent = 'All Accounts';
-                        updatePerformanceTab();
-                    }, 0);
-                } else {
-                    updatePerformanceTab();
-                }
-            }
+            if (tabName === 'calendar') renderCalendar();
+            if (tabName === 'performance') updatePerformanceTab();
         }
         
-        // Account configurations - load from localStorage or use defaults
-        const DEFAULT_ACCOUNTS = {
-            lucid1: { name: 'Lucid 150k S2F 1', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151330, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
-            lucid2: { name: 'Lucid 150k S2F 2', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151310, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
-            lucid3: { name: 'Lucid 150k S2F 3', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
-            lucid4: { name: 'Lucid 150k S2F 4', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+        // Data storage - simplified for R journal
+        let trades = JSON.parse(localStorage.getItem('r_trades') || '[]');
+        let MODELS = JSON.parse(localStorage.getItem('r_models') || '{"model1":{"name":"Model 1"},"model2":{"name":"Model 2"}}');
+        let SYMBOLS = JSON.parse(localStorage.getItem('r_symbols') || '["NQ","ES"]');
+        
+        // Dummy ACCOUNTS to prevent errors (will be removed as we simplify)
+        let ACCOUNTS = {};
             lucid5: { name: 'Lucid 150k S2F 5', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151272, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
             tradeify1: { name: 'Tradeify Live 50k 1', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 },
             tradeify2: { name: 'Tradeify Live 50k 2', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 }
@@ -2623,43 +2605,23 @@
         }
         
         // Models - load from localStorage or use defaults
-        const DEFAULT_MODELS = {
-            model1: { name: 'Model 1', description: '' },
-            model2: { name: 'Model 2', description: '' },
-            model3: { name: 'Model 3', description: '' },
-            model4: { name: 'Model 4', description: '' }
-        };
-        let MODELS = JSON.parse(localStorage.getItem('propModels')) || DEFAULT_MODELS;
         
         function saveModels() {
-            localStorage.setItem('propModels', JSON.stringify(MODELS));
+            localStorage.setItem('r_models', JSON.stringify(MODELS));
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
         }
-        
-        // Symbols - load from localStorage or use defaults
-        const DEFAULT_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES'];
-        let SYMBOLS = JSON.parse(localStorage.getItem('propSymbols')) || DEFAULT_SYMBOLS;
         
         function saveSymbols() {
-            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
+            localStorage.setItem('r_symbols', JSON.stringify(SYMBOLS));
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
         }
         
-        let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
-        
-        // Migrate old "bullshit" trades to "offsystem"
-        trades = trades.map(t => {
-            if (t.type === 'bullshit') {
-                return { ...t, type: 'offsystem' };
-            }
-            return t;
-        });
         
         let currentFilter = 'system';
         
@@ -4250,23 +4212,14 @@
         }
         
         function updateDisplay() {
-            // Render all account cards
-            const accountsGrid = document.getElementById('accountsGrid');
-            accountsGrid.innerHTML = Object.keys(ACCOUNTS).map(id => renderAccountCard(id)).join('');
+            // Calculate total R
+            const totalR = trades.reduce((sum, t) => sum + (t.rValue || 0), 0);
             
-            // Calculate total profit for current month only
-            const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-            
-            const monthlyPnl = trades
-                .filter(t => t.type !== 'adjustment' && t.date && t.date.startsWith(currentMonth))
-                .reduce((sum, t) => sum + t.pnl, 0);
-            
+            // Update total R display
             const totalProfitEl = document.getElementById('totalProfit');
-            totalProfitEl.textContent = (monthlyPnl >= 0 ? '+' : '') + '$' + monthlyPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            totalProfitEl.style.color = monthlyPnl >= 0 ? '#2ecc71' : '#e74c3c';
-            document.getElementById('totalProfitLabel').textContent = `${monthName} — All Accounts`;
+            totalProfitEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
+            totalProfitEl.style.color = totalR >= 0 ? '#2ecc71' : '#e74c3c';
+            document.getElementById('totalProfitLabel').textContent = `Total R`;
             
             // Update discipline stats
             updateDisciplineStats();
