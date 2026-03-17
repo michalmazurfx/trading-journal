@@ -1062,6 +1062,15 @@
         .switch input:checked + span + span {
             transform: translateX(26px);
         }
+    
+        /* Hide account selection for R journal */
+        #dropdownMenu, .dropdown-header, [onclick*="applyToAll"], [onclick*="clearSelection"] {
+            display: none !important;
+        }
+        #accountsGrid {
+            display: none !important;
+        }
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -1070,7 +1079,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>📊 R Journal</h2>
-            <p>Track Your Edge</p>
+            <p>Stay Disciplined. Stay Locked In.</p>
         </div>
         <div class="nav-menu">
             <div class="nav-item active" onclick="switchTab('overview')">
@@ -1130,37 +1139,36 @@
             <!-- Trade Entry Form -->
             <div class="card">
                 <h2>📝 Log Trade</h2>
+                <p style="margin-bottom: 20px; color: #7f8c8d;">Track your R-based performance</p>
                 
-                <div class="input-row">
-                    <div class="input-group">
-                        <label>Date *</label>
-                        <input type="date" id="tradeDate">
+                <div class="input-group">
+                    <label>Select Accounts</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" class="btn" onclick="applyToAll()" style="width: auto; padding: 10px 20px; margin: 0;">Apply to All Accounts</button>
+                        <button type="button" class="btn" onclick="clearSelection()" style="width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);">Clear Selection</button>
                     </div>
-                    <div class="input-group">
-                        <label>Entry Time</label>
-                        <input type="time" id="tradeEntryTime">
-                    </div>
-                    <div class="input-group">
-                        <label>Exit Time</label>
-                        <input type="time" id="tradeExitTime">
+                    <div class="custom-dropdown">
+                        <div class="dropdown-header" onclick="toggleDropdown()">
+                            <span id="dropdownText">Click to select accounts...</span>
+                            <span style="float: right;">▼</span>
+                        </div>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <!-- Account checkboxes will be generated here -->
+                        </div>
                     </div>
                 </div>
                 
                 <div class="input-row">
                     <div class="input-group">
-                        <label>Symbol *</label>
-                        <select id="tradeSymbol"></select>
-                    </div>
-                    <div class="input-group">
-                        <label>Direction *</label>
-                        <select id="tradeDirection">
-                            <option value="long">📈 LONG</option>
-                            <option value="short">📉 SHORT</option>
+                        <label>Trade Type</label>
+                        <select id="tradeType">
+                            <option value="system">✅ System Trade (Following Rules)</option>
+                            <option value="offsystem">❌ Off-System Trade (Broke Rules)</option>
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Result *</label>
-                        <select id="tradeResult">
+                        <label>Result</label>
+                        <select id="tradeResult" onchange="updateResultHint()">
                             <option value="win">🟢 WIN</option>
                             <option value="loss">🔴 LOSS</option>
                             <option value="be_win">🟡 BE/WIN</option>
@@ -1169,10 +1177,46 @@
                     </div>
                 </div>
                 
+                <!-- Exclude from Stats Checkbox -->
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="excludeFromStats" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 600; color: #2c3e50;">Exclude from Win Rate & R Stats</span>
+                    </label>
+                    <p style="margin: 5px 0 0 26px; font-size: 0.85em; color: #7f8c8d;">Use when entering same setup with different risk per account</p>
+                </div>
+                
                 <div class="input-row">
                     <div class="input-group">
-                        <label>R Value * (e.g., 2.5 or -1)</label>
-                        <input type="number" id="tradeRValue" step="0.01" placeholder="Enter R value">
+                        <label>Symbol</label>
+                        <select id="tradeSymbol">
+                            <option value="NQ">NQ</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Direction</label>
+                        <select id="tradeDirection">
+                            <option value="long">📈 LONG</option>
+                            <option value="short">📉 SHORT</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Model Used</label>
+                        <select id="tradeModel">
+                            <option value="model1">Model 1</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Setup Grade</label>
+                        <select id="tradeGrade">
+                            <option value="A" style="background: #d4edda; font-weight: bold;">A - Excellent Setup</option>
+                            <option value="B" style="background: #d4edda;">B - Good Setup</option>
+                            <option value="C" style="background: #fff3cd;">C - Average Setup</option>
+                            <option value="troll" style="background: #f8d7da; font-weight: bold;">Troll - Bad Setup</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label>Risk Size</label>
@@ -1182,20 +1226,27 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Model</label>
-                        <select id="tradeModel"></select>
+                        <label>P&L per 50k Account ($)</label>
+                        <input type="number" id="tradePnl" step="0.01" placeholder="e.g., 250 or -150">
+                        <div id="resultHint" style="margin-top: 5px; font-size: 0.85em; color: #7f8c8d;"></div>
                     </div>
                 </div>
                 
                 <div class="input-row">
                     <div class="input-group">
-                        <label>Setup Grade</label>
-                        <select id="tradeGrade">
-                            <option value="A">A - Excellent</option>
-                            <option value="B">B - Good</option>
-                            <option value="C">C - Average</option>
-                            <option value="troll">Troll - Bad</option>
-                        </select>
+                        <label>Date</label>
+                        <input type="date" id="tradeDate" value="">
+                    </div>
+                    <div class="input-group">
+                        <label>Entry Time</label>
+                        <input type="time" id="tradeEntryTime" value="">
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Exit Time</label>
+                        <input type="time" id="tradeExitTime" value="">
                     </div>
                     <div class="input-group">
                         <label>Screenshot (Optional)</label>
@@ -1205,10 +1256,44 @@
                 
                 <div class="input-group">
                     <label>Note (Optional)</label>
-                    <textarea id="tradeNote" rows="2" placeholder="Trade notes..." style="resize: vertical;"></textarea>
+                    <input type="text" id="tradeNote" placeholder="e.g., FOMO after missing setup">
                 </div>
                 
-                <button class="btn" onclick="logTrade()">Log Trade</button>
+                <div id="riskAlert"></div>
+                
+                <!-- Collapsible Preview Section -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleSection('previewSection')">
+                        <span>📊 Trade Preview</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div id="previewSection" class="collapsible-content" style="display: none;">
+                        <div id="batchPreview"></div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="logBatchTrade()">Add Trade to Selected Accounts</button>
+                
+                <!-- Collapsible How It Works Section -->
+                <div class="collapsible-section" style="margin-top: 20px;">
+                    <div class="collapsible-header" onclick="toggleSection('howItWorksSection')">
+                        <span>ℹ️ How it works</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                    <div id="howItWorksSection" class="collapsible-content" style="display: none;">
+                        <div class="alert alert-info" style="margin: 0;">
+                            <strong>Batch Entry:</strong><br>
+                            • Enter P&L for 50k base<br>
+                            • Risk auto-calculated as 1:1 RR (Risk = |P&L|)<br>
+                            • 150k accounts automatically get 3x the amounts<br>
+                            • Select which accounts the trade applies to<br><br>
+                            <strong>BE/WIN & BE/LOSS:</strong><br>
+                            • For record-keeping only - tracks trades that went breakeven first<br>
+                            • P&L still updates account balance<br>
+                            • NOT counted in win rate statistics (excluded from win/loss calculation)
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Discipline Scorecard -->
@@ -1982,7 +2067,16 @@
                             50% { transform: translateX(100%); }
                             100% { transform: translateX(-100%); }
                         }
-                    </style>
+                    
+        /* Hide account selection for R journal */
+        #dropdownMenu, .dropdown-header, [onclick*="applyToAll"], [onclick*="clearSelection"] {
+            display: none !important;
+        }
+        #accountsGrid {
+            display: none !important;
+        }
+
+    </style>
                 `;
                 document.body.appendChild(overlay);
                 
@@ -2205,7 +2299,16 @@
                         generateModelOptions();
                         generateSymbolOptions();
                         renderPayoutsTab();
-                        updateDisplay();
+                        
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
@@ -2350,7 +2453,16 @@
                     generateSymbolOptions();
                     renderSettingsPage();
                     renderPayoutsTab();
-                    updateDisplay();
+                    
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
                     
                     const exportDate = data.exportDate ? new Date(data.exportDate).toLocaleString() : 'Unknown';
 
@@ -2448,7 +2560,16 @@
                         generateAccountOptions();
                         generateModelOptions();
                         generateSymbolOptions();
-                        updateDisplay();
+                        
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
                         
                     } catch (err) {
                         console.error('Import error:', err);
@@ -2575,44 +2696,91 @@
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.closest('.nav-item').classList.add('active');
-            if (tabName === 'overview') updateDisplay();
             if (tabName === 'settings') renderSettingsPage();
             if (tabName === 'payouts') renderPayoutsTab();
             if (tabName === 'trade-history') renderTradeHistory();
-            if (tabName === 'calendar') renderCalendar();
-            if (tabName === 'performance') updatePerformanceTab();
+            if (tabName === 'calendar') {
+                generateCalendarAccountFilter();
+                renderCalendar();
+            }
+            if (tabName === 'performance') {
+                generatePerfAccountFilter();
+                // Select all by default on first load
+                if (perfSelectedAccounts.length === 0) {
+                    // Set state to all account IDs
+                    perfSelectedAccounts = Object.keys(ACCOUNTS);
+                    // Update checkboxes to match state
+                    setTimeout(() => {
+                        document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = true;
+                        });
+                        document.getElementById('perfDropdownText').textContent = 'All Accounts';
+                        updatePerformanceTab();
+                    }, 0);
+                } else {
+                    updatePerformanceTab();
+                }
+            }
         }
         
-        // Data storage - simplified for R journal
-        let trades = JSON.parse(localStorage.getItem('r_trades') || '[]');
-        let MODELS = JSON.parse(localStorage.getItem('r_models') || '{"model1":{"name":"Model 1"},"model2":{"name":"Model 2"}}');
-        let SYMBOLS = JSON.parse(localStorage.getItem('r_symbols') || '["NQ","ES"]');
-        
-        // Dummy ACCOUNTS to prevent errors (will be removed as we simplify)
-        let ACCOUNTS = {};
+        // Account configurations - load from localStorage or use defaults
+        const DEFAULT_ACCOUNTS = {
+            lucid1: { name: 'Lucid 150k S2F 1', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151330, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid2: { name: 'Lucid 150k S2F 2', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151310, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid3: { name: 'Lucid 150k S2F 3', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid4: { name: 'Lucid 150k S2F 4', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151286, initialDrawdown: 782, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            lucid5: { name: 'Lucid 150k S2F 5', size: 150000, maxDrawdown: 6000, profitTarget: 9000, initialBalance: 151272, initialDrawdown: 796, minRisk: 660, maxRisk: 810, multiplier: 3 },
+            tradeify1: { name: 'Tradeify Live 50k 1', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 },
+            tradeify2: { name: 'Tradeify Live 50k 2', size: 50000, maxDrawdown: 2000, profitTarget: null, initialBalance: 50000, initialDrawdown: 0, minRisk: 220, maxRisk: 270, multiplier: 1 }
+        };
+        let ACCOUNTS = JSON.parse(localStorage.getItem('propAccounts')) || DEFAULT_ACCOUNTS;
         
         function saveAccounts() {
-            // Deprecated - kept for compatibility
+            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
+            if (useDriveSync) {
+                clearTimeout(window.syncTimeout);
+                window.syncTimeout = setTimeout(syncToDrive, 2000);
+            }
         }
         
         // Models - load from localStorage or use defaults
+        const DEFAULT_MODELS = {
+            model1: { name: 'Model 1', description: '' },
+            model2: { name: 'Model 2', description: '' },
+            model3: { name: 'Model 3', description: '' },
+            model4: { name: 'Model 4', description: '' }
+        };
+        let MODELS = JSON.parse(localStorage.getItem('propModels')) || DEFAULT_MODELS;
         
         function saveModels() {
-            localStorage.setItem('r_models', JSON.stringify(MODELS));
+            localStorage.setItem('propModels', JSON.stringify(MODELS));
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
         }
+        
+        // Symbols - load from localStorage or use defaults
+        const DEFAULT_SYMBOLS = ['NQ', 'ES', 'MNQ', 'MES'];
+        let SYMBOLS = JSON.parse(localStorage.getItem('propSymbols')) || DEFAULT_SYMBOLS;
         
         function saveSymbols() {
-            localStorage.setItem('r_symbols', JSON.stringify(SYMBOLS));
+            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
             if (useDriveSync) {
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
         }
         
+        let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
+        
+        // Migrate old "bullshit" trades to "offsystem"
+        trades = trades.map(t => {
+            if (t.type === 'bullshit') {
+                return { ...t, type: 'offsystem' };
+            }
+            return t;
+        });
         
         let currentFilter = 'system';
         
@@ -3144,7 +3312,16 @@
             generateAccountOptions();
             applyToAll();
             renderSettingsPage();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             alert(`✅ Account "${name}" added!`);
         }
         
@@ -3171,7 +3348,16 @@
             generateAccountOptions();
             applyToAll();
             renderSettingsPage();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
         }
         
         function editAccount(accountId) {
@@ -3277,7 +3463,16 @@
             closeEditAccountModal();
             generateAccountOptions();
             renderSettingsPage();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             alert(`✅ Account "${name}" updated!`);
         }
         
@@ -3335,7 +3530,16 @@
             document.getElementById('adj-note').value = '';
             
             renderSettingsPage();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             alert(`✅ Adjusted ${ACCOUNTS[accountId].name}\n\nPrevious balance: $${currentBalance.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\nAdjustment: ${amount >= 0 ? '+' : ''}$${amount.toFixed(2)}\n\nThis adjustment is included in all P&L displays.`);
         }
         
@@ -3381,7 +3585,16 @@
             
             // Force complete UI refresh
             renderSettingsPage();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             
             // Force update the adjustment balance field
             setTimeout(() => {
@@ -3698,31 +3911,47 @@
             alertDiv.innerHTML = '';
         }
         
-        function logTrade() {
-            const date = document.getElementById('tradeDate').value;
-            const entryTime = document.getElementById('tradeEntryTime').value;
-            const exitTime = document.getElementById('tradeExitTime').value;
-            const symbol = document.getElementById('tradeSymbol').value;
-            const direction = document.getElementById('tradeDirection').value;
-            const result = document.getElementById('tradeResult').value;
-            const rValue = parseFloat(document.getElementById('tradeRValue').value);
-            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value);
-            const model = document.getElementById('tradeModel').value;
-            const grade = document.getElementById('tradeGrade').value;
-            const note = document.getElementById('tradeNote').value;
-            const screenshotFile = document.getElementById('tradeScreenshot').files[0];
+        function logBatchTrade() {
+            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
+            const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
             
-            if (!date || !symbol || isNaN(rValue)) {
-                alert('Please fill required fields: Date, Symbol, R Value');
+            if (selectedAccounts.length === 0) {
+                alert('Please select at least one account');
                 return;
             }
             
-            // Process screenshot
+            const type = document.getElementById('tradeType').value;
+            const result = document.getElementById('tradeResult').value;
+            const symbol = document.getElementById('tradeSymbol').value;
+            const direction = document.getElementById('tradeDirection').value;
+            const model = document.getElementById('tradeModel').value;
+            const grade = document.getElementById('tradeGrade').value;
+            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value); // 1 or 0.5
+            const basePnl = parseFloat(document.getElementById('tradePnl').value);
+            const baseRisk = Math.abs(basePnl); // 1:1 RR
+            const date = document.getElementById('tradeDate').value;
+            const entryTime = document.getElementById('tradeEntryTime').value;
+            const exitTime = document.getElementById('tradeExitTime').value;
+            const note = document.getElementById('tradeNote').value;
+            const screenshotFile = document.getElementById('tradeScreenshot').files[0];
+            const excludeFromStats = document.getElementById('excludeFromStats').checked;
+            
+            if (isNaN(basePnl) || !date) {
+                alert('Please enter P&L and date');
+                return;
+            }
+            
+            // Convert screenshot to base64 if provided
             const processScreenshot = new Promise((resolve, reject) => {
                 if (screenshotFile) {
+                    // Load screenshot at full quality (no compression)
                     const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.onerror = () => reject(new Error('Failed to read screenshot'));
+                    reader.onload = function(e) {
+                        resolve(e.target.result);
+                    };
+                    reader.onerror = function() {
+                        reject(new Error('Failed to read screenshot file'));
+                    };
                     reader.readAsDataURL(screenshotFile);
                 } else {
                     resolve(null);
@@ -3730,43 +3959,95 @@
             });
             
             processScreenshot.then(screenshotData => {
-                const trade = {
-                    id: Date.now(),
-                    date,
-                    entryTime,
-                    exitTime,
-                    symbol,
-                    direction,
-                    result,
-                    rValue,
-                    riskSize,
-                    model,
-                    grade,
-                    note,
-                    screenshot: screenshotData,
-                    timestamp: new Date().toISOString()
-                };
+                const timestamp = Date.now();
                 
-                trades.push(trade);
+                selectedAccounts.forEach((accountId, index) => {
+                    const account = ACCOUNTS[accountId];
+                    const actualPnl = basePnl * account.multiplier;
+                    const actualRisk = baseRisk * account.multiplier;
+                    // R value: pnl / (risk / riskSize) — e.g. half risk win = +0.5R, full risk loss = -1R
+                    const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
+                    
+                    const trade = {
+                        id: timestamp + index,
+                        batchId: timestamp,
+                        account: accountId,
+                        type: type,
+                        result: result,
+                        symbol: symbol,
+                        direction: direction,
+                        model: model,
+                        grade: grade,
+                        riskSize: riskSize,
+                        rValue: rValue,
+                        pnl: actualPnl,
+                        risk: actualRisk,
+                        date: date,
+                        entryTime: entryTime,
+                        exitTime: exitTime,
+                        screenshot: screenshotData,
+                        note: note,
+                        excludeFromStats: excludeFromStats,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    trades.push(trade);
+                });
+                
+                // Save to localStorage WITHOUT screenshots (to avoid quota)
                 saveTradesToLocalStorage();
                 
+                // Trigger Drive sync for full data INCLUDING screenshots
                 if (useDriveSync) {
                     clearTimeout(window.syncTimeout);
                     window.syncTimeout = setTimeout(syncToDrive, 1000);
                 }
                 
-                // Clear form
-                document.getElementById('tradeRValue').value = '';
+                // Clear inputs
+                document.getElementById('tradePnl').value = '';
                 document.getElementById('tradeNote').value = '';
                 document.getElementById('tradeScreenshot').value = '';
+                document.getElementById('excludeFromStats').checked = false;
+                document.getElementById('batchPreview').innerHTML = '';
+                document.getElementById('riskAlert').innerHTML = '';
                 
-                updateDisplay();
-                alert('✅ Trade logged!');
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('⚠️ Error adding trade: ' + error.message);
+                // Reset to defaults
+                document.getElementById('tradeType').value = 'system';
+                document.getElementById('tradeResult').value = 'win';
+                document.getElementById('tradeDirection').value = 'long';
+                document.getElementById('tradeRiskSize').value = '1';
+                document.getElementById('tradeModel').value = 'model1';
+                document.getElementById('tradeGrade').value = 'A';
+                document.getElementById('excludeFromStats').checked = false;
+                updateResultHint();
+                
+                // Don't clear selection - keep accounts selected
+                
+                const now = new Date();
+                document.getElementById('tradeDate').valueAsDate = now;
+                document.getElementById('tradeEntryTime').value = now.toTimeString().slice(0,5);
+                document.getElementById('tradeExitTime').value = now.toTimeString().slice(0,5);
+                
+                
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
             });
-        }
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
+                
+                alert(`✅ Trade added to ${selectedAccounts.length} account(s)`);
+            }).catch(error => {
+                console.error('Error processing trade:', error);
+                if (error.name === 'QuotaExceededError') {
+                    alert('⚠️ Storage quota exceeded! Your browser storage is full.\n\nTips:\n- Use smaller screenshots\n- Delete old trades you no longer need\n- Consider exporting data and starting fresh');
+                } else {
+                    alert('⚠️ Error adding trade: ' + error.message);
+                }
+            });
         }
         
         function deleteTrade(id) {
@@ -3791,7 +4072,16 @@
                     window.syncTimeout = setTimeout(syncToDrive, 2000);
                 }
                 
-                updateDisplay();
+                
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             }
             return false;
         }
@@ -4027,7 +4317,16 @@
             }
             
             closeEditModal();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
         }
         
         function filterTrades(filter, clickedElement) {
@@ -4042,7 +4341,16 @@
                 if (confirm('Really? All your trade history will be lost forever.')) {
                     trades = [];
                     localStorage.removeItem('propTrades');
-                    updateDisplay();
+                    
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
                 }
             }
             return false;
@@ -4203,14 +4511,23 @@
         }
         
         function updateDisplay() {
-            // Calculate total R
-            const totalR = trades.reduce((sum, t) => sum + (t.rValue || 0), 0);
+            // Render all account cards
+            const accountsGrid = document.getElementById('accountsGrid');
+            accountsGrid.innerHTML = Object.keys(ACCOUNTS).map(id => renderAccountCard(id)).join('');
             
-            // Update total R display
+            // Calculate total profit for current month only
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+            
+            const monthlyPnl = trades
+                .filter(t => t.type !== 'adjustment' && t.date && t.date.startsWith(currentMonth))
+                .reduce((sum, t) => sum + t.pnl, 0);
+            
             const totalProfitEl = document.getElementById('totalProfit');
-            totalProfitEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
-            totalProfitEl.style.color = totalR >= 0 ? '#2ecc71' : '#e74c3c';
-            document.getElementById('totalProfitLabel').textContent = `Total R`;
+            totalProfitEl.textContent = (monthlyPnl >= 0 ? '+' : '') + '$' + monthlyPnl.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalProfitEl.style.color = monthlyPnl >= 0 ? '#2ecc71' : '#e74c3c';
+            document.getElementById('totalProfitLabel').textContent = `${monthName} — All Accounts`;
             
             // Update discipline stats
             updateDisciplineStats();
@@ -5020,7 +5337,16 @@
             document.getElementById('payout-note').value = '';
             
             renderPayoutsTab();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             
             // Update adjustment balance if Settings tab exists
             setTimeout(() => {
@@ -5044,7 +5370,16 @@
             }
             
             renderPayoutsTab();
-            updateDisplay();
+            
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
+        updateDisplay();
             
             // Update adjustment balance if on settings tab
             if (document.getElementById('settings').classList.contains('active')) {
@@ -5585,6 +5920,15 @@
             // Don't let trade history errors break the whole app
         }
         
+        
+        // Auto-select all accounts for R journal
+        setTimeout(() => {
+            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateDropdownText();
+        }, 100);
+
         updateDisplay();
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
