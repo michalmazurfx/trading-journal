@@ -1226,9 +1226,8 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>P&L per 50k Account ($)</label>
-                        <input type="number" id="tradePnl" step="0.01" placeholder="e.g., 250 or -150">
-                        <div id="resultHint" style="margin-top: 5px; font-size: 0.85em; color: #7f8c8d;"></div>
+                        <label>R Value (e.g., 2.5 or -1)</label>
+                        <input type="number" id="tradeRValue" step="0.01" placeholder="Enter R value">
                     </div>
                 </div>
                 
@@ -4533,7 +4532,7 @@
             }).join('');
         }
         
-        let perfSelectedAccounts = [];
+        let perfSelectedAccounts = ['default_account']; // Default to show all R journal trades
         let perfTimeRange = 'week';
         let perfDiscipline = 'system'; // 'all', 'system', or 'offsystem'
         
