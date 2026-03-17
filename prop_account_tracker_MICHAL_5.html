@@ -2910,21 +2910,12 @@
         }
         
         function getDayPnl(dateStr) {
-            const accountFilter = calSelectedAccounts.length > 0 
-                ? (t => calSelectedAccounts.includes(t.account))
-                : (() => true);
+            // For R journal, just return total R for the day
+            const tradeR = trades
+                .filter(t => t.date === dateStr)
+                .reduce((sum, t) => sum + (t.rValue || 0), 0);
             
-            // Calculate P&L from ALL trades (system + offsystem + excluded) + adjustments
-            // Only adjustments are filtered out
-            const tradePnl = trades
-                .filter(t => t.type !== 'adjustment' && t.date === dateStr && accountFilter(t))
-                .reduce((sum, t) => sum + t.pnl, 0);
-            
-            const adjustmentPnl = trades
-                .filter(t => t.type === 'adjustment' && t.date === dateStr && accountFilter(t))
-                .reduce((sum, t) => sum + t.pnl, 0);
-            
-            return tradePnl + adjustmentPnl;
+            return tradeR;
         }
         
         function getDayTrades(dateStr) {
@@ -3070,9 +3061,7 @@
                     ? `onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 8px 25px ${Math.abs(r) < 0.01 ? 'rgba(243,156,18,0.35)' : r > 0 ? 'rgba(72,187,120,0.4)' : 'rgba(245,101,101,0.4)'}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='${shadow}'"`
                     : '';
                 
-                const formattedPnl = Math.abs(pnl) >= 1000
-                    ? `${pnl >= 0 ? '+' : '-'}$${(Math.abs(pnl)/1000).toFixed(1)}k`
-                    : `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(0)}`;
+                const formattedPnl = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}R`;
                 
                 return `
                     <div style="
@@ -3097,10 +3086,7 @@
                         </div>
                         <div style="text-align:center; padding:6px 0;">
                             ${hasTraded
-                                ? calShowPnl 
-                                    ? `<div style="font-size:1.15em; font-weight:800; color:${pnlColor}; letter-spacing:-0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${formattedPnl}</div>
-                                       <div style="font-size:0.75em; font-weight:700; color:${pnlColor}; opacity:0.8; margin-top:2px;">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
-                                    : `<div style="font-size:1.15em; font-weight:800; color:${pnlColor}; letter-spacing:-0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${r >= 0 ? '+' : ''}${r.toFixed(2)}R</div>`
+                                ? `<div style="font-size:1.15em; font-weight:800; color:${pnlColor}; letter-spacing:-0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">${formattedPnl}</div>`
                                 : `<span style="font-size:0.85em; color:#cbd5e0;">${isFuture ? '' : '—'}</span>`
                             }
                         </div>
@@ -3116,26 +3102,14 @@
             const winRate = (winDays + lossDays) > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0;
             const wrColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
             const monthRColor = monthR > 0 ? '#27ae60' : monthR < 0 ? '#e74c3c' : '#f39c12';
-            const monthPnlFmt = Math.abs(monthPnl) >= 1000
-                ? `${monthPnl >= 0 ? '+' : '-'}$${(Math.abs(monthPnl)/1000).toFixed(1)}k`
-                : `${monthPnl >= 0 ? '+' : ''}$${monthPnl.toFixed(0)}`;
             
-            const summaryItems = calShowPnl
-                ? [
-                    { val: monthPnlFmt, label: 'Month P&L', color: monthPnl >= 0 ? '#27ae60' : '#e74c3c' },
-                    { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
-                    { val: winDays, label: 'Green Days', color: '#27ae60' },
-                    { val: lossDays, label: 'Red Days', color: '#e74c3c' },
-                    { val: beDays, label: 'BE Days', color: '#f39c12' },
-                    { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
-                ]
-                : [
-                    { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
-                    { val: winDays, label: 'Green Days', color: '#27ae60' },
-                    { val: lossDays, label: 'Red Days', color: '#e74c3c' },
-                    { val: beDays, label: 'BE Days', color: '#f39c12' },
-                    { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
-                ];
+            const summaryItems = [
+                { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
+                { val: winDays, label: 'Green Days', color: '#27ae60' },
+                { val: lossDays, label: 'Red Days', color: '#e74c3c' },
+                { val: beDays, label: 'BE Days', color: '#f39c12' },
+                { val: winRate + '%', label: 'Day Win Rate', color: wrColor },
+            ];
             
             document.getElementById('cal-summary').innerHTML = `
                 <div style="
