@@ -4568,7 +4568,7 @@
             } else if (perfSelectedAccounts.length === Object.keys(ACCOUNTS).length) {
                 text.textContent = 'All Accounts';
             } else {
-                text.textContent = perfSelectedAccounts.map(id => ACCOUNTS[id].name).join(', ');
+                text.textContent = perfSelectedAccounts.map(id => ACCOUNTS[id] ? ACCOUNTS[id].name : id).join(', ');
             }
             
             updatePerformanceTab();
@@ -5115,7 +5115,7 @@
             }
             
             logDiv.innerHTML = displayTrades.map(trade => {
-                const account = ACCOUNTS[trade.account];
+                const account = ACCOUNTS[trade.account] || { name: trade.account || 'Unknown' };
                 
                 // If viewing System Only or Off-System Only, count accounts and sum PNL across batch
                 let accountCount = 1;
@@ -5237,7 +5237,7 @@
             const payout = {
                 id: Date.now(),
                 accountId: accountId,
-                accountName: ACCOUNTS[accountId].name,
+                accountName: ACCOUNTS[accountId] ? ACCOUNTS[accountId].name : accountId,
                 grossAmount: grossAmount,
                 netAmount: netAmount,
                 splitPercent: splitPercent,
