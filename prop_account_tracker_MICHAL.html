@@ -2272,7 +2272,14 @@
                         
                         // Load data into memory for this session (no localStorage when Drive sync is on)
                         if (data.trades) {
-                            trades = data.trades;
+                            trades = data.trades.map(t => {
+                                if (t.pnl === undefined && t.rValue !== undefined) t.pnl = t.rValue * 100;
+                                if (!t.type) t.type = 'system';
+                                if (!t.account) t.account = 'default_account';
+                                if (!t.batchId) t.batchId = t.id;
+                                if (t.type === 'bullshit') t.type = 'offsystem';
+                                return t;
+                            });
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
