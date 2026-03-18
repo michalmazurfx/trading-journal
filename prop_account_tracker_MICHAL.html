@@ -1174,6 +1174,7 @@
                             <option value="be_win">🟡 BE/WIN</option>
                             <option value="be_loss">🟡 BE/LOSS</option>
                         </select>
+                        <div id="resultHint" style="font-size:0.8em; color:#7f8c8d; margin-top:4px;"></div>
                     </div>
                 </div>
                 
@@ -2777,6 +2778,7 @@
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
         let perfSelectedAccounts = ['default_account'];
         let perfDiscipline = 'system';
+        let perfTimeRange = 'week';
         
         // Compatibility layer for R-based trades
         trades = trades.map(t => {
@@ -4536,8 +4538,7 @@
             }).join('');
         }
         
-        // perfSelectedAccounts and perfDiscipline declared globally above
-        let perfTimeRange = 'week';
+        // perfSelectedAccounts, perfDiscipline, perfTimeRange declared globally above
         
         function generatePerfAccountFilter() {
             const menu = document.getElementById('perfDropdownMenu');
