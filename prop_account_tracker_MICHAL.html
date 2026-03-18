@@ -2776,7 +2776,7 @@
         let trades = JSON.parse(localStorage.getItem('propTrades')) || [];
         let payouts = JSON.parse(localStorage.getItem('propPayouts')) || [];
         let costs = JSON.parse(localStorage.getItem('propCosts')) || [];
-        let perfSelectedAccounts = ['default_account'];
+        let perfSelectedAccounts = [];
         let perfDiscipline = 'system';
         let perfTimeRange = 'week';
         
@@ -4516,6 +4516,7 @@
                 const wins = g.trades.filter(t => t.result === 'win');
                 const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
                 const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0);
+                const totalPnl = g.trades.reduce((s, t) => s + (t.pnl || 0), 0);
                 const winRateColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
                 return `
                     <div style="padding: 14px 0; border-bottom: 1px solid #ecf0f1;">
