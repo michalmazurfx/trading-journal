@@ -1496,20 +1496,20 @@
                         <div class="label">Total R</div>
                     </div>
                     <div class="stat-box">
-                        <div class="value" id="perf-totalPnl">$0</div>
-                        <div class="label">Total P&L</div>
+                        <div class="value" id="perf-totalPnl">0.00</div>
+                        <div class="label">Profit Factor</div>
                     </div>
                     <div class="stat-box">
-                        <div class="value" id="perf-avgWin" style="color: #27ae60;">$0</div>
-                        <div class="label">Avg Win</div>
+                        <div class="value" id="perf-avgWin" style="color: #27ae60;">+0.00R</div>
+                        <div class="label">Avg Win R</div>
                     </div>
                     <div class="stat-box">
-                        <div class="value" id="perf-avgLoss" style="color: #e74c3c;">$0</div>
-                        <div class="label">Avg Loss</div>
+                        <div class="value" id="perf-avgLoss" style="color: #e74c3c;">0.00R</div>
+                        <div class="label">Avg Loss R</div>
                     </div>
                     <div class="stat-box">
-                        <div class="value" id="perf-rrRatio">0</div>
-                        <div class="label">Actual R:R</div>
+                        <div class="value" id="perf-rrRatio">0.00R</div>
+                        <div class="label">Expectancy</div>
                     </div>
                 </div>
                 
@@ -4709,7 +4709,8 @@
             const totalR = winLoss.reduce((s, t) => s + (t.rValue || 0), 0); // R only from wins/losses
             const avgWinR = wins.length > 0 ? wins.reduce((s, t) => s + (t.rValue || 0), 0) / wins.length : 0;
             const avgLossR = losses.length > 0 ? losses.reduce((s, t) => s + (t.rValue || 0), 0) / losses.length : 0;
-            const rr = avgLossR !== 0 ? Math.abs(avgWinR / avgLossR).toFixed(2) : '-';
+            const winRateDec = winLoss.length > 0 ? wins.length / winLoss.length : 0;
+            const expectancy = (winRateDec * avgWinR) + ((1 - winRateDec) * avgLossR);
             
             // Top metrics
             document.getElementById('perf-totalTrades').textContent = statsOnly.length;
@@ -4722,11 +4723,20 @@
                 rEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
             }
             const pnlEl = document.getElementById('perf-totalPnl');
-            pnlEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
-            pnlEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
-            document.getElementById('perf-avgWin').textContent = '+' + avgWinR.toFixed(2) + 'R';
-            document.getElementById('perf-avgLoss').textContent = avgLossR.toFixed(2) + 'R';
-            document.getElementById('perf-rrRatio').textContent = rr;
+            const grossWins = wins.reduce((s, t) => s + (t.rValue || 0), 0);
+            const grossLosses = Math.abs(losses.reduce((s, t) => s + (t.rValue || 0), 0));
+            const profitFactor = grossLosses > 0 ? (grossWins / grossLosses).toFixed(2) : grossWins > 0 ? '∞' : '0.00';
+            pnlEl.textContent = profitFactor;
+            pnlEl.style.color = parseFloat(profitFactor) >= 1 ? '#27ae60' : '#e74c3c';
+            const avgWinEl = document.getElementById('perf-avgWin');
+            avgWinEl.textContent = (avgWinR >= 0 ? '+' : '') + avgWinR.toFixed(2) + 'R';
+            avgWinEl.style.color = '#27ae60';
+            const avgLossEl = document.getElementById('perf-avgLoss');
+            avgLossEl.textContent = avgLossR.toFixed(2) + 'R';
+            avgLossEl.style.color = '#e74c3c';
+            const expEl = document.getElementById('perf-rrRatio');
+            expEl.textContent = (expectancy >= 0 ? '+' : '') + expectancy.toFixed(2) + 'R';
+            expEl.style.color = expectancy >= 0 ? '#27ae60' : '#e74c3c';
             
             // By Model
             const modelGroups = Object.keys(MODELS).map(id => ({
