@@ -1160,13 +1160,6 @@
                 
                 <div class="input-row">
                     <div class="input-group">
-                        <label>Trade Type</label>
-                        <select id="tradeType">
-                            <option value="system">✅ System Trade (Following Rules)</option>
-                            <option value="offsystem">❌ Off-System Trade (Broke Rules)</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
                         <label>Result</label>
                         <select id="tradeResult" onchange="updateResultHint()">
                             <option value="win">🟢 WIN</option>
@@ -1176,6 +1169,8 @@
                         </select>
                         <div id="resultHint" style="font-size:0.8em; color:#7f8c8d; margin-top:4px;"></div>
                     </div>
+                    <!-- hidden tradeType always system -->
+                    <input type="hidden" id="tradeType" value="system">
                 </div>
                 
                 <!-- Exclude from Stats Checkbox -->
@@ -1220,15 +1215,16 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Risk Size</label>
-                        <select id="tradeRiskSize">
-                            <option value="1">Full Risk (1R)</option>
-                            <option value="0.5">Half Risk (0.5R)</option>
+                        <label>R Value</label>
+                        <select id="tradeRValue" onchange="updateBatchPreview()">
+                            <option value="1">+1R (Win)</option>
+                            <option value="-1">-1R (Loss)</option>
+                            <option value="0.5">+0.5R (Half Win)</option>
+                            <option value="-0.5">-0.5R (Half Loss)</option>
+                            <option value="0">0R (BE)</option>
                         </select>
-                    </div>
-                    <div class="input-group">
-                        <label>R Value (e.g., 2.5 or -1)</label>
-                        <input type="number" id="tradeRValue" step="0.01" placeholder="Enter R value">
+                        <!-- hidden riskSize always 1 -->
+                        <input type="hidden" id="tradeRiskSize" value="1">
                     </div>
                 </div>
                 
@@ -1296,75 +1292,9 @@
                 </div>
             </div>
             
-            <!-- Discipline Scorecard -->
+            <!-- This Week -->
             <div class="card">
-                <h2>📊 Discipline Stats</h2>
-                
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <div class="value" id="totalTrades">0</div>
-                        <div class="label">Total Trades</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="value" id="systemTrades">0</div>
-                        <div class="label">System Trades</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="value" id="offsystemTrades">0</div>
-                        <div class="label">Off-System Trades</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="value" id="disciplineRate">0%</div>
-                        <div class="label">Discipline Rate</div>
-                    </div>
-                </div>
-                
-                <h3>Performance Breakdown</h3>
-                <div class="comparison-grid">
-                    <div class="comparison-box">
-                        <h4>System Trades</h4>
-                        <div class="stat-row">
-                            <span class="stat-label">Win Rate</span>
-                            <span class="stat-value" id="systemWinRate">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Total P&L</span>
-                            <span class="stat-value" id="systemPnl">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Avg Win</span>
-                            <span class="stat-value" id="systemAvgWin">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Avg Loss</span>
-                            <span class="stat-value" id="systemAvgLoss">-</span>
-                        </div>
-                    </div>
-                    
-                    <div class="comparison-box">
-                        <h4>Off-System Trades</h4>
-                        <div class="stat-row">
-                            <span class="stat-label">Win Rate</span>
-                            <span class="stat-value" id="offsystemWinRate">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Total P&L</span>
-                            <span class="stat-value" id="offsystemPnl">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Avg Win</span>
-                            <span class="stat-value" id="offsystemAvgWin">-</span>
-                        </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Avg Loss</span>
-                            <span class="stat-value" id="offsystemAvgLoss">-</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="offsystemTaxDisplay" style="display:none;"></div>
-                
-                <h3>📅 This Week</h3>
+                <h3 style="margin-top:0;">📅 This Week</h3>
                 <div id="weeklyPerformance"></div>
             </div>
         </div>
@@ -1460,23 +1390,6 @@
                         <div style="display:flex; flex-wrap:wrap; gap:6px;">
                             <button class="filter-btn" id="perf-type-all" onclick="setPerfDiscipline('all')">All Trades</button>
                             <button class="filter-btn active" id="perf-type-system" onclick="setPerfDiscipline('system')">✅ System Only</button>
-                            <button class="filter-btn" id="perf-type-offsystem" onclick="setPerfDiscipline('offsystem')">❌ Off-System Only</button>
-                        </div>
-                    </div>
-                    <div style="flex:1; min-width:250px;">
-                        <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Accounts:</label>
-                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <button type="button" class="btn" onclick="perfSelectAll(event)" style="width: auto; padding: 8px 16px; margin: 0; font-size:0.9em;">All Accounts</button>
-                            <button type="button" class="btn" onclick="perfClearSelection(event)" style="width: auto; padding: 8px 16px; margin: 0; background: #95a5a6; font-size:0.9em;">Clear</button>
-                        </div>
-                        <div class="custom-dropdown">
-                            <div class="dropdown-header" onclick="togglePerfDropdown()">
-                                <span id="perfDropdownText">Click to select accounts...</span>
-                                <span style="float: right;">▼</span>
-                            </div>
-                            <div class="dropdown-menu" id="perfDropdownMenu">
-                                <!-- Account checkboxes will be generated here -->
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1585,7 +1498,6 @@
                             <select id="history-type-filter" onchange="renderTradeHistory()" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
                                 <option value="all">All Trades</option>
                                 <option value="system" selected>System Only</option>
-                                <option value="offsystem">Off-System Only</option>
                             </select>
                         </div>
                         
@@ -2711,22 +2623,7 @@
                 renderCalendar();
             }
             if (tabName === 'performance') {
-                generatePerfAccountFilter();
-                // Select all by default on first load
-                if (perfSelectedAccounts.length === 0) {
-                    // Set state to all account IDs
-                    perfSelectedAccounts = Object.keys(ACCOUNTS);
-                    // Update checkboxes to match state
-                    setTimeout(() => {
-                        document.querySelectorAll('#perfDropdownMenu input[type="checkbox"]').forEach(cb => {
-                            cb.checked = true;
-                        });
-                        document.getElementById('perfDropdownText').textContent = 'All Accounts';
-                        updatePerformanceTab();
-                    }, 0);
-                } else {
-                    updatePerformanceTab();
-                }
+                updatePerformanceTab();
             }
         }
         
@@ -3799,7 +3696,7 @@
         }
         
         // Update batch preview when inputs change
-        document.getElementById('tradeRValue').addEventListener('input', updateBatchPreview);
+        document.getElementById('tradeRValue').addEventListener('change', updateBatchPreview);
         
         function toggleSection(sectionId) {
             const section = document.getElementById(sectionId);
@@ -3900,8 +3797,8 @@
             const screenshotFile = document.getElementById('tradeScreenshot').files[0];
             const excludeFromStats = document.getElementById('excludeFromStats').checked;
             
-            if (isNaN(basePnl) || !date) {
-                alert('Please enter P&L and date');
+            if (!date) {
+                alert('Please enter a date');
                 return;
             }
             
@@ -3968,7 +3865,7 @@
                 }
                 
                 // Clear inputs
-                document.getElementById('tradeRValue').value = '';
+                document.getElementById('tradeRValue').selectedIndex = 0;
                 document.getElementById('tradeNote').value = '';
                 document.getElementById('tradeScreenshot').value = '';
                 document.getElementById('excludeFromStats').checked = false;
@@ -4479,19 +4376,20 @@
             const accountsGrid = document.getElementById('accountsGrid');
             if (accountsGrid) accountsGrid.innerHTML = '';
             
-            // Calculate total R for all time
+            // Calculate total R for current month
+            const now = new Date();
+            const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthName = now.toLocaleString('default', { month: 'long' });
             const totalR = trades
-                .filter(t => t.rValue !== undefined)
+                .filter(t => t.rValue !== undefined && t.type !== 'adjustment' && (t.date || '').startsWith(monthStr))
                 .reduce((sum, t) => sum + (t.rValue || 0), 0);
             
             const totalProfitEl = document.getElementById('totalProfit');
             totalProfitEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
             totalProfitEl.style.color = totalR >= 0 ? '#2ecc71' : '#e74c3c';
-            document.getElementById('totalProfitLabel').textContent = `Total R — All Time`;
+            document.getElementById('totalProfitLabel').textContent = `Total R — ${monthName}`;
             
-            // Update discipline stats
-            updateDisciplineStats();
-            
+            // Update discipline stats (no-op, kept for compatibility)
             // Update weekly performance
             updateWeeklyPerformance();
             if (document.getElementById('calendar').classList.contains('active')) renderCalendar();
@@ -4609,46 +4507,16 @@
             // Remove active from all discipline buttons
             document.getElementById('perf-type-all').classList.remove('active');
             document.getElementById('perf-type-system').classList.remove('active');
-            document.getElementById('perf-type-offsystem').classList.remove('active');
+
             // Add active to clicked button
             document.getElementById(`perf-type-${discipline}`).classList.add('active');
             updatePerformanceTab();
         }
         
         function getFilteredPerfTrades() {
-            let filtered = getUniqueTrades();
+            let filtered = getUniqueTrades().filter(t => t.type !== 'adjustment');
             
-            // Don't filter excluded trades here - we need them for P&L
-            // They'll be filtered in the stats calculations instead
-            
-            // Filter by accounts - check if batch contains any selected account
-            // AND recalculate P&L to only include selected accounts
-            if (perfSelectedAccounts.length > 0) {
-                filtered = filtered.filter(uniqueTrade => {
-                    // Get all trades in this batch
-                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
-                    const batchTrades = trades.filter(t => 
-                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey
-                    );
-                    // Keep this batch if ANY trade in it matches selected accounts
-                    return batchTrades.some(t => perfSelectedAccounts.includes(t.account));
-                }).map(uniqueTrade => {
-                    // Recalculate P&L for only the selected accounts
-                    const batchKey = String(uniqueTrade.batchId || Math.floor(uniqueTrade.id / 10) * 10);
-                    const batchTrades = trades.filter(t => 
-                        String(t.batchId || Math.floor(t.id / 10) * 10) === batchKey &&
-                        perfSelectedAccounts.includes(t.account)
-                    );
-                    const filteredPnl = batchTrades.reduce((sum, t) => sum + t.pnl, 0);
-                    return {
-                        ...uniqueTrade,
-                        pnl: filteredPnl,
-                        accountCount: batchTrades.length
-                    };
-                });
-            }
-            
-            // Filter by discipline (system/off-system/all)
+            // Filter by discipline - since we only track system trades now, default to system
             if (perfDiscipline !== 'all') {
                 filtered = filtered.filter(t => t.type === perfDiscipline);
             }
@@ -5086,7 +4954,6 @@
             
             container.innerHTML = `
                 <div class="filter-btn ${currentFilter === 'system' ? 'active' : ''}" onclick="filterTrades('system', this)">System Only</div>
-                <div class="filter-btn ${currentFilter === 'offsystem' ? 'active' : ''}" onclick="filterTrades('offsystem', this)">Off-System Only</div>
                 ${accountButtons}
                 <div class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="filterTrades('all', this)">All Accounts</div>
             `;
@@ -5134,7 +5001,7 @@
             logDiv.innerHTML = displayTrades.map(trade => {
                 const account = ACCOUNTS[trade.account] || { name: trade.account || 'Unknown' };
                 
-                // If viewing System Only or Off-System Only, count accounts and sum PNL across batch
+                // Count accounts and sum PNL across batch
                 let accountCount = 1;
                 let displayPnl = trade.pnl;
                 let displayR = trade.rValue !== undefined ? trade.rValue : null;
