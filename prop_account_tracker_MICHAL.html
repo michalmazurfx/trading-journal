@@ -4428,8 +4428,7 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                             <span style="font-weight:700; color:#2c3e50; font-size:1.05em;">${g.label}</span>
                             <div style="display:flex; align-items:baseline; gap:10px;">
-                                <span style="font-weight:700; color:${totalPnl >= 0 ? '#27ae60' : '#e74c3c'};">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(0)}</span>
-                                <span style="font-weight:700; font-size:0.85em; color:${totalR >= 0 ? '#27ae60' : '#e74c3c'}; opacity:0.9;">${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R</span>
+                                <span style="font-weight:700; color:${totalR >= 0 ? '#27ae60' : '#e74c3c'};">${totalR >= 0 ? '+' : ''}${totalR.toFixed(2)}R</span>
                             </div>
                         </div>
                         <div style="display:flex; gap:16px; font-size:0.9em; color:#7f8c8d;">
@@ -5031,7 +5030,7 @@
                         <div class="trade-header">
                             <div>
                                 <span class="trade-type-badge ${trade.type}">
-                                    ${trade.type === 'system' ? '✅ System' : '❌ Off-System'}
+                                    ✅ System
                                 </span>
                                 ${trade.result ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: ${
                                     trade.result === 'win' ? '#d4edda' : 
@@ -5046,9 +5045,8 @@
                                 }</span>` : ''}
                                 ${accountCount > 1 ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: #e3f2fd; color: #0d47a1;">📊 ${accountCount} accounts</span>` : `<span style="margin-left: 10px; font-weight: 600; color: #2c3e50;">${account.name}</span>`}
                             </div>
-                            <div class="trade-pnl ${displayPnl >= 0 ? 'profit' : 'loss'}">
-                                <div>${displayPnl >= 0 ? '+' : ''}$${displayPnl.toFixed(2)}</div>
-                                ${displayR !== null && trade.result !== 'be_win' && trade.result !== 'be_loss' ? `<div style="font-size:0.78em; opacity:0.8; font-weight:600; margin-top:2px;">${displayR >= 0 ? '+' : ''}${displayR.toFixed(2)}R <span style="opacity:0.6;">(${riskSizeLabel})</span></div>` : ''}
+                            <div class="trade-pnl ${displayR !== null ? (displayR >= 0 ? 'profit' : 'loss') : (displayPnl >= 0 ? 'profit' : 'loss')}">
+                                ${displayR !== null ? `<div>${displayR >= 0 ? '+' : ''}${displayR.toFixed(2)}R${trade.riskSize === 0.5 ? ' <span style="font-size:0.8em;opacity:0.7;">(½R)</span>' : ''}</div>` : `<div>${displayPnl >= 0 ? '+' : ''}${displayPnl.toFixed(2)}R</div>`}
                             </div>
                         </div>
                         <div class="trade-details">
