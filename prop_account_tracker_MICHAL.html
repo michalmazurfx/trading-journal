@@ -1216,7 +1216,7 @@
                     </div>
                     <div class="input-group">
                         <label>R Value</label>
-                        <select id="tradeRValue" onchange="updateBatchPreview()">
+                        <select id="tradeRValue" onchange="syncResultFromR(); updateBatchPreview()">
                             <option value="1">+1R (Win)</option>
                             <option value="-1">-1R (Loss)</option>
                             <option value="0.5">+0.5R (Half Win)</option>
@@ -3712,6 +3712,15 @@
             }
         }
         
+        function syncResultFromR() {
+            const r = parseFloat(document.getElementById('tradeRValue').value);
+            const resultEl = document.getElementById('tradeResult');
+            if (r > 0) resultEl.value = 'win';
+            else if (r < 0) resultEl.value = 'loss';
+            else resultEl.value = 'be_win';
+            updateResultHint();
+        }
+        
         function updateResultHint() {
             const result = document.getElementById('tradeResult').value;
             const hint = document.getElementById('resultHint');
@@ -3787,9 +3796,8 @@
             const direction = document.getElementById('tradeDirection').value;
             const model = document.getElementById('tradeModel').value;
             const grade = document.getElementById('tradeGrade').value;
-            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value); // 1 or 0.5
-            const basePnl = parseFloat(document.getElementById('tradeRValue').value);
-            const baseRisk = Math.abs(basePnl); // 1:1 RR
+            const rValue = parseFloat(document.getElementById('tradeRValue').value);
+            const riskSize = Math.abs(rValue) === 0.5 ? 0.5 : 1;
             const date = document.getElementById('tradeDate').value;
             const entryTime = document.getElementById('tradeEntryTime').value;
             const exitTime = document.getElementById('tradeExitTime').value;
@@ -3805,14 +3813,9 @@
             // Convert screenshot to base64 if provided
             const processScreenshot = new Promise((resolve, reject) => {
                 if (screenshotFile) {
-                    // Load screenshot at full quality (no compression)
                     const reader = new FileReader();
-                    reader.onload = function(e) {
-                        resolve(e.target.result);
-                    };
-                    reader.onerror = function() {
-                        reject(new Error('Failed to read screenshot file'));
-                    };
+                    reader.onload = function(e) { resolve(e.target.result); };
+                    reader.onerror = function() { reject(new Error('Failed to read screenshot file')); };
                     reader.readAsDataURL(screenshotFile);
                 } else {
                     resolve(null);
@@ -3823,12 +3826,6 @@
                 const timestamp = Date.now();
                 
                 selectedAccounts.forEach((accountId, index) => {
-                    const account = ACCOUNTS[accountId];
-                    const actualPnl = basePnl * account.multiplier;
-                    const actualRisk = baseRisk * account.multiplier;
-                    // R value: pnl / (risk / riskSize) — e.g. half risk win = +0.5R, full risk loss = -1R
-                    const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
-                    
                     const trade = {
                         id: timestamp + index,
                         batchId: timestamp,
@@ -3841,8 +3838,7 @@
                         grade: grade,
                         riskSize: riskSize,
                         rValue: rValue,
-                        pnl: actualPnl,
-                        risk: actualRisk,
+                        pnl: rValue * 100, // keep for compatibility
                         date: date,
                         entryTime: entryTime,
                         exitTime: exitTime,
@@ -4015,15 +4011,16 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>Risk Size</label>
-                                <select id="edit-riskSize">
-                                    <option value="1" ${trade.riskSize === 1 ? 'selected' : ''}>Full Risk (1R)</option>
-                                    <option value="0.5" ${trade.riskSize === 0.5 ? 'selected' : ''}>Half Risk (0.5R)</option>
+                                <label>R Value</label>
+                                <select id="edit-rValue">
+                                    <option value="1" ${trade.rValue === 1 ? 'selected' : ''}>+1R (Win)</option>
+                                    <option value="-1" ${trade.rValue === -1 ? 'selected' : ''}>-1R (Loss)</option>
+                                    <option value="0.5" ${trade.rValue === 0.5 ? 'selected' : ''}>+0.5R (Half Win)</option>
+                                    <option value="-0.5" ${trade.rValue === -0.5 ? 'selected' : ''}>-0.5R (Half Loss)</option>
+                                    <option value="0" ${trade.rValue === 0 ? 'selected' : ''}>0R (BE)</option>
                                 </select>
-                            </div>
-                            <div class="input-group">
-                                <label>P&L per 50k ($)</label>
-                                <input type="number" id="edit-pnl" step="0.01" value="${(trade.pnl / (ACCOUNTS[trade.account]?.multiplier || 1)).toFixed(2)}">
+                                <input type="hidden" id="edit-riskSize" value="${trade.rValue !== undefined && Math.abs(trade.rValue) === 0.5 ? '0.5' : '1'}">
+                                <input type="hidden" id="edit-pnl" value="${trade.pnl || 0}">
                             </div>
                         </div>
                         
@@ -4122,26 +4119,20 @@
             const direction = document.getElementById('edit-direction').value;
             const model = document.getElementById('edit-model').value;
             const grade = document.getElementById('edit-grade').value;
-            const riskSize = parseFloat(document.getElementById('edit-riskSize').value);
-            const basePnl = parseFloat(document.getElementById('edit-pnl').value);
+            const rValue = parseFloat(document.getElementById('edit-rValue').value);
+            const riskSize = Math.abs(rValue) === 0.5 ? 0.5 : 1;
             const date = document.getElementById('edit-date').value;
             const entryTime = document.getElementById('edit-entryTime').value;
             const exitTime = document.getElementById('edit-exitTime').value;
             const note = document.getElementById('edit-note').value;
             
-            if (isNaN(basePnl)) {
-                alert('Please enter valid P&L');
+            if (!date) {
+                alert('Please enter a date');
                 return;
             }
             
             // Update all trades in batch
             tradesToEdit.forEach(t => {
-                const account = ACCOUNTS[t.account];
-                const actualPnl = basePnl * account.multiplier;
-                const baseRisk = Math.abs(basePnl);
-                const actualRisk = baseRisk * account.multiplier;
-                const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
-                
                 t.type = type;
                 t.result = result;
                 t.symbol = symbol;
@@ -4150,8 +4141,7 @@
                 t.grade = grade;
                 t.riskSize = riskSize;
                 t.rValue = rValue;
-                t.pnl = actualPnl;
-                t.risk = actualRisk;
+                t.pnl = rValue * 100; // keep pnl field for compatibility
                 t.date = date;
                 t.entryTime = entryTime;
                 t.exitTime = exitTime;
