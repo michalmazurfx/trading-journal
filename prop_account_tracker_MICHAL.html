@@ -5496,12 +5496,6 @@
                             <h2 style="margin: 0; color: #2c3e50;">📅 ${dateLabel}</h2>
                             <div style="display: flex; gap: 20px;">
                                 <div style="text-align: right;">
-                                    <div style="font-size: 0.85em; color: #7f8c8d;">P&L</div>
-                                    <div style="font-size: 1.2em; font-weight: bold; color: ${dayPnl >= 0 ? '#27ae60' : '#e74c3c'};">
-                                        ${dayPnl >= 0 ? '+' : ''}$${dayPnl.toFixed(2)}
-                                    </div>
-                                </div>
-                                <div style="text-align: right;">
                                     <div style="font-size: 0.85em; color: #7f8c8d;">Total R</div>
                                     <div style="font-size: 1.2em; font-weight: bold; color: ${dayR >= 0 ? '#27ae60' : '#e74c3c'};">
                                         ${dayR >= 0 ? '+' : ''}${dayR.toFixed(2)}R
@@ -5588,10 +5582,7 @@
                         ` : ''}
                         
                         <div style="text-align: right; margin-left: 20px;">
-                            <div style="font-size: 2em; font-weight: 800; color: ${trade.pnl >= 0 ? '#27ae60' : '#e74c3c'}; margin-bottom: 5px;">
-                                ${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}
-                            </div>
-                            <div style="font-size: 1em; font-weight: 600; color: ${trade.rValue >= 0 ? '#27ae60' : '#e74c3c'};">
+                            <div style="font-size: 2em; font-weight: 800; color: ${trade.rValue >= 0 ? '#27ae60' : '#e74c3c'}; margin-bottom: 5px;">
                                 ${trade.rValue >= 0 ? '+' : ''}${trade.rValue.toFixed(2)}R
                             </div>
                         </div>
