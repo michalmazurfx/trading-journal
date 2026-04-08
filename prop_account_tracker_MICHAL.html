@@ -1860,6 +1860,24 @@
                     </div>
                 </div>
                 
+                <!-- Discord Integration -->
+                <div class="card" style="margin-top: 30px;">
+                    <h2>🎮 Discord Integration</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Post a message to a Discord channel every time you log a trade. Create a webhook in your Discord channel settings → Integrations → Webhooks.
+                    </p>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="display:block; font-weight:600; margin-bottom:6px;">Webhook URL</label>
+                            <input type="text" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/..." 
+                                style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                        </div>
+                        <button onclick="saveDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
+                        <button onclick="testDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
+                    </div>
+                    <div id="discordWebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
+                </div>
+                
                 <!-- Danger Zone -->
                 <div class="card" style="margin-top: 30px; border: 3px solid #e74c3c;">
                     <h2 style="color: #e74c3c;">⚠️ Danger Zone</h2>
@@ -3630,6 +3648,12 @@
                     </table>
                 </div>
             `;
+            
+            // Populate Discord webhook input
+            const webhookInput = document.getElementById('discordWebhookInput');
+            if (webhookInput) {
+                webhookInput.value = localStorage.getItem('discordWebhookUrl') || '';
+            }
         }
         
         // ── END SETTINGS FUNCTIONS ──────────────────────────────────
@@ -3890,6 +3914,9 @@
                     clearTimeout(window.syncTimeout);
                     window.syncTimeout = setTimeout(syncToDrive, 1000);
                 }
+                
+                // Post to Discord (use first trade in batch as representative)
+                postTradeToDiscord(trades[trades.length - selectedAccounts.length]);
                 
                 // Clear inputs
                 document.getElementById('tradeRValue').selectedIndex = 0;
@@ -4215,6 +4242,94 @@
             currentFilter = filter;
             generateTradeHistoryFilters();
             displayTrades();
+        }
+        
+        // ── Discord Integration ──────────────────────────────────────
+        function saveDiscordWebhook() {
+            const url = document.getElementById('discordWebhookInput').value.trim();
+            localStorage.setItem('discordWebhookUrl', url);
+            const status = document.getElementById('discordWebhookStatus');
+            if (url) {
+                status.textContent = '✅ Webhook URL saved.';
+                status.style.color = '#27ae60';
+            } else {
+                status.textContent = 'Webhook URL cleared.';
+                status.style.color = '#7f8c8d';
+            }
+        }
+        
+        async function testDiscordWebhook() {
+            const url = localStorage.getItem('discordWebhookUrl');
+            if (!url) {
+                alert('Please enter and save a webhook URL first.');
+                return;
+            }
+            const status = document.getElementById('discordWebhookStatus');
+            status.textContent = '⏳ Sending test message...';
+            status.style.color = '#7f8c8d';
+            try {
+                await postDiscordMessage({
+                    embeds: [{
+                        title: '✅ R Journal Connected',
+                        description: 'Your Discord integration is working! Trade notifications will appear here.',
+                        color: 0x27ae60,
+                        footer: { text: 'R Journal' }
+                    }]
+                });
+                status.textContent = '✅ Test message sent successfully!';
+                status.style.color = '#27ae60';
+            } catch (e) {
+                status.textContent = '❌ Failed: ' + e.message;
+                status.style.color = '#e74c3c';
+            }
+        }
+        
+        async function postDiscordMessage(payload) {
+            const url = localStorage.getItem('discordWebhookUrl');
+            if (!url) return;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        }
+        
+        async function postTradeToDiscord(trade) {
+            const url = localStorage.getItem('discordWebhookUrl');
+            if (!url) return;
+            
+            const resultEmoji = trade.result === 'win' ? '🟢' : trade.result === 'loss' ? '🔴' : '🟡';
+            const resultLabel = trade.result === 'win' ? 'WIN' : trade.result === 'loss' ? 'LOSS' : trade.result === 'be_win' ? 'BE/WIN' : 'BE/LOSS';
+            const dirEmoji = trade.direction === 'long' ? '📈' : '📉';
+            const rDisplay = (trade.rValue >= 0 ? '+' : '') + trade.rValue.toFixed(2) + 'R';
+            const color = trade.rValue > 0 ? 0x27ae60 : trade.rValue < 0 ? 0xe74c3c : 0xf39c12;
+            const modelName = MODELS[trade.model]?.name || trade.model;
+            const gradeLabel = trade.grade === 'A' ? '🟢 A' : trade.grade === 'B' ? '🟢 B' : trade.grade === 'C' ? '🟡 C' : '🔴 Troll';
+            const duration = trade.entryTime && trade.exitTime ? calculateDuration(trade.entryTime, trade.exitTime) : null;
+            
+            const fields = [
+                { name: 'Symbol', value: `${trade.symbol} ${dirEmoji} ${trade.direction.toUpperCase()}`, inline: true },
+                { name: 'Result', value: `${resultEmoji} ${resultLabel} **${rDisplay}**`, inline: true },
+                { name: 'Model', value: modelName, inline: true },
+                { name: 'Grade', value: gradeLabel, inline: true },
+            ];
+            if (trade.entryTime) fields.push({ name: 'Time', value: `${trade.entryTime}${trade.exitTime ? ' → ' + trade.exitTime : ''}${duration ? ' (' + duration + ')' : ''}`, inline: true });
+            if (trade.note) fields.push({ name: 'Note', value: trade.note, inline: false });
+            
+            try {
+                await postDiscordMessage({
+                    embeds: [{
+                        title: `📊 Trade Logged — ${trade.date}`,
+                        color: color,
+                        fields: fields,
+                        footer: { text: 'R Journal' },
+                        timestamp: new Date().toISOString()
+                    }]
+                });
+            } catch (e) {
+                console.warn('Discord post failed:', e.message);
+            }
         }
         
         function clearAllData() {
