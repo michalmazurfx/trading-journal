@@ -2271,6 +2271,12 @@
                         generateSymbolOptions();
                         renderPayoutsTab();
                         
+                        // Ensure model dropdown has a selection
+                        const modelSelect = document.getElementById('tradeModel');
+                        if (modelSelect && !MODELS[modelSelect.value]) {
+                            modelSelect.selectedIndex = 0;
+                        }
+                        
         // Auto-select all accounts for R journal
         setTimeout(() => {
             document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
@@ -2281,7 +2287,7 @@
 
         updateDisplay();
         
-        // Re-render all views with fresh Drive data
+        // Re-render all views with fresh Drive data (screenshots, account names, models)
         setTimeout(() => {
             updateDisplay();
             displayTrades();
@@ -2292,7 +2298,7 @@
                 if (tabId === 'calendar') renderCalendar();
                 if (tabId === 'performance') updatePerformanceTab();
             }
-        }, 500);
+        }, 1000);
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
