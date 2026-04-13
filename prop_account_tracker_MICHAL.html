@@ -2312,7 +2312,6 @@
         updateDisplay();
         
         // Re-render all views immediately with fresh Drive data (screenshots, account names, models)
-        console.log('🖼️ Trades with screenshots in memory:', trades.filter(t => t.screenshot).length);
         updateDisplay();
         displayTrades();
         renderTradeHistory();
@@ -5252,7 +5251,7 @@
                         </div>
                         ${trade.note ? `<div style="margin-top: 8px; color: #666; font-size: 0.95em;">${trade.note}</div>` : ''}
                         ${trade.screenshot ? `
-                            <button class="btn" onclick="openModal('${trade.screenshot}'); return false;" style="width: auto; padding: 8px 16px; margin-top: 10px; font-size: 0.9em;">
+                            <button class="btn" onclick="openTradeScreenshot(${trade.id}); return false;" style="width: auto; padding: 8px 16px; margin-top: 10px; font-size: 0.9em;">
                                 📸 View Screenshot
                             </button>
                         ` : ''}
@@ -5768,7 +5767,7 @@
                         ${trade.screenshot ? `
                             <div style="margin-left: 20px;">
                                 <img src="${trade.screenshot}" 
-                                     onclick="openImageModal('${trade.screenshot}')" 
+                                     onclick="openTradeScreenshot(${trade.id})" 
                                      style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color);"
                                      alt="Trade screenshot">
                             </div>
@@ -5811,7 +5810,7 @@
                     
                     <!-- Action Buttons -->
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        ${trade.screenshot ? `<button onclick="openImageModal('${trade.screenshot}')" class="btn-sm-edit">👁️ View Full Screenshot</button>` : ''}
+                        ${trade.screenshot ? `<button onclick="openTradeScreenshot(${trade.id})" class="btn-sm-edit">👁️ View Full Screenshot</button>` : ''}
                         <button onclick="editTrade(${trade.id}, '${trade.type}')" class="btn-sm-edit">✏️ Edit</button>
                         <button onclick="deleteTrade(${trade.id})" class="btn-sm-delete">🗑️ Delete</button>
                     </div>
@@ -5845,6 +5844,13 @@
             // Switch to trade-history tab if not already there, then open modal
             // For now, just alert - you can connect this to your existing edit modal
             alert('Edit functionality: This will open the existing edit modal. Connect to openEditModal() function.');
+        }
+        
+        function openTradeScreenshot(tradeId) {
+            const trade = trades.find(t => t.id === tradeId);
+            if (trade && trade.screenshot) {
+                openImageModal(trade.screenshot);
+            }
         }
         
         function openImageModal(imageSrc) {
