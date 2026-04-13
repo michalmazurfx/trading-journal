@@ -5143,6 +5143,7 @@
         
         function displayTrades() {
             let displayTrades = trades.filter(t => t.type !== 'adjustment');
+            console.log('displayTrades called - screenshots in trades:', trades.filter(t=>t.screenshot).length);
             
             if (currentFilter !== 'all') {
                 if (currentFilter === 'system' || currentFilter === 'offsystem') {
