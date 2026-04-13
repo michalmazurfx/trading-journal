@@ -2256,10 +2256,15 @@
                         }
                         if (data.payouts) {
                             payouts = data.payouts;
+                            localStorage.setItem('propPayouts', JSON.stringify(payouts));
                         }
                         if (data.costs) {
                             costs = data.costs;
+                            localStorage.setItem('propCosts', JSON.stringify(costs));
                         }
+                        
+                        // Save trades to localStorage (without screenshots to avoid quota)
+                        saveTradesToLocalStorage();
                         
                         console.log('✅ Data loaded from Google Drive');
                         updateDriveStatus('Loaded from Drive', data.lastUpdated);
