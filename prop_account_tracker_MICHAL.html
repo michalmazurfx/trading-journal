@@ -2190,7 +2190,26 @@
         }
         
         async function syncToDrive() {
-            if (!useDriveSync || !accessToken) return;
+            if (!useDriveSync) return;
+            
+            // Refresh token if needed before saving
+            if (!accessToken || !gapi.client.getToken()) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        tokenClient.callback = (resp) => {
+                            if (resp.error) { reject(resp); return; }
+                            accessToken = gapi.client.getToken().access_token;
+                            resolve();
+                        };
+                        tokenClient.requestAccessToken({ prompt: '' });
+                    });
+                } catch (err) {
+                    console.error('Token refresh failed:', err);
+                    return;
+                }
+            }
+            
+            if (!accessToken) return;
             
             // Use data from MEMORY (includes screenshots), not localStorage
             const data = {
@@ -2292,18 +2311,16 @@
 
         updateDisplay();
         
-        // Re-render all views with fresh Drive data (screenshots, account names, models)
-        setTimeout(() => {
-            updateDisplay();
-            displayTrades();
-            renderTradeHistory();
-            const activeTab = document.querySelector('.tab-content.active');
-            if (activeTab) {
-                const tabId = activeTab.id;
-                if (tabId === 'calendar') renderCalendar();
-                if (tabId === 'performance') updatePerformanceTab();
-            }
-        }, 1000);
+        // Re-render all views immediately with fresh Drive data (screenshots, account names, models)
+        updateDisplay();
+        displayTrades();
+        renderTradeHistory();
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab) {
+            const tabId = activeTab.id;
+            if (tabId === 'calendar') renderCalendar();
+            if (tabId === 'performance') updatePerformanceTab();
+        }
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
