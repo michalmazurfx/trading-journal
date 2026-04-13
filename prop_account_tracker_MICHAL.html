@@ -2281,13 +2281,13 @@
 
         updateDisplay();
         
-        // Re-render whichever tab is currently active with fresh data
+        // Re-render all views with fresh Drive data
         setTimeout(() => {
+            displayTrades(); // overview trade log
+            renderTradeHistory(); // trade history tab
             const activeTab = document.querySelector('.tab-content.active');
             if (activeTab) {
                 const tabId = activeTab.id;
-                if (tabId === 'trade-history') renderTradeHistory();
-                if (tabId === 'journal') renderTradeHistory();
                 if (tabId === 'calendar') renderCalendar();
                 if (tabId === 'performance') updatePerformanceTab();
             }
@@ -5681,10 +5681,9 @@
         }
         
         function renderTradeCard(trade) {
-            const account = ACCOUNTS[trade.account];
-            if (!account) {
-                console.warn('Trade references deleted account:', trade.account);
-                return ''; // Skip trades with deleted accounts
+            const account = ACCOUNTS[trade.account] || { name: 'Account' };
+            if (!ACCOUNTS[trade.account]) {
+                console.warn('Trade references unknown account:', trade.account);
             }
             
             // Count how many accounts this trade was executed on
