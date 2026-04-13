@@ -2312,6 +2312,7 @@
         updateDisplay();
         
         // Re-render all views immediately with fresh Drive data (screenshots, account names, models)
+        console.log('🖼️ Trades with screenshots in memory:', trades.filter(t => t.screenshot).length);
         updateDisplay();
         displayTrades();
         renderTradeHistory();
