@@ -5262,6 +5262,7 @@
                     </div>
                 `;
             }).join('');
+            setTimeout(loadScreenshots, 50);
         }
         
         // Payouts and Costs data (declared globally above)
@@ -5707,6 +5708,7 @@
                     </div>
                 `;
             }).join('');
+            setTimeout(loadScreenshots, 50);
         }
         
         function renderTradeCard(trade) {
@@ -5766,9 +5768,9 @@
                         <!-- Screenshot Thumbnail (if exists) -->
                         ${trade.screenshot ? `
                             <div style="margin-left: 20px;">
-                                <img src="${trade.screenshot}" 
+                                <img data-tradeid="${trade.id}"
                                      onclick="openTradeScreenshot(${trade.id})" 
-                                     style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color);"
+                                     style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color); background:#eee;"
                                      alt="Trade screenshot">
                             </div>
                         ` : ''}
@@ -5851,6 +5853,16 @@
             if (trade && trade.screenshot) {
                 openImageModal(trade.screenshot);
             }
+        }
+        
+        function loadScreenshots() {
+            document.querySelectorAll('img[data-tradeid]').forEach(img => {
+                const id = parseInt(img.getAttribute('data-tradeid'));
+                const trade = trades.find(t => t.id === id);
+                if (trade && trade.screenshot && !img.src) {
+                    img.src = trade.screenshot;
+                }
+            });
         }
         
         function openImageModal(imageSrc) {
