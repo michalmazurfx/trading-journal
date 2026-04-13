@@ -5859,7 +5859,7 @@
             document.querySelectorAll('img[data-tradeid]').forEach(img => {
                 const id = parseInt(img.getAttribute('data-tradeid'));
                 const trade = trades.find(t => t.id === id);
-                if (trade && trade.screenshot && !img.src) {
+                if (trade && trade.screenshot) {
                     img.src = trade.screenshot;
                 }
             });
