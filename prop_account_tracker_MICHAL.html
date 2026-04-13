@@ -2244,12 +2244,15 @@
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
+                            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
                         }
                         if (data.models) {
                             MODELS = data.models;
+                            localStorage.setItem('propModels', JSON.stringify(MODELS));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
+                            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
                         }
                         if (data.payouts) {
                             payouts = data.payouts;
@@ -2277,6 +2280,18 @@
         }, 100);
 
         updateDisplay();
+        
+        // Re-render whichever tab is currently active with fresh data
+        setTimeout(() => {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab) {
+                const tabId = activeTab.id;
+                if (tabId === 'trade-history') renderTradeHistory();
+                if (tabId === 'journal') renderTradeHistory();
+                if (tabId === 'calendar') renderCalendar();
+                if (tabId === 'performance') updatePerformanceTab();
+            }
+        }, 200);
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
@@ -2506,12 +2521,15 @@
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
+                            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
                         }
                         if (data.models) {
                             MODELS = data.models;
+                            localStorage.setItem('propModels', JSON.stringify(MODELS));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
+                            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
                         }
                         
                         // Save to Drive if sync enabled and APIs ready
