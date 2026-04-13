@@ -2283,15 +2283,16 @@
         
         // Re-render all views with fresh Drive data
         setTimeout(() => {
-            displayTrades(); // overview trade log
-            renderTradeHistory(); // trade history tab
+            updateDisplay();
+            displayTrades();
+            renderTradeHistory();
             const activeTab = document.querySelector('.tab-content.active');
             if (activeTab) {
                 const tabId = activeTab.id;
                 if (tabId === 'calendar') renderCalendar();
                 if (tabId === 'performance') updatePerformanceTab();
             }
-        }, 200);
+        }, 500);
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
@@ -5152,7 +5153,7 @@
             }
             
             logDiv.innerHTML = displayTrades.map(trade => {
-                const account = ACCOUNTS[trade.account] || { name: trade.account || 'Unknown' };
+                const account = ACCOUNTS[trade.account] || { name: '📊 Account' };
                 
                 // Count accounts and sum PNL across batch
                 let accountCount = 1;
@@ -5681,7 +5682,7 @@
         }
         
         function renderTradeCard(trade) {
-            const account = ACCOUNTS[trade.account] || { name: 'Account' };
+            const account = ACCOUNTS[trade.account] || { name: '📊 Account' };
             if (!ACCOUNTS[trade.account]) {
                 console.warn('Trade references unknown account:', trade.account);
             }
