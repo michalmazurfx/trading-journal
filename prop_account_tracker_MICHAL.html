@@ -1073,6 +1073,7 @@
 
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -1585,6 +1586,9 @@
                         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
                             <button class="btn" onclick="exportToJSON()" style="width:auto; padding:10px 20px; background:#27ae60;">
                                 📥 Export Backup (Download JSON)
+                            </button>
+                            <button class="btn" onclick="exportToExcel()" style="width:auto; padding:10px 20px; background:#1D6F42;">
+                                📊 Export to Excel
                             </button>
                             <button class="btn" onclick="document.getElementById('import-file').click()" style="width:auto; padding:10px 20px; background:#3498db;">
                                 📤 Import Backup (Restore JSON)
@@ -2131,7 +2135,100 @@
             alert(`✅ Backup exported!\n\nFile: ${filename}\n\nTrades: ${trades.length}\nAccounts: ${Object.keys(ACCOUNTS).length}\nPayouts: ${payouts.length}\nCosts: ${costs.length}`);
         }
         
-        function importFromJSON(event) {
+        function exportToExcel() {
+            const filteredTrades = trades.filter(t => t.type !== 'adjustment');
+            if (filteredTrades.length === 0) { alert('No trades to export.'); return; }
+
+            const RESULT_MAP = {
+                win: 'Win', loss: 'Loss', be_win: 'BE / Win', be_loss: 'BE / Loss'
+            };
+
+            // Group by month
+            const months = {};
+            filteredTrades.forEach(t => {
+                const month = (t.date || '').slice(0, 7);
+                if (!months[month]) months[month] = [];
+                months[month].push(t);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+            // Sort months descending
+            Object.keys(months).sort().reverse().forEach(monthKey => {
+                const monthTrades = months[monthKey].sort((a,b) => (a.date+a.entryTime).localeCompare(b.date+b.entryTime));
+                const [year, mon] = monthKey.split('-');
+                const sheetName = `${monthNames[parseInt(mon)-1]} ${year}`;
+
+                const rows = [];
+                // Header
+                rows.push(['Date','Instrument','Result','Entry Time','Exit Time','Direction','Model','Grade','Notes','R Value']);
+
+                // Group by day
+                const days = {};
+                monthTrades.forEach(t => {
+                    if (!days[t.date]) days[t.date] = [];
+                    days[t.date].push(t);
+                });
+
+                Object.keys(days).sort().forEach(day => {
+                    const dayTrades = days[day];
+                    const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s,t) => s+(t.rValue||0), 0);
+                    const wins = dayTrades.filter(t=>t.result==='win').length;
+                    const losses = dayTrades.filter(t=>t.result==='loss').length;
+                    const be = dayTrades.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
+                    
+                    // Parse date for label
+                    const d = new Date(day + 'T00:00:00');
+                    const dayLabel = d.toLocaleDateString('en-GB', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+                    const rLabel = (dayR >= 0 ? '+' : '') + dayR.toFixed(2) + 'R';
+                    rows.push([`📅 ${dayLabel}  |  ${dayTrades.length} trades · ${wins}W ${losses}L ${be}BE`, '', '', '', '', '', '', '', '', rLabel]);
+
+                    dayTrades.forEach(t => {
+                        const modelName = MODELS[t.model]?.name || t.model || '';
+                        const rValue = t.rValue || 0;
+                        const rStr = rValue === 0 ? '0R' : (rValue > 0 ? '+' : '') + rValue.toFixed(2).replace(/\.?0+$/, '') + 'R';
+                        rows.push([
+                            t.date,
+                            t.symbol || 'NQ',
+                            RESULT_MAP[t.result] || t.result || '',
+                            t.entryTime || '',
+                            t.exitTime || '',
+                            t.direction ? t.direction.charAt(0).toUpperCase() + t.direction.slice(1) : '',
+                            modelName,
+                            t.grade || '',
+                            t.note || '',
+                            rStr
+                        ]);
+                    });
+                    rows.push([]); // spacer
+                });
+
+                // Month summary
+                const wins = monthTrades.filter(t=>t.result==='win').length;
+                const losses = monthTrades.filter(t=>t.result==='loss').length;
+                const be = monthTrades.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
+                const totalR = monthTrades.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+                const wr = (wins+losses) > 0 ? Math.round(wins/(wins+losses)*100) : 0;
+                rows.push([]);
+                rows.push(['Total Trades','Wins','Losses','BE','Total R','Win Rate','','','','']);
+                rows.push([monthTrades.length, wins, losses, be, (totalR>=0?'+':'')+totalR.toFixed(2)+'R', wr+'%','','','','']);
+
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+
+                // Column widths
+                ws['!cols'] = [
+                    {wch:16},{wch:12},{wch:12},{wch:12},{wch:12},
+                    {wch:11},{wch:14},{wch:8},{wch:45},{wch:10}
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            const filename = `trading_journal_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            alert(`✅ Exported to ${filename}`);
+        }
             const file = event.target.files[0];
             if (!file) return;
             
