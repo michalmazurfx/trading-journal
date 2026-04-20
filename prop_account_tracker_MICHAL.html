@@ -2031,7 +2031,6 @@
                         generateAccountOptions();
                         generateModelOptions();
                         generateSymbolOptions();
-                        renderPayoutsTab();
                         
         // Auto-select all accounts for R journal
         setTimeout(() => {
@@ -2187,7 +2186,6 @@
                     generateModelOptions();
                     generateSymbolOptions();
                     renderSettingsPage();
-                    renderPayoutsTab();
                     
         // Auto-select all accounts for R journal
         setTimeout(() => {
@@ -2434,7 +2432,7 @@
             document.getElementById(tabName).classList.add('active');
             event.target.closest('.nav-item').classList.add('active');
             if (tabName === 'settings') renderSettingsPage();
-            if (tabName === 'payouts') renderPayoutsTab();
+            if (tabName === 'payouts')
             if (tabName === 'trade-history') renderTradeHistory();
             if (tabName === 'calendar') {
                 generateCalendarAccountFilter();
@@ -2578,6 +2576,7 @@
         function toggleAdjHistory() {
             const panel = document.getElementById('adj-history');
             const arrow = document.getElementById('adj-history-arrow');
+            if (!panel || !arrow) return;
             const adjustments = trades.filter(t => t.type === 'adjustment');
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
@@ -5048,8 +5047,6 @@
             document.getElementById('payout-net').value = '';
             document.getElementById('payout-note').value = '';
             
-            renderPayoutsTab();
-            
         // Auto-select all accounts for R journal
         setTimeout(() => {
             document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
@@ -5062,7 +5059,7 @@
             
             // Update adjustment balance if Settings tab exists
             setTimeout(() => {
-                if (document.getElementById('adj-amount')) {
+                if (false) { // adj-amount removed
                     updateAdjustmentBalance();
                 }
             }, 100);
@@ -5080,8 +5077,6 @@
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
-            
-            renderPayoutsTab();
             
         // Auto-select all accounts for R journal
         setTimeout(() => {
@@ -5135,8 +5130,6 @@
             document.getElementById('cost-size').value = '';
             document.getElementById('cost-price').value = '';
             document.getElementById('cost-company').value = '';
-            
-            renderPayoutsTab();
             alert(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} cost of $${price.toFixed(2)} recorded`);
         }
         
@@ -5150,8 +5143,6 @@
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
             }
-            
-            renderPayoutsTab();
         }
         
         function updateCostStatus(id, newStatus) {
@@ -5165,8 +5156,6 @@
                     clearTimeout(window.syncTimeout);
                     window.syncTimeout = setTimeout(syncToDrive, 2000);
                 }
-                
-                renderPayoutsTab();
             }
         }
         
@@ -5609,11 +5598,7 @@
         generateModelOptions();
         generateSymbolOptions();
         
-        document.getElementById('adj-date').valueAsDate = new Date();
-        document.getElementById('payout-date').valueAsDate = new Date();
-        document.getElementById('cost-date').valueAsDate = new Date();
         renderSettingsPage();
-        renderPayoutsTab();
         
         // Initialize trade history with error handling
         try {
