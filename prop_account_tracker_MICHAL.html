@@ -2190,26 +2190,7 @@
         }
         
         async function syncToDrive() {
-            if (!useDriveSync) return;
-            
-            // Refresh token if needed before saving
-            if (!accessToken || !gapi.client.getToken()) {
-                try {
-                    await new Promise((resolve, reject) => {
-                        tokenClient.callback = (resp) => {
-                            if (resp.error) { reject(resp); return; }
-                            accessToken = gapi.client.getToken().access_token;
-                            resolve();
-                        };
-                        tokenClient.requestAccessToken({ prompt: '' });
-                    });
-                } catch (err) {
-                    console.error('Token refresh failed:', err);
-                    return;
-                }
-            }
-            
-            if (!accessToken) return;
+            if (!useDriveSync || !accessToken) return;
             
             // Use data from MEMORY (includes screenshots), not localStorage
             const data = {
@@ -2249,6 +2230,7 @@
                             alt: 'media'
                         });
                         const data = response.result;
+                        driveLoadInProgress = true; // prevent localStorage writes from triggering sync
                         
                         // Load data into memory for this session (no localStorage when Drive sync is on)
                         if (data.trades) {
@@ -2263,30 +2245,23 @@
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
-                            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
                         }
                         if (data.models) {
                             MODELS = data.models;
-                            localStorage.setItem('propModels', JSON.stringify(MODELS));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
-                            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
                         }
                         if (data.payouts) {
                             payouts = data.payouts;
-                            localStorage.setItem('propPayouts', JSON.stringify(payouts));
                         }
                         if (data.costs) {
                             costs = data.costs;
-                            localStorage.setItem('propCosts', JSON.stringify(costs));
                         }
-                        
-                        // Save trades to localStorage (without screenshots to avoid quota)
-                        saveTradesToLocalStorage();
                         
                         console.log('✅ Data loaded from Google Drive');
                         updateDriveStatus('Loaded from Drive', data.lastUpdated);
+                        driveLoadInProgress = false; // allow localStorage sync again
                         hideLoadingOverlay();
                         
                         // Reinitialize UI with loaded data
@@ -2294,12 +2269,6 @@
                         generateModelOptions();
                         generateSymbolOptions();
                         renderPayoutsTab();
-                        
-                        // Ensure model dropdown has a selection
-                        const modelSelect = document.getElementById('tradeModel');
-                        if (modelSelect && !MODELS[modelSelect.value]) {
-                            modelSelect.selectedIndex = 0;
-                        }
                         
         // Auto-select all accounts for R journal
         setTimeout(() => {
@@ -2310,17 +2279,8 @@
         }, 100);
 
         updateDisplay();
-        
-        // Re-render all views immediately with fresh Drive data (screenshots, account names, models)
-        updateDisplay();
         displayTrades();
         renderTradeHistory();
-        const activeTab = document.querySelector('.tab-content.active');
-        if (activeTab) {
-            const tabId = activeTab.id;
-            if (tabId === 'calendar') renderCalendar();
-            if (tabId === 'performance') updatePerformanceTab();
-        }
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
@@ -2550,15 +2510,12 @@
                         }
                         if (data.accounts) {
                             ACCOUNTS = data.accounts;
-                            localStorage.setItem('propAccounts', JSON.stringify(ACCOUNTS));
                         }
                         if (data.models) {
                             MODELS = data.models;
-                            localStorage.setItem('propModels', JSON.stringify(MODELS));
                         }
                         if (data.symbols) {
                             SYMBOLS = data.symbols;
-                            localStorage.setItem('propSymbols', JSON.stringify(SYMBOLS));
                         }
                         
                         // Save to Drive if sync enabled and APIs ready
@@ -2646,10 +2603,12 @@
         }
         
         // Override localStorage setItem to auto-sync
+        // driveLoadInProgress prevents syncing during Drive load (which would overwrite Drive with screenshot-less localStorage data)
+        let driveLoadInProgress = false;
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
             originalSetItem.apply(this, arguments);
-            if (key.startsWith('prop') && useDriveSync) {
+            if (key.startsWith('prop') && useDriveSync && !driveLoadInProgress) {
                 // Debounce sync - wait 2 seconds after last change
                 clearTimeout(window.syncTimeout);
                 window.syncTimeout = setTimeout(syncToDrive, 2000);
@@ -5143,7 +5102,6 @@
         
         function displayTrades() {
             let displayTrades = trades.filter(t => t.type !== 'adjustment');
-            console.log('displayTrades called - screenshots in trades:', trades.filter(t=>t.screenshot).length);
             
             if (currentFilter !== 'all') {
                 if (currentFilter === 'system' || currentFilter === 'offsystem') {
@@ -5182,7 +5140,7 @@
             }
             
             logDiv.innerHTML = displayTrades.map(trade => {
-                const account = ACCOUNTS[trade.account] || { name: '📊 Account' };
+                const account = ACCOUNTS[trade.account] || { name: trade.account || 'Unknown' };
                 
                 // Count accounts and sum PNL across batch
                 let accountCount = 1;
@@ -5252,7 +5210,7 @@
                         </div>
                         ${trade.note ? `<div style="margin-top: 8px; color: #666; font-size: 0.95em;">${trade.note}</div>` : ''}
                         ${trade.screenshot ? `
-                            <button class="btn" onclick="openTradeScreenshot(${trade.id}); return false;" style="width: auto; padding: 8px 16px; margin-top: 10px; font-size: 0.9em;">
+                            <button class="btn" onclick="openModal('${trade.screenshot}'); return false;" style="width: auto; padding: 8px 16px; margin-top: 10px; font-size: 0.9em;">
                                 📸 View Screenshot
                             </button>
                         ` : ''}
@@ -5263,7 +5221,6 @@
                     </div>
                 `;
             }).join('');
-            setTimeout(loadScreenshots, 50);
         }
         
         // Payouts and Costs data (declared globally above)
@@ -5709,13 +5666,13 @@
                     </div>
                 `;
             }).join('');
-            setTimeout(loadScreenshots, 50);
         }
         
         function renderTradeCard(trade) {
-            const account = ACCOUNTS[trade.account] || { name: '📊 Account' };
-            if (!ACCOUNTS[trade.account]) {
-                console.warn('Trade references unknown account:', trade.account);
+            const account = ACCOUNTS[trade.account];
+            if (!account) {
+                console.warn('Trade references deleted account:', trade.account);
+                return ''; // Skip trades with deleted accounts
             }
             
             // Count how many accounts this trade was executed on
@@ -5769,9 +5726,9 @@
                         <!-- Screenshot Thumbnail (if exists) -->
                         ${trade.screenshot ? `
                             <div style="margin-left: 20px;">
-                                <img data-tradeid="${trade.id}"
-                                     onclick="openTradeScreenshot(${trade.id})" 
-                                     style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color); background:#eee;"
+                                <img src="${trade.screenshot}" 
+                                     onclick="openImageModal('${trade.screenshot}')" 
+                                     style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 2px solid var(--border-color);"
                                      alt="Trade screenshot">
                             </div>
                         ` : ''}
@@ -5813,7 +5770,7 @@
                     
                     <!-- Action Buttons -->
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        ${trade.screenshot ? `<button onclick="openTradeScreenshot(${trade.id})" class="btn-sm-edit">👁️ View Full Screenshot</button>` : ''}
+                        ${trade.screenshot ? `<button onclick="openImageModal('${trade.screenshot}')" class="btn-sm-edit">👁️ View Full Screenshot</button>` : ''}
                         <button onclick="editTrade(${trade.id}, '${trade.type}')" class="btn-sm-edit">✏️ Edit</button>
                         <button onclick="deleteTrade(${trade.id})" class="btn-sm-delete">🗑️ Delete</button>
                     </div>
@@ -5847,23 +5804,6 @@
             // Switch to trade-history tab if not already there, then open modal
             // For now, just alert - you can connect this to your existing edit modal
             alert('Edit functionality: This will open the existing edit modal. Connect to openEditModal() function.');
-        }
-        
-        function openTradeScreenshot(tradeId) {
-            const trade = trades.find(t => t.id === tradeId);
-            if (trade && trade.screenshot) {
-                openImageModal(trade.screenshot);
-            }
-        }
-        
-        function loadScreenshots() {
-            document.querySelectorAll('img[data-tradeid]').forEach(img => {
-                const id = parseInt(img.getAttribute('data-tradeid'));
-                const trade = trades.find(t => t.id === id);
-                if (trade && trade.screenshot) {
-                    img.src = trade.screenshot;
-                }
-            });
         }
         
         function openImageModal(imageSrc) {
