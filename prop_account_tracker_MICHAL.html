@@ -2137,96 +2137,156 @@
         
         function exportToExcel() {
             const filteredTrades = trades.filter(t => t.type !== 'adjustment');
-            if (filteredTrades.length === 0) { alert('No trades to export.'); return; }
+            if (!filteredTrades.length) { alert('No trades to export.'); return; }
 
-            const RESULT_MAP = {
-                win: 'Win', loss: 'Loss', be_win: 'BE / Win', be_loss: 'BE / Loss'
-            };
+            const RESULT_LABELS = {win:'Win', loss:'Loss', be_win:'BE / Win', be_loss:'BE / Loss'};
+            const RESULT_BG = {win:'D9EAD3', loss:'FCE8E6', be_win:'FFF2CC', be_loss:'FFF2CC'};
+            const RESULT_FG = {win:'38761D', loss:'CC0000', be_win:'7F6000', be_loss:'7F6000'};
+            const GRADE_BG  = {A:'D9EAD3', B:'FCE5CD', C:'FFF2CC', troll:'FCE8E6'};
+            const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+            function hex(c){ return {patternType:'solid', fgColor:{rgb:'FF'+c}, bgColor:{rgb:'FF'+c}}; }
+            function font(bold, color, sz, italic){ return {bold:!!bold, color:{rgb:'FF'+(color||'000000')}, sz:sz||9, italic:!!italic, name:'Arial'}; }
+            function align(h, wrap){ return {horizontal:h||'left', vertical:'center', wrapText:!!wrap}; }
+            function border(c){ const s={style:'thin',color:{rgb:'FF'+(c||'DDDDDD')}}; return {top:s,bottom:s,left:s,right:s}; }
 
             // Group by month
             const months = {};
             filteredTrades.forEach(t => {
-                const month = (t.date || '').slice(0, 7);
-                if (!months[month]) months[month] = [];
-                months[month].push(t);
+                const mk = (t.date||'').slice(0,7);
+                if (!months[mk]) months[mk]=[];
+                months[mk].push(t);
             });
 
             const wb = XLSX.utils.book_new();
-            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-            // Sort months descending
-            Object.keys(months).sort().reverse().forEach(monthKey => {
-                const monthTrades = months[monthKey].sort((a,b) => (a.date+a.entryTime).localeCompare(b.date+b.entryTime));
-                const [year, mon] = monthKey.split('-');
-                const sheetName = `${monthNames[parseInt(mon)-1]} ${year}`;
+            Object.keys(months).sort().reverse().forEach(mk => {
+                const mt = months[mk].sort((a,b)=>(a.date+a.entryTime).localeCompare(b.date+b.entryTime));
+                const [yr, mo] = mk.split('-');
+                const sname = MONTH_NAMES[parseInt(mo)-1]+' '+yr;
 
-                const rows = [];
-                // Header
-                rows.push(['Date','Instrument','Result','Entry Time','Exit Time','Direction','Model','Grade','Notes','R Value']);
+                const ws_data = [];
+                const ws_merges = [];
+                const ws_styles = {};
+
+                // Header row
+                const hdrs = ['Date','Instrument','Result','Entry Time','Exit Time','Direction','Model','Grade','Notes','R Value'];
+                ws_data.push(hdrs);
+                hdrs.forEach((_,ci) => {
+                    const addr = XLSX.utils.encode_cell({r:0, c:ci});
+                    ws_styles[addr] = {
+                        font: font(true,'FFFFFF',10),
+                        fill: hex('2C3E50'),
+                        alignment: align('center'),
+                        border: border('444444')
+                    };
+                });
 
                 // Group by day
                 const days = {};
-                monthTrades.forEach(t => {
-                    if (!days[t.date]) days[t.date] = [];
-                    days[t.date].push(t);
-                });
+                mt.forEach(t=>{ if(!days[t.date]) days[t.date]=[]; days[t.date].push(t); });
 
+                let r = 1;
                 Object.keys(days).sort().forEach(day => {
-                    const dayTrades = days[day];
-                    const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s,t) => s+(t.rValue||0), 0);
-                    const wins = dayTrades.filter(t=>t.result==='win').length;
-                    const losses = dayTrades.filter(t=>t.result==='loss').length;
-                    const be = dayTrades.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
-                    
-                    // Parse date for label
-                    const d = new Date(day + 'T00:00:00');
-                    const dayLabel = d.toLocaleDateString('en-GB', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
-                    const rLabel = (dayR >= 0 ? '+' : '') + dayR.toFixed(2) + 'R';
-                    rows.push([`📅 ${dayLabel}  |  ${dayTrades.length} trades · ${wins}W ${losses}L ${be}BE`, '', '', '', '', '', '', '', '', rLabel]);
+                    const dt = days[day];
+                    let d; try { d=new Date(day+'T00:00:00'); } catch(e){d=null;}
+                    const dlbl = d ? d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}) : day;
+                    const dayR = dt.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+                    const wins = dt.filter(t=>t.result==='win').length;
+                    const losses = dt.filter(t=>t.result==='loss').length;
+                    const be = dt.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
+                    const rStr = (dayR>=0?'+':'')+dayR.toFixed(2)+'R';
 
-                    dayTrades.forEach(t => {
-                        const modelName = MODELS[t.model]?.name || t.model || '';
-                        const rValue = t.rValue || 0;
-                        const rStr = rValue === 0 ? '0R' : (rValue > 0 ? '+' : '') + rValue.toFixed(2).replace(/\.?0+$/, '') + 'R';
-                        rows.push([
-                            t.date,
-                            t.symbol || 'NQ',
-                            RESULT_MAP[t.result] || t.result || '',
-                            t.entryTime || '',
-                            t.exitTime || '',
-                            t.direction ? t.direction.charAt(0).toUpperCase() + t.direction.slice(1) : '',
-                            modelName,
-                            t.grade || '',
-                            t.note || '',
-                            rStr
-                        ]);
+                    // Day separator row
+                    const dayRow = new Array(10).fill('');
+                    dayRow[0] = `  ${dlbl}   |   ${dt.length} trade${dt.length!==1?'s':''}   ·   ${wins}W  ${losses}L  ${be}BE`;
+                    dayRow[9] = rStr;
+                    ws_data.push(dayRow);
+                    ws_merges.push({s:{r,c:0}, e:{r,c:8}});
+                    for(let ci=0;ci<10;ci++){
+                        const addr = XLSX.utils.encode_cell({r,c:ci});
+                        ws_styles[addr] = {
+                            font: ci===9 ? font(true, dayR>0?'27AE60':dayR<0?'E74C3C':'F39C12', 9) : font(true,'2C3E50',9),
+                            fill: hex('EAF0FB'),
+                            alignment: ci===9 ? align('center') : align('left'),
+                            border: border('B0BEC5')
+                        };
+                    }
+                    r++;
+
+                    dt.forEach(t => {
+                        const result = t.result||'';
+                        const bg = RESULT_BG[result]||'FFFFFF';
+                        const rl = RESULT_LABELS[result]||result;
+                        const rfg = RESULT_FG[result]||'000000';
+                        const grade = t.grade||'';
+                        const mname = MODELS[t.model]?.name || t.model||'';
+                        const rv = t.rValue||0;
+                        const r_s = rv===0?'0R':rv===1?'+1R':rv===-1?'-1R':rv===0.5?'+0.5R':rv===-0.5?'-0.5R':(rv>0?'+':'')+rv.toFixed(2)+'R';
+
+                        const row = [
+                            t.date||'', t.symbol||'NQ', rl,
+                            t.entryTime||'', t.exitTime||'',
+                            (t.direction||'').charAt(0).toUpperCase()+(t.direction||'').slice(1),
+                            mname, grade, t.note||'', r_s
+                        ];
+                        ws_data.push(row);
+
+                        for(let ci=0;ci<10;ci++){
+                            const addr = XLSX.utils.encode_cell({r,c:ci});
+                            let st = { fill:hex(bg), border:border(), alignment:align(ci===9?'center':'left', ci===8) };
+                            if(ci===2) st.font = font(true, rfg);
+                            else if(ci===7){ st.fill=hex(GRADE_BG[grade]||'FFFFFF'); st.font=font(true,'2C3E50'); st.alignment=align('center'); }
+                            else if(ci===8) st.font = font(false,'555555',9,true);
+                            else if(ci===9) st.font = font(true, rv>0?'27AE60':rv<0?'E74C3C':'F39C12');
+                            else st.font = font(false,'000000');
+                            ws_styles[addr] = st;
+                        }
+                        r++;
                     });
-                    rows.push([]); // spacer
+
+                    // Spacer
+                    ws_data.push(new Array(10).fill(''));
+                    r++;
                 });
 
-                // Month summary
-                const wins = monthTrades.filter(t=>t.result==='win').length;
-                const losses = monthTrades.filter(t=>t.result==='loss').length;
-                const be = monthTrades.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
-                const totalR = monthTrades.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
-                const wr = (wins+losses) > 0 ? Math.round(wins/(wins+losses)*100) : 0;
-                rows.push([]);
-                rows.push(['Total Trades','Wins','Losses','BE','Total R','Win Rate','','','','']);
-                rows.push([monthTrades.length, wins, losses, be, (totalR>=0?'+':'')+totalR.toFixed(2)+'R', wr+'%','','','','']);
+                // Month stats
+                const wins2 = mt.filter(t=>t.result==='win').length;
+                const losses2 = mt.filter(t=>t.result==='loss').length;
+                const be2 = mt.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
+                const totalR = mt.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+                const wl = wins2+losses2;
+                const wr = wl?Math.round(wins2/wl*100):0;
+                const lbls = ['Total Trades','Wins','Losses','BE','Total R','Win Rate'];
+                const vals = [mt.length, wins2, losses2, be2, (totalR>=0?'+':'')+totalR.toFixed(2)+'R', wr+'%'];
+                ws_data.push(new Array(10).fill(''));
+                ws_data.push(lbls.concat(new Array(4).fill('')));
+                ws_data.push(vals.map(String).concat(new Array(4).fill('')));
+                r++;
+                for(let ci=0;ci<6;ci++){
+                    const la = XLSX.utils.encode_cell({r:r,c:ci});
+                    const va = XLSX.utils.encode_cell({r:r+1,c:ci});
+                    ws_styles[la] = {font:font(true,'FFFFFF',9), fill:hex('34495E'), alignment:align('center'), border:border('445566')};
+                    const isR = ci===4;
+                    ws_styles[va] = {font:font(true,isR?(totalR>=0?'27AE60':'E74C3C'):'2C3E50',10), fill:hex('F0F0F0'), alignment:align('center'), border:border('CCCCCC')};
+                }
 
-                const ws = XLSX.utils.aoa_to_sheet(rows);
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                ws['!cols'] = [{wch:14},{wch:12},{wch:13},{wch:11},{wch:11},{wch:11},{wch:16},{wch:8},{wch:45},{wch:10}];
+                ws['!merges'] = ws_merges;
+                ws['!rows'] = [{hpt:22}]; // header row height
 
-                // Column widths
-                ws['!cols'] = [
-                    {wch:16},{wch:12},{wch:12},{wch:12},{wch:12},
-                    {wch:11},{wch:14},{wch:8},{wch:45},{wch:10}
-                ];
+                // Apply styles
+                Object.keys(ws_styles).forEach(addr => {
+                    if(!ws[addr]) ws[addr] = {t:'s', v:''};
+                    ws[addr].s = ws_styles[addr];
+                });
 
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                XLSX.utils.book_append_sheet(wb, ws, sname);
             });
 
             const filename = `trading_journal_${new Date().toISOString().split('T')[0]}.xlsx`;
-            XLSX.writeFile(wb, filename);
+            XLSX.writeFile(wb, filename, {cellStyles:true});
             alert(`✅ Exported to ${filename}`);
         }
 
