@@ -2229,6 +2229,8 @@
             XLSX.writeFile(wb, filename);
             alert(`✅ Exported to ${filename}`);
         }
+
+        function importFromJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
             
