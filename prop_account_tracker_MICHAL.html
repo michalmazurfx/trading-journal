@@ -4717,11 +4717,6 @@
                 rEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
                 rEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
             }
-            const pnlEl = document.getElementById('perf-totalPnl');
-            const grossWins = wins.reduce((s, t) => s + (t.rValue || 0), 0);
-            const grossLosses = Math.abs(losses.reduce((s, t) => s + (t.rValue || 0), 0));
-            const profitFactor = grossLosses > 0 ? (grossWins / grossLosses).toFixed(2) : grossWins > 0 ? '∞' : '0.00';
-            pnlEl.textContent = profitFactor;
             // Calculate win/loss streaks from wins/losses only
             let bestWin = 0, worstLoss = 0, curWin = 0, curLoss = 0;
             winLoss.forEach(t => {
