@@ -1383,6 +1383,12 @@
                             <button class="filter-btn" onclick="setPerfTimeRange('month')">This Month</button>
                             <button class="filter-btn" onclick="setPerfTimeRange('quarter')">This Quarter</button>
                             <button class="filter-btn" onclick="setPerfTimeRange('year')">This Year</button>
+                            <button class="filter-btn" onclick="setPerfTimeRange('custom')">Custom</button>
+                        </div>
+                        <div id="perf-custom-dates" style="display:none; margin-top:10px; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <input type="date" id="perf-custom-start" onchange="updatePerformanceTab()" style="padding:6px 10px; border:2px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font-size:0.9em;">
+                            <span style="color:var(--text-secondary);">to</span>
+                            <input type="date" id="perf-custom-end" onchange="updatePerformanceTab()" style="padding:6px 10px; border:2px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font-size:0.9em;">
                         </div>
                     </div>
                     <div style="flex:1; min-width:250px;">
@@ -4626,6 +4632,19 @@
             perfTimeRange = range;
             document.querySelectorAll('#performance .filter-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
+            const customDates = document.getElementById('perf-custom-dates');
+            if (range === 'custom') {
+                customDates.style.display = 'flex';
+                if (!document.getElementById('perf-custom-end').value) {
+                    const today = new Date();
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    document.getElementById('perf-custom-end').value = today.toISOString().split('T')[0];
+                    document.getElementById('perf-custom-start').value = weekAgo.toISOString().split('T')[0];
+                }
+            } else {
+                customDates.style.display = 'none';
+            }
             updatePerformanceTab();
         }
         
@@ -4668,6 +4687,13 @@
                     startDate = new Date(now.getFullYear(), q * 3, 1);
                 } else if (perfTimeRange === 'year') {
                     startDate = new Date(now.getFullYear(), 0, 1);
+                } else if (perfTimeRange === 'custom') {
+                    const startVal = document.getElementById('perf-custom-start')?.value;
+                    const endVal = document.getElementById('perf-custom-end')?.value;
+                    if (startVal && endVal) {
+                        filtered = filtered.filter(t => t.date >= startVal && t.date <= endVal);
+                    }
+                    return filtered;
                 }
                 
                 if (startDate) {
