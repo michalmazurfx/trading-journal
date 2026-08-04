@@ -1200,6 +1200,11 @@
                 </div>
                 
                 <div class="input-group">
+                    <label>Stop Loss Price</label>
+                    <input type="number" id="tradeStopLoss" step="0.01" placeholder="e.g. 99.00" oninput="updateTradePreview()">
+                </div>
+                
+                <div class="input-group">
                     <label>Exit(s) <span style="color:#aaa;font-weight:400;">— add a partial for each exit</span></label>
                     <div id="exitPartials"></div>
                     <button type="button" class="btn" onclick="addExitPartial()" style="width: auto; padding: 8px 18px; margin: 8px 0 0 0; font-size: 0.9em; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">+ Add Exit</button>
@@ -1207,8 +1212,8 @@
                 
                 <div class="input-row">
                     <div class="input-group">
-                        <label>RR</label>
-                        <input type="number" id="tradeRR" step="0.01" placeholder="e.g. 1.2, -1, 1.5" oninput="syncResultFromR(); updateTradePreview()">
+                        <label>RR <span style="color:#aaa;font-weight:400;">auto-calculated from stop loss</span></label>
+                        <input type="text" id="tradeRR" readonly style="background: var(--stat-box-bg); font-weight: 700; font-size: 1.05em;" value="">
                     </div>
                     <div class="input-group">
                         <label>$ Result <span style="color:#aaa;font-weight:400;">auto-calculated</span></label>
@@ -2294,6 +2299,7 @@
         });
         
         let currentFilter = 'all';
+        let exitPartialSeq = 0;
         
         // Set current date/time
         const now = new Date();
@@ -2719,16 +2725,16 @@
             }
         }
         
-        function syncResultFromR() {
-            const r = parseFloat(document.getElementById('tradeRR').value);
+        function syncResultFromR(rValue) {
             const resultEl = document.getElementById('tradeResult');
+            const r = rValue !== undefined ? rValue : parseFloat(document.getElementById('tradeRR').value);
+            if (isNaN(r)) return;
             if (r > 0) resultEl.value = 'win';
             else if (r < 0) resultEl.value = 'loss';
             else resultEl.value = 'be_win';
         }
         
         // ── EXIT PARTIALS ────────────────────────────────────────────
-        let exitPartialSeq = 0;
         
         function addExitPartial(price, size) {
             const container = document.getElementById('exitPartials');
@@ -2784,26 +2790,70 @@
             }, 0);
         }
         
+        // Weighted-average-exit RR calc, driven by Entry / Stop Loss / Exits / Direction.
+        // Returns null if there isn't enough info yet (missing entry, stop, or exits) or
+        // if the stop loss is on the wrong side of entry (zero/invalid risk).
+        function computeRealizedRR() {
+            const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value);
+            const direction = document.getElementById('tradeDirection').value;
+            const exits = getExitPartials();
+            
+            if (isNaN(entryPrice) || isNaN(stopLoss) || exits.length === 0) return null;
+            
+            const totalSize = exits.reduce((s, e) => s + e.size, 0);
+            if (totalSize <= 0) return null;
+            const weightedAvgExit = exits.reduce((s, e) => s + e.price * e.size, 0) / totalSize;
+            
+            const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
+            if (riskPerShare <= 0) return null; // stop is on the wrong side of entry
+            
+            const profitPerShare = direction === 'long' ? (weightedAvgExit - entryPrice) : (entryPrice - weightedAvgExit);
+            return profitPerShare / riskPerShare;
+        }
+        
         function updateTradePreview() {
             const dollarResult = computeDollarResult();
-            const el = document.getElementById('tradeDollarResult');
-            if (el) {
-                el.value = (dollarResult >= 0 ? '+$' : '-$') + Math.abs(dollarResult).toFixed(2);
-                el.style.color = dollarResult >= 0 ? '#27ae60' : '#e74c3c';
+            const dollarEl = document.getElementById('tradeDollarResult');
+            if (dollarEl) {
+                dollarEl.value = (dollarResult >= 0 ? '+$' : '-$') + Math.abs(dollarResult).toFixed(2);
+                dollarEl.style.color = dollarResult >= 0 ? '#27ae60' : '#e74c3c';
             }
             
-            // Soft warning if exit sizes don't match entry size
+            const rr = computeRealizedRR();
+            const rrEl = document.getElementById('tradeRR');
+            if (rrEl) {
+                if (rr === null) {
+                    rrEl.value = '';
+                    rrEl.style.color = '';
+                } else {
+                    rrEl.value = (rr >= 0 ? '+' : '') + rr.toFixed(2) + 'R';
+                    rrEl.style.color = rr >= 0 ? '#27ae60' : '#e74c3c';
+                    syncResultFromR(rr);
+                }
+            }
+            
+            // Warnings: exit sizes not matching entry size, or stop loss on the wrong side
+            const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value);
+            const direction = document.getElementById('tradeDirection').value;
             const entrySize = parseFloat(document.getElementById('tradeEntrySize').value);
             const exits = getExitPartials();
             const totalExitSize = exits.reduce((s, e) => s + e.size, 0);
             const alertDiv = document.getElementById('riskAlert');
             if (alertDiv) {
+                const messages = [];
                 if (!isNaN(entrySize) && exits.length > 0 && Math.abs(totalExitSize - entrySize) > 0.0001) {
                     const remaining = entrySize - totalExitSize;
-                    alertDiv.innerHTML = `<div class="alert alert-info" style="margin-top:10px;">💡 ${remaining > 0 ? `${remaining} shares not yet accounted for in exits` : `Exit size exceeds entry size by ${Math.abs(remaining)} shares`}</div>`;
-                } else {
-                    alertDiv.innerHTML = '';
+                    messages.push(remaining > 0 ? `${remaining} shares not yet accounted for in exits` : `Exit size exceeds entry size by ${Math.abs(remaining)} shares`);
                 }
+                if (!isNaN(entryPrice) && !isNaN(stopLoss)) {
+                    const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
+                    if (riskPerShare <= 0) {
+                        messages.push(`Stop loss looks like it's on the wrong side of entry for a ${direction.toUpperCase()} trade`);
+                    }
+                }
+                alertDiv.innerHTML = messages.length ? `<div class="alert alert-info" style="margin-top:10px;">💡 ${messages.join('<br>💡 ')}</div>` : '';
             }
         }
         
@@ -2822,17 +2872,25 @@
             const exitTime = document.getElementById('tradeExitTime').value;
             const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value);
             const entrySize = parseFloat(document.getElementById('tradeEntrySize').value);
+            const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value);
             const exits = getExitPartials();
-            const rValue = parseFloat(document.getElementById('tradeRR').value);
             const note = document.getElementById('tradeNote').value;
             const screenshotFile = document.getElementById('tradeScreenshot').files[0];
             const type = document.getElementById('tradeType').value;
             
             if (!stockName) { alert('Please enter a stock name'); return; }
             if (!date) { alert('Please enter a date'); return; }
-            if (isNaN(rValue)) { alert('Please enter an RR value'); return; }
+            if (isNaN(entryPrice)) { alert('Please enter an entry price'); return; }
+            if (isNaN(stopLoss)) { alert('Please enter a stop loss price'); return; }
+            if (exits.length === 0) { alert('Please add at least one exit'); return; }
             
-            syncResultFromR();
+            const rValue = computeRealizedRR();
+            if (rValue === null) {
+                alert('Could not calculate RR — check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.');
+                return;
+            }
+            
+            syncResultFromR(rValue);
             const result = document.getElementById('tradeResult').value;
             const dollarResult = computeDollarResult();
             
@@ -2859,8 +2917,9 @@
                     result: result,
                     stockName: stockName,
                     direction: direction,
-                    entryPrice: isNaN(entryPrice) ? null : entryPrice,
+                    entryPrice: entryPrice,
                     entrySize: isNaN(entrySize) ? null : entrySize,
+                    stopLoss: stopLoss,
                     exits: exits,
                     riskSize: 1,
                     rValue: rValue,
@@ -2891,6 +2950,7 @@
                 document.getElementById('tradeStockName').value = '';
                 document.getElementById('tradeEntryPrice').value = '';
                 document.getElementById('tradeEntrySize').value = '';
+                document.getElementById('tradeStopLoss').value = '';
                 document.getElementById('exitPartials').innerHTML = '';
                 addExitPartial();
                 document.getElementById('tradeRR').value = '';
@@ -2967,10 +3027,10 @@
             const exitsHtml = exits.map((ex, i) => `
                 <div class="input-row" style="margin-bottom:8px;">
                     <div class="input-group" style="margin-bottom:0;">
-                        <input type="number" class="edit-exit-price" step="0.01" placeholder="Exit price" value="${ex.price !== undefined && ex.price !== null ? ex.price : ''}">
+                        <input type="number" class="edit-exit-price" step="0.01" placeholder="Exit price" value="${ex.price !== undefined && ex.price !== null ? ex.price : ''}" oninput="updateEditTradePreview()">
                     </div>
                     <div class="input-group" style="margin-bottom:0;">
-                        <input type="number" class="edit-exit-size" step="any" placeholder="Size (shares)" value="${ex.size !== undefined && ex.size !== null ? ex.size : ''}">
+                        <input type="number" class="edit-exit-size" step="any" placeholder="Size (shares)" value="${ex.size !== undefined && ex.size !== null ? ex.size : ''}" oninput="updateEditTradePreview()">
                     </div>
                 </div>
             `).join('');
@@ -2987,7 +3047,7 @@
                             </div>
                             <div class="input-group">
                                 <label>Direction</label>
-                                <select id="edit-direction">
+                                <select id="edit-direction" onchange="updateEditTradePreview()">
                                     <option value="long" ${trade.direction === 'long' ? 'selected' : ''}>📈 LONG</option>
                                     <option value="short" ${trade.direction === 'short' ? 'selected' : ''}>📉 SHORT</option>
                                 </select>
@@ -3012,12 +3072,17 @@
                         <div class="input-row">
                             <div class="input-group">
                                 <label>Entry Price</label>
-                                <input type="number" id="edit-entryPrice" step="0.01" value="${trade.entryPrice !== undefined && trade.entryPrice !== null ? trade.entryPrice : ''}">
+                                <input type="number" id="edit-entryPrice" step="0.01" value="${trade.entryPrice !== undefined && trade.entryPrice !== null ? trade.entryPrice : ''}" oninput="updateEditTradePreview()">
                             </div>
                             <div class="input-group">
                                 <label>Entry Size (shares)</label>
-                                <input type="number" id="edit-entrySize" step="any" value="${trade.entrySize !== undefined && trade.entrySize !== null ? trade.entrySize : ''}">
+                                <input type="number" id="edit-entrySize" step="any" value="${trade.entrySize !== undefined && trade.entrySize !== null ? trade.entrySize : ''}" oninput="updateEditTradePreview()">
                             </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label>Stop Loss Price</label>
+                            <input type="number" id="edit-stopLoss" step="0.01" value="${trade.stopLoss !== undefined && trade.stopLoss !== null ? trade.stopLoss : ''}" oninput="updateEditTradePreview()">
                         </div>
                         
                         <div class="input-group">
@@ -3028,10 +3093,16 @@
                         
                         <div class="input-row">
                             <div class="input-group">
-                                <label>RR</label>
-                                <input type="number" id="edit-rValue" step="0.01" value="${trade.rValue !== undefined ? trade.rValue : ''}">
+                                <label>RR <span style="color:#aaa;font-weight:400;">auto-calculated</span></label>
+                                <input type="text" id="edit-rValue" readonly style="background: var(--stat-box-bg); font-weight: 700;" value="${trade.rValue !== undefined ? ((trade.rValue >= 0 ? '+' : '') + trade.rValue.toFixed(2) + 'R') : ''}">
+                            </div>
+                            <div class="input-group">
+                                <label>$ Result <span style="color:#aaa;font-weight:400;">auto-calculated</span></label>
+                                <input type="text" id="edit-dollarResult" readonly style="background: var(--stat-box-bg); font-weight: 700;" value="${trade.pnl !== undefined ? ((trade.pnl >= 0 ? '+$' : '-$') + Math.abs(trade.pnl).toFixed(2)) : '$0.00'}">
                             </div>
                         </div>
+                        
+                        <div id="edit-riskAlert"></div>
                         
                         <div class="input-group">
                             <label>Note</label>
@@ -3064,6 +3135,92 @@
             modal.id = 'editTradeModal';
             modal.innerHTML = modalHtml;
             document.body.appendChild(modal);
+            updateEditTradePreview();
+        }
+        
+        // Same weighted-avg RR/$ logic as the Log Trade form, scoped to the edit modal's fields.
+        function getEditExitPartials() {
+            const rows = document.querySelectorAll('#edit-exitPartials .input-row');
+            const exits = [];
+            rows.forEach(row => {
+                const price = parseFloat(row.querySelector('.edit-exit-price').value);
+                const size = parseFloat(row.querySelector('.edit-exit-size').value);
+                if (!isNaN(price) && !isNaN(size) && size > 0) exits.push({ price, size });
+            });
+            return exits;
+        }
+        
+        function computeEditDollarResult() {
+            const entryPrice = parseFloat(document.getElementById('edit-entryPrice').value);
+            const direction = document.getElementById('edit-direction').value;
+            const exits = getEditExitPartials();
+            if (isNaN(entryPrice) || exits.length === 0) return 0;
+            return exits.reduce((sum, ex) => {
+                const perShare = direction === 'long' ? (ex.price - entryPrice) : (entryPrice - ex.price);
+                return sum + perShare * ex.size;
+            }, 0);
+        }
+        
+        function computeEditRealizedRR() {
+            const entryPrice = parseFloat(document.getElementById('edit-entryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('edit-stopLoss').value);
+            const direction = document.getElementById('edit-direction').value;
+            const exits = getEditExitPartials();
+            
+            if (isNaN(entryPrice) || isNaN(stopLoss) || exits.length === 0) return null;
+            
+            const totalSize = exits.reduce((s, e) => s + e.size, 0);
+            if (totalSize <= 0) return null;
+            const weightedAvgExit = exits.reduce((s, e) => s + e.price * e.size, 0) / totalSize;
+            
+            const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
+            if (riskPerShare <= 0) return null;
+            
+            const profitPerShare = direction === 'long' ? (weightedAvgExit - entryPrice) : (entryPrice - weightedAvgExit);
+            return profitPerShare / riskPerShare;
+        }
+        
+        function updateEditTradePreview() {
+            const dollarResult = computeEditDollarResult();
+            const dollarEl = document.getElementById('edit-dollarResult');
+            if (dollarEl) {
+                dollarEl.value = (dollarResult >= 0 ? '+$' : '-$') + Math.abs(dollarResult).toFixed(2);
+                dollarEl.style.color = dollarResult >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            
+            const rr = computeEditRealizedRR();
+            const rrEl = document.getElementById('edit-rValue');
+            if (rrEl) {
+                if (rr === null) {
+                    rrEl.value = '';
+                    rrEl.style.color = '';
+                } else {
+                    rrEl.value = (rr >= 0 ? '+' : '') + rr.toFixed(2) + 'R';
+                    rrEl.style.color = rr >= 0 ? '#27ae60' : '#e74c3c';
+                }
+            }
+            
+            const entryPrice = parseFloat(document.getElementById('edit-entryPrice').value);
+            const stopLoss = parseFloat(document.getElementById('edit-stopLoss').value);
+            const direction = document.getElementById('edit-direction').value;
+            const entrySize = parseFloat(document.getElementById('edit-entrySize').value);
+            const exits = getEditExitPartials();
+            const totalExitSize = exits.reduce((s, e) => s + e.size, 0);
+            const alertDiv = document.getElementById('edit-riskAlert');
+            if (alertDiv) {
+                const messages = [];
+                if (!isNaN(entrySize) && exits.length > 0 && Math.abs(totalExitSize - entrySize) > 0.0001) {
+                    const remaining = entrySize - totalExitSize;
+                    messages.push(remaining > 0 ? `${remaining} shares not yet accounted for in exits` : `Exit size exceeds entry size by ${Math.abs(remaining)} shares`);
+                }
+                if (!isNaN(entryPrice) && !isNaN(stopLoss)) {
+                    const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
+                    if (riskPerShare <= 0) {
+                        messages.push(`Stop loss looks like it's on the wrong side of entry for a ${direction.toUpperCase()} trade`);
+                    }
+                }
+                alertDiv.innerHTML = messages.length ? `<div class="alert alert-info" style="margin-top:10px;">💡 ${messages.join('<br>💡 ')}</div>` : '';
+            }
         }
         
         function addEditExitPartial() {
@@ -3073,13 +3230,14 @@
             row.style.marginBottom = '8px';
             row.innerHTML = `
                 <div class="input-group" style="margin-bottom:0;">
-                    <input type="number" class="edit-exit-price" step="0.01" placeholder="Exit price">
+                    <input type="number" class="edit-exit-price" step="0.01" placeholder="Exit price" oninput="updateEditTradePreview()">
                 </div>
                 <div class="input-group" style="margin-bottom:0;">
-                    <input type="number" class="edit-exit-size" step="any" placeholder="Size (shares)">
+                    <input type="number" class="edit-exit-size" step="any" placeholder="Size (shares)" oninput="updateEditTradePreview()">
                 </div>
             `;
             container.appendChild(row);
+            updateEditTradePreview();
         }
         
         function closeEditModal(event) {
@@ -3121,41 +3279,43 @@
             const exitTime = document.getElementById('edit-exitTime').value;
             const entryPrice = parseFloat(document.getElementById('edit-entryPrice').value);
             const entrySize = parseFloat(document.getElementById('edit-entrySize').value);
-            const rValue = parseFloat(document.getElementById('edit-rValue').value);
+            const stopLoss = parseFloat(document.getElementById('edit-stopLoss').value);
             const note = document.getElementById('edit-note').value;
-            
-            const exits = [];
-            document.querySelectorAll('#edit-exitPartials .input-row').forEach(row => {
-                const price = parseFloat(row.querySelector('.edit-exit-price').value);
-                const size = parseFloat(row.querySelector('.edit-exit-size').value);
-                if (!isNaN(price) && !isNaN(size) && size > 0) exits.push({ price, size });
-            });
+            const exits = getEditExitPartials();
             
             if (!date) {
                 alert('Please enter a date');
                 return;
             }
-            if (isNaN(rValue)) {
-                alert('Please enter an RR value');
+            if (isNaN(entryPrice)) {
+                alert('Please enter an entry price');
+                return;
+            }
+            if (isNaN(stopLoss)) {
+                alert('Please enter a stop loss price');
+                return;
+            }
+            if (exits.length === 0) {
+                alert('Please add at least one exit');
+                return;
+            }
+            
+            const rValue = computeEditRealizedRR();
+            if (rValue === null) {
+                alert('Could not calculate RR — check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.');
                 return;
             }
             
             // Derive result from RR sign (same rule as new trade entry)
             const result = rValue > 0 ? 'win' : rValue < 0 ? 'loss' : 'be_win';
-            
-            // Compute $ result from entry/exit
-            const dollarResult = (!isNaN(entryPrice) && exits.length > 0)
-                ? exits.reduce((sum, ex) => {
-                    const perShare = direction === 'long' ? (ex.price - entryPrice) : (entryPrice - ex.price);
-                    return sum + perShare * ex.size;
-                }, 0)
-                : (trade.pnl || 0);
+            const dollarResult = computeEditDollarResult();
             
             trade.stockName = stockName;
             trade.direction = direction;
             trade.result = result;
-            trade.entryPrice = isNaN(entryPrice) ? null : entryPrice;
+            trade.entryPrice = entryPrice;
             trade.entrySize = isNaN(entrySize) ? null : entrySize;
+            trade.stopLoss = stopLoss;
             trade.exits = exits;
             trade.rValue = rValue;
             trade.pnl = dollarResult;
@@ -3893,6 +4053,17 @@
             `;
         }
         
+        function saveTradesToLocalStorage() {
+            const tradesWithoutScreenshots = trades.map(t => {
+                if (t.screenshot) {
+                    const { screenshot, ...tradeWithoutScreenshot } = t;
+                    return tradeWithoutScreenshot;
+                }
+                return t;
+            });
+            localStorage.setItem('stockTrades', JSON.stringify(tradesWithoutScreenshots));
+        }
+        
         function displayTrades() {
             let displayTrades = trades.slice();
             
@@ -4155,6 +4326,10 @@
                         <div>
                             <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Entry</div>
                             <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">${trade.entryPrice ? '$' + trade.entryPrice : 'N/A'}${trade.entrySize ? ' x ' + trade.entrySize : ''}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Stop Loss</div>
+                            <div style="font-size: 1em; font-weight: 600; color: var(--text-primary);">${trade.stopLoss ? '$' + trade.stopLoss : 'N/A'}</div>
                         </div>
                         <div>
                             <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">Exit(s)</div>
