@@ -2713,13 +2713,19 @@
             }
         }
         
+        // A realized RR within ±BE_THRESHOLD of zero counts as breakeven, not a win or loss.
+        const BE_THRESHOLD = 0.3;
+        
+        function deriveResultFromRR(r) {
+            if (Math.abs(r) <= BE_THRESHOLD) return r >= 0 ? 'be_win' : 'be_loss';
+            return r > 0 ? 'win' : 'loss';
+        }
+        
         function syncResultFromR(rValue) {
             const resultEl = document.getElementById('tradeResult');
             const r = rValue !== undefined ? rValue : parseFloat(document.getElementById('tradeRR').value);
             if (isNaN(r)) return;
-            if (r > 0) resultEl.value = 'win';
-            else if (r < 0) resultEl.value = 'loss';
-            else resultEl.value = 'be_win';
+            resultEl.value = deriveResultFromRR(r);
         }
         
         // ── EXIT PARTIALS ────────────────────────────────────────────
@@ -2816,7 +2822,7 @@
                     rrEl.style.color = '';
                 } else {
                     rrEl.value = (rr >= 0 ? '+' : '') + rr.toFixed(2) + 'R';
-                    rrEl.style.color = rr >= 0 ? '#27ae60' : '#e74c3c';
+                    rrEl.style.color = Math.abs(rr) <= BE_THRESHOLD ? '#f39c12' : (rr >= 0 ? '#27ae60' : '#e74c3c');
                     syncResultFromR(rr);
                 }
             }
@@ -3184,7 +3190,7 @@
                     rrEl.style.color = '';
                 } else {
                     rrEl.value = (rr >= 0 ? '+' : '') + rr.toFixed(2) + 'R';
-                    rrEl.style.color = rr >= 0 ? '#27ae60' : '#e74c3c';
+                    rrEl.style.color = Math.abs(rr) <= BE_THRESHOLD ? '#f39c12' : (rr >= 0 ? '#27ae60' : '#e74c3c');
                 }
             }
             
@@ -3294,8 +3300,8 @@
                 return;
             }
             
-            // Derive result from RR sign (same rule as new trade entry)
-            const result = rValue > 0 ? 'win' : rValue < 0 ? 'loss' : 'be_win';
+            // Derive result from RR (same rule as new trade entry — within ±0.3R counts as BE)
+            const result = deriveResultFromRR(rValue);
             const dollarResult = computeEditDollarResult();
             
             trade.stockName = stockName;
