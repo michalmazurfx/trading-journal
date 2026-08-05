@@ -1268,12 +1268,6 @@
                     <div class="subtitle" id="cal-monthLabel">Monthly P&L Overview</div>
                 </div>
                 
-                <!-- Account Filter -->
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Select Accounts:</label>
-                    <div id="cal-account-filter" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-                </div>
-                
                 <!-- Display Toggle -->
                 <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                     <label style="font-weight:600; color:#2c3e50;">Show $ P&L:</label>
@@ -1314,7 +1308,7 @@
             <div class="container">
                 <div class="header">
                     <h1>📈 Performance Analytics</h1>
-                    <div class="subtitle">Every stat below counts one batch entry as one trade</div>
+                    <div class="subtitle">Every stat below counts one trade</div>
                 </div>
                 
                 <!-- Filters -->
@@ -1336,13 +1330,6 @@
                             <input type="date" id="perf-custom-end" onchange="updatePerformanceTab()" style="padding:6px 10px; border:2px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font-size:0.9em;">
                         </div>
                     </div>
-                    <div style="flex:1; min-width:250px;">
-                        <label style="display:block; font-weight:600; color:#2c3e50; margin-bottom:8px;">Trade Type:</label>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            <button class="filter-btn" id="perf-type-all" onclick="setPerfDiscipline('all')">All Trades</button>
-                            <button class="filter-btn active" id="perf-type-system" onclick="setPerfDiscipline('system')">✅ System Only</button>
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Key Metrics Row -->
@@ -1360,6 +1347,14 @@
                         <div class="label">Total R</div>
                     </div>
                     <div class="stat-box">
+                        <div class="value" id="perf-avgRR">0R</div>
+                        <div class="label">Average RR / Trade</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value" id="perf-totalDollar">$0</div>
+                        <div class="label">$ Gains</div>
+                    </div>
+                    <div class="stat-box">
                         <div class="value" id="perf-winStreak" style="color: #27ae60;">0</div>
                         <div class="label">Best Win Streak</div>
                     </div>
@@ -1369,30 +1364,18 @@
                     </div>
                 </div>
                 
+                <!-- Cumulative P&L Chart -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h2>📉 Cumulative P&L</h2>
+                    <div id="perf-cumulativeChart"><div class="no-data">No trades yet</div></div>
+                </div>
+                
                 <div class="content-grid">
-                    <!-- By Stock -->
-                    <div class="card">
-                        <h2>📈 Performance by Stock</h2>
-                        <div id="perf-byModel"><div class="no-data">No trades yet</div></div>
-                    </div>
-                    
                     <!-- By Direction -->
                     <div class="card">
                         <h2>📊 Long vs Short</h2>
                         <div id="perf-byDirection"><div class="no-data">No trades yet</div></div>
                     </div>
-                    
-                    <!-- System vs Off-System -->
-                    <div class="card">
-                        <h2>🧠 Discipline Impact</h2>
-                        <div id="perf-discipline"><div class="no-data">No trades yet</div></div>
-                    </div>
-                </div>
-                
-                <!-- BE Trades breakdown -->
-                <div class="card" style="margin-top: 20px;">
-                    <h2>🟡 BE Trade Breakdown</h2>
-                    <div id="perf-beTrades"><div class="no-data">No BE trades yet</div></div>
                 </div>
             </div>
         </div>
@@ -2415,12 +2398,10 @@
         }
         
         function getDayPnl(dateStr) {
-            // For R journal, just return total R for the day
-            const tradeR = trades
-                .filter(t => t.date === dateStr && t.result !== 'be_win' && t.result !== 'be_loss')
-                .reduce((sum, t) => sum + (t.rValue || 0), 0);
-            
-            return tradeR;
+            // Real dollar P&L for the day (all trades count, including BE — BE can still have small slippage $)
+            return trades
+                .filter(t => t.date === dateStr)
+                .reduce((sum, t) => sum + (t.pnl || 0), 0);
         }
         
         function getDayTrades(dateStr) {
@@ -2526,7 +2507,9 @@
                     ? `onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 8px 25px ${Math.abs(r) < 0.01 ? 'rgba(243,156,18,0.35)' : r > 0 ? 'rgba(72,187,120,0.4)' : 'rgba(245,101,101,0.4)'}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='${shadow}'"`
                     : '';
                 
-                const formattedPnl = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}R`;
+                const formattedPnl = calShowPnl
+                    ? `${pnl >= 0 ? '+$' : '-$'}${Math.abs(pnl).toFixed(2)}`
+                    : `${r >= 0 ? '+' : ''}${r.toFixed(2)}R`;
                 
                 return `
                     <div style="
@@ -2567,9 +2550,14 @@
             const winRate = (winDays + lossDays) > 0 ? Math.round(winDays / (winDays + lossDays) * 100) : 0;
             const wrColor = winRate >= 60 ? '#27ae60' : winRate >= 45 ? '#f39c12' : '#e74c3c';
             const monthRColor = monthR > 0 ? '#27ae60' : monthR < 0 ? '#e74c3c' : '#f39c12';
+            const monthPnlColor = monthPnl > 0 ? '#27ae60' : monthPnl < 0 ? '#e74c3c' : '#f39c12';
+            
+            const totalItem = calShowPnl
+                ? { val: `${monthPnl >= 0 ? '+$' : '-$'}${Math.abs(monthPnl).toFixed(2)}`, label: 'Total $', color: monthPnlColor }
+                : { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor };
             
             const summaryItems = [
-                { val: `${monthR >= 0 ? '+' : ''}${monthR.toFixed(2)}R`, label: 'Total R', color: monthRColor },
+                totalItem,
                 { val: winDays, label: 'Green Days', color: '#27ae60' },
                 { val: lossDays, label: 'Red Days', color: '#e74c3c' },
                 { val: beDays, label: 'BE Days', color: '#f39c12' },
@@ -3607,24 +3595,8 @@
             updatePerformanceTab();
         }
         
-        function setPerfDiscipline(discipline) {
-            perfDiscipline = discipline;
-            // Remove active from all discipline buttons
-            document.getElementById('perf-type-all').classList.remove('active');
-            document.getElementById('perf-type-system').classList.remove('active');
-
-            // Add active to clicked button
-            document.getElementById(`perf-type-${discipline}`).classList.add('active');
-            updatePerformanceTab();
-        }
-        
         function getFilteredPerfTrades() {
             let filtered = getUniqueTrades().filter(t => t.type !== 'adjustment');
-            
-            // Filter by discipline - since we only track system trades now, default to system
-            if (perfDiscipline !== 'all') {
-                filtered = filtered.filter(t => t.type === perfDiscipline);
-            }
             
             // Filter by time range
             if (perfTimeRange !== 'all') {
@@ -3667,12 +3639,13 @@
         function updatePerformanceTab() {
             const all = getFilteredPerfTrades();
             if (all.length === 0) {
-                ['perf-totalTrades','perf-winRate','perf-totalR','perf-winStreak','perf-lossStreak'].forEach(id => {
+                ['perf-totalTrades','perf-winRate','perf-totalR','perf-avgRR','perf-totalDollar','perf-winStreak','perf-lossStreak'].forEach(id => {
                     document.getElementById(id).textContent = '-';
                 });
-                ['perf-byModel','perf-byDirection','perf-discipline','perf-beTrades'].forEach(id => {
+                ['perf-byDirection'].forEach(id => {
                     document.getElementById(id).innerHTML = '<div class="no-data">No trades yet</div>';
                 });
+                document.getElementById('perf-cumulativeChart').innerHTML = '<div class="no-data">No trades yet</div>';
                 return;
             }
             
@@ -3683,14 +3656,11 @@
             const winLoss = statsOnly.filter(t => t.result === 'win' || t.result === 'loss');
             const wins = statsOnly.filter(t => t.result === 'win');
             const losses = statsOnly.filter(t => t.result === 'loss');
-            const beTrades = statsOnly.filter(t => t.result === 'be_win' || t.result === 'be_loss');
             
             const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
             const totalR = all.filter(t => !t.excludeFromStats && t.result !== 'be_win' && t.result !== 'be_loss').reduce((s, t) => s + (t.rValue || 0), 0); // Wins/losses only, BE = 0
-            const avgWinR = wins.length > 0 ? wins.reduce((s, t) => s + (t.rValue || 0), 0) / wins.length : 0;
-            const avgLossR = losses.length > 0 ? losses.reduce((s, t) => s + (t.rValue || 0), 0) / losses.length : 0;
-            const winRateDec = winLoss.length > 0 ? wins.length / winLoss.length : 0;
-            const expectancy = (winRateDec * avgWinR) + ((1 - winRateDec) * avgLossR);
+            const avgRR = statsOnly.length > 0 ? totalR / statsOnly.length : 0;
+            const totalDollar = statsOnly.reduce((s, t) => s + (t.pnl || 0), 0);
             
             // Top metrics
             document.getElementById('perf-totalTrades').textContent = statsOnly.length;
@@ -3701,6 +3671,16 @@
             if (rEl) {
                 rEl.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
                 rEl.style.color = totalR >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            const avgRREl = document.getElementById('perf-avgRR');
+            if (avgRREl) {
+                avgRREl.textContent = (avgRR >= 0 ? '+' : '') + avgRR.toFixed(2) + 'R';
+                avgRREl.style.color = avgRR >= 0 ? '#27ae60' : '#e74c3c';
+            }
+            const totalDollarEl = document.getElementById('perf-totalDollar');
+            if (totalDollarEl) {
+                totalDollarEl.textContent = (totalDollar >= 0 ? '+$' : '-$') + Math.abs(totalDollar).toFixed(2);
+                totalDollarEl.style.color = totalDollar >= 0 ? '#27ae60' : '#e74c3c';
             }
             // Calculate win/loss streaks from wins/losses only
             let bestWin = 0, worstLoss = 0, curWin = 0, curLoss = 0;
@@ -3716,13 +3696,8 @@
             document.getElementById('perf-winStreak').textContent = bestWin;
             document.getElementById('perf-lossStreak').textContent = worstLoss;
             
-            // By Stock
-            const stockNames = [...new Set(statsOnly.filter(t => t.stockName).map(t => t.stockName))].sort();
-            const modelGroups = stockNames.map(name => ({
-                label: name,
-                trades: statsOnly.filter(t => t.stockName === name)
-            })).filter(g => g.trades.length > 0);
-            document.getElementById('perf-byModel').innerHTML = renderPerfBreakdown(modelGroups);
+            // Cumulative P&L chart
+            document.getElementById('perf-cumulativeChart').innerHTML = renderCumulativePnlChart(statsOnly);
             
             // By Direction
             const dirGroups = [
@@ -3730,42 +3705,70 @@
                 { label: '📉 Short', trades: statsOnly.filter(t => t.direction === 'short') }
             ].filter(g => g.trades.length > 0);
             document.getElementById('perf-byDirection').innerHTML = renderPerfBreakdown(dirGroups);
+        }
+        
+        // Simple, dependency-free SVG line chart of cumulative $ P&L over time.
+        function renderCumulativePnlChart(tradeList) {
+            const sorted = tradeList.slice().sort((a, b) => {
+                const dateCompare = (a.date || '').localeCompare(b.date || '');
+                if (dateCompare !== 0) return dateCompare;
+                return (a.entryTime || '').localeCompare(b.entryTime || '');
+            });
             
-            // Discipline Impact - hidden for R journal (no type field)
-            document.getElementById('perf-discipline').innerHTML = '<div class="no-data">All trades are system trades</div>';
-            
-            // BE trades
-            if (beTrades.length === 0) {
-                document.getElementById('perf-beTrades').innerHTML = '<div class="no-data">No BE trades recorded</div>';
-            } else {
-                const beWins = beTrades.filter(t => t.result === 'be_win');
-                const beLosses = beTrades.filter(t => t.result === 'be_loss');
-                // Calculate what R would be if BE trades were counted as actual wins/losses
-                const beWinR = beWins.reduce((sum, t) => sum + (t.riskSize || 1), 0); // +1R per BE/WIN
-                const beLossR = beLosses.reduce((sum, t) => sum + (t.riskSize || 1), 0); // would be -1R per BE/LOSS
-                const hypotheticalR = beWinR - beLossR;
-                document.getElementById('perf-beTrades').innerHTML = `
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:15px;">
-                        <div class="stat-box">
-                            <div class="value">${beTrades.length}</div>
-                            <div class="label">Total BE Trades</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="value" style="color:#27ae60;">${beWins.length}</div>
-                            <div class="label">BE → Win</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="value" style="color:#e74c3c;">${beLosses.length}</div>
-                            <div class="label">BE → Loss</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="value" style="color:${hypotheticalR >= 0 ? '#27ae60' : '#e74c3c'};">${hypotheticalR >= 0 ? '+' : ''}${hypotheticalR.toFixed(2)}R</div>
-                            <div class="label">If Counted as W/L</div>
-                        </div>
-                    </div>
-                    <p style="margin-top:15px; color:#7f8c8d; font-size:0.95em;">⚠️ BE trades are excluded from win rate and Total R — "If Counted" shows hypothetical R if they were treated as wins/losses.</p>
-                `;
+            if (sorted.length === 0) {
+                return '<div class="no-data">No trades yet</div>';
             }
+            
+            let running = 0;
+            const points = sorted.map(t => {
+                running += (t.pnl || 0);
+                return { date: t.date, stockName: t.stockName, value: running };
+            });
+            
+            const width = 800, height = 280, padL = 55, padR = 20, padT = 20, padB = 30;
+            const innerW = width - padL - padR, innerH = height - padT - padB;
+            
+            const values = points.map(p => p.value);
+            let minV = Math.min(0, ...values);
+            let maxV = Math.max(0, ...values);
+            if (minV === maxV) { minV -= 1; maxV += 1; }
+            const range = maxV - minV;
+            
+            const xStep = points.length > 1 ? innerW / (points.length - 1) : 0;
+            const xAt = i => padL + i * xStep;
+            const yAt = v => padT + innerH - ((v - minV) / range) * innerH;
+            const zeroY = yAt(0);
+            
+            const linePoints = points.map((p, i) => `${xAt(i)},${yAt(p.value)}`).join(' ');
+            const areaPoints = `${padL},${zeroY} ${linePoints} ${xAt(points.length - 1)},${zeroY}`;
+            
+            const finalValue = points[points.length - 1].value;
+            const lineColor = finalValue >= 0 ? '#27ae60' : '#e74c3c';
+            
+            const dots = points.map((p, i) => `
+                <circle cx="${xAt(i)}" cy="${yAt(p.value)}" r="4" fill="${lineColor}" stroke="white" stroke-width="1.5">
+                    <title>${formatDate(p.date)}${p.stockName ? ' — ' + p.stockName : ''}: ${p.value >= 0 ? '+$' : '-$'}${Math.abs(p.value).toFixed(2)}</title>
+                </circle>
+            `).join('');
+            
+            // A handful of x-axis date labels (first, middle, last) to avoid clutter
+            const labelIdxs = points.length <= 2 ? points.map((_, i) => i) : [0, Math.floor((points.length - 1) / 2), points.length - 1];
+            const xLabels = [...new Set(labelIdxs)].map(i => `
+                <text x="${xAt(i)}" y="${height - 8}" font-size="11" fill="var(--text-secondary)" text-anchor="middle">${formatDate(points[i].date)}</text>
+            `).join('');
+            
+            return `
+                <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:320px;">
+                    <line x1="${padL}" y1="${zeroY}" x2="${width - padR}" y2="${zeroY}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" />
+                    <text x="${padL - 8}" y="${zeroY + 4}" font-size="11" fill="var(--text-secondary)" text-anchor="end">$0</text>
+                    <text x="${padL - 8}" y="${padT + 8}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${maxV >= 0 ? '+' : ''}$${maxV.toFixed(0)}</text>
+                    <text x="${padL - 8}" y="${height - padB}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${minV >= 0 ? '+' : ''}$${minV.toFixed(0)}</text>
+                    <polygon points="${areaPoints}" fill="${lineColor}" opacity="0.12" />
+                    <polyline points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+                    ${dots}
+                    ${xLabels}
+                </svg>
+            `;
         }
         
         function updateWeeklyPerformance() {
