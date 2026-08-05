@@ -3466,7 +3466,7 @@
             const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const monthName = now.toLocaleString('default', { month: 'long' });
             const totalR = trades
-                .filter(t => t.rValue !== undefined && t.type !== 'adjustment' && (t.date || '').startsWith(monthStr) && t.result !== 'be_win' && t.result !== 'be_loss')
+                .filter(t => t.rValue !== undefined && t.type !== 'adjustment' && (t.date || '').startsWith(monthStr))
                 .reduce((sum, t) => sum + (t.rValue || 0), 0);
             
             const totalProfitEl = document.getElementById('totalProfit');
@@ -3876,16 +3876,13 @@
             const weekSystemTrades = weekTrades.filter(t => t.type === 'system' && !t.excludeFromStats);
             const weekWins = weekSystemTrades.filter(t => t.result === 'win').length;
             const weekLosses = weekSystemTrades.filter(t => t.result === 'loss').length;
-            const weekBeWin = weekSystemTrades.filter(t => t.result === 'be_win').length;
-            const weekBeLoss = weekSystemTrades.filter(t => t.result === 'be_loss').length;
+            const weekBE = weekSystemTrades.filter(t => t.result === 'be_win' || t.result === 'be_loss').length;
             const weekWinRate = (weekWins + weekLosses) > 0 
                 ? Math.round(weekWins / (weekWins + weekLosses) * 100) 
                 : 0;
             const winRateColor = weekWinRate >= 60 ? '#27ae60' : weekWinRate >= 45 ? '#f39c12' : '#e74c3c';
-            // Exclude BE trades from R calculation (only count wins and losses)
-            const weekR = weekSystemTrades
-                .filter(t => t.result === 'win' || t.result === 'loss') // BE = 0R
-                .reduce((sum, t) => sum + (t.rValue || 0), 0);
+            // Raw sum — every trade's actual RR, BE included at its real value
+            const weekR = weekSystemTrades.reduce((sum, t) => sum + (t.rValue || 0), 0);
             const weekRColor = weekR > 0 ? '#27ae60' : weekR < 0 ? '#e74c3c' : '#f39c12';
             
             // Calculate current streak (all time, not just this week)
@@ -3922,7 +3919,7 @@
             html += `
                 <div style="margin-top: 15px;">
                     <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 10px; font-size: 1em;">Current Week Stats — System Trades Only</div>
-                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;">
                         <div style="background: #f0fff4; border: 2px solid #27ae60; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: #27ae60;">${weekWins}</div>
                             <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Wins</div>
@@ -3932,12 +3929,8 @@
                             <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">Losses</div>
                         </div>
                         <div style="background: #fffbf0; border: 2px solid #f39c12; border-radius: 8px; padding: 10px; text-align: center;">
-                            <div style="font-size: 1.6em; font-weight: 700; color: #f39c12;">${weekBeWin}</div>
-                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">BE/Win</div>
-                        </div>
-                        <div style="background: #fffbf0; border: 2px solid #f39c12; border-radius: 8px; padding: 10px; text-align: center;">
-                            <div style="font-size: 1.6em; font-weight: 700; color: #f39c12;">${weekBeLoss}</div>
-                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">BE/Loss</div>
+                            <div style="font-size: 1.6em; font-weight: 700; color: #f39c12;">${weekBE}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">BE</div>
                         </div>
                         <div style="background: linear-gradient(135deg, #f5f7fa, #c3cfe2); border: 2px solid #bdc3c7; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: ${winRateColor};">${weekWinRate}%</div>
@@ -3949,7 +3942,7 @@
                         </div>
                         <div style="background: ${streakBg}; border: 2px solid ${streakColor}; border-radius: 8px; padding: 10px; text-align: center;">
                             <div style="font-size: 1.6em; font-weight: 700; color: ${streakColor};">${streakCount}</div>
-                            <div style="font-size: 0.68em; color: #7f8c8d; font-weight: 600;">${streakLabel}</div>
+                            <div style="font-size: 0.78em; color: #7f8c8d; font-weight: 600;">${streakLabel}</div>
                         </div>
                     </div>
                 </div>
