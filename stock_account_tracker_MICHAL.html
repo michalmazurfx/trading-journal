@@ -3759,9 +3759,8 @@
             const lineColor = finalValue >= 0 ? '#27ae60' : '#e74c3c';
             
             const dots = points.map((p, i) => `
-                <circle cx="${xAt(i)}" cy="${yAt(p.value)}" r="4" fill="${lineColor}" stroke="white" stroke-width="1.5">
-                    <title>${formatDate(p.date)} (${p.count} trade${p.count !== 1 ? 's' : ''}, ${p.dayPnl >= 0 ? '+$' : '-$'}${Math.abs(p.dayPnl).toFixed(2)} that day): ${p.value >= 0 ? '+$' : '-$'}${Math.abs(p.value).toFixed(2)} cumulative</title>
-                </circle>
+                <circle cx="${xAt(i)}" cy="${yAt(p.value)}" r="14" fill="transparent" style="cursor:pointer;" onmousemove="showChartTooltip(event, ${i})" onmouseleave="hideChartTooltip()" onclick="showChartTooltip(event, ${i})"></circle>
+                <circle class="chart-dot" data-idx="${i}" cx="${xAt(i)}" cy="${yAt(p.value)}" r="4" fill="${lineColor}" stroke="white" stroke-width="1.5" style="pointer-events:none; transition: r 0.15s ease;"></circle>
             `).join('');
             
             // A handful of x-axis date labels (first, middle, last) to avoid clutter
@@ -3774,20 +3773,79 @@
             // otherwise it just overlaps one of them (e.g. when every value is >= 0).
             const showZeroLine = minV < -0.01 && maxV > 0.01;
             
+            window.__cumChartPoints = points;
+            
             return `
-                <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:320px;">
-                    ${showZeroLine ? `
-                        <line x1="${padL}" y1="${zeroY}" x2="${width - padR}" y2="${zeroY}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" />
-                        <text x="${padL - 8}" y="${zeroY + 4}" font-size="11" fill="var(--text-secondary)" text-anchor="end">$0</text>
-                    ` : ''}
-                    <text x="${padL - 8}" y="${padT + 8}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${maxV >= 0 ? '+' : ''}$${maxV.toFixed(0)}</text>
-                    <text x="${padL - 8}" y="${height - padB}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${minV >= 0 ? '+' : ''}$${minV.toFixed(0)}</text>
-                    <polygon points="${areaPoints}" fill="${lineColor}" opacity="0.12" />
-                    <polyline points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-                    ${dots}
-                    ${xLabels}
-                </svg>
+                <div id="chart-tooltip-wrapper" style="position:relative;">
+                    <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:320px; display:block;">
+                        ${showZeroLine ? `
+                            <line x1="${padL}" y1="${zeroY}" x2="${width - padR}" y2="${zeroY}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="4,4" />
+                            <text x="${padL - 8}" y="${zeroY + 4}" font-size="11" fill="var(--text-secondary)" text-anchor="end">$0</text>
+                        ` : ''}
+                        <text x="${padL - 8}" y="${padT + 8}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${maxV >= 0 ? '+' : ''}$${maxV.toFixed(0)}</text>
+                        <text x="${padL - 8}" y="${height - padB}" font-size="11" fill="var(--text-secondary)" text-anchor="end">${minV >= 0 ? '+' : ''}$${minV.toFixed(0)}</text>
+                        <polygon points="${areaPoints}" fill="${lineColor}" opacity="0.12" />
+                        <polyline points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+                        ${dots}
+                        ${xLabels}
+                    </svg>
+                    <div id="chart-tooltip" style="display:none; position:absolute; pointer-events:none; background:var(--card-bg); border:2px solid var(--border-color); border-radius:10px; padding:10px 14px; box-shadow:0 6px 20px rgba(0,0,0,0.18); z-index:20; min-width:170px; font-size:0.9em; color:var(--text-primary); transition: opacity 0.1s ease;"></div>
+                </div>
             `;
+        }
+        
+        // Interactive tooltip for the cumulative P&L chart's day dots.
+        function showChartTooltip(evt, idx) {
+            const point = window.__cumChartPoints && window.__cumChartPoints[idx];
+            const tooltip = document.getElementById('chart-tooltip');
+            const wrapper = document.getElementById('chart-tooltip-wrapper');
+            if (!point || !tooltip || !wrapper) return;
+            
+            // Highlight the hovered dot, reset the others
+            wrapper.querySelectorAll('.chart-dot').forEach(dot => {
+                dot.setAttribute('r', dot.dataset.idx === String(idx) ? '6' : '4');
+            });
+            
+            tooltip.innerHTML = `
+                <div style="font-weight:700; margin-bottom:6px; color:var(--text-primary);">${formatDate(point.date)}</div>
+                <div style="display:flex; justify-content:space-between; gap:20px; margin-bottom:3px;">
+                    <span style="color:var(--text-secondary);">Trades</span>
+                    <span style="font-weight:600;">${point.count}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:20px; margin-bottom:3px;">
+                    <span style="color:var(--text-secondary);">Day P&L</span>
+                    <span style="font-weight:700; color:${point.dayPnl >= 0 ? '#27ae60' : '#e74c3c'};">${point.dayPnl >= 0 ? '+$' : '-$'}${Math.abs(point.dayPnl).toFixed(2)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:20px; padding-top:5px; margin-top:3px; border-top:1px solid var(--border-color);">
+                    <span style="color:var(--text-secondary);">Cumulative</span>
+                    <span style="font-weight:700; color:${point.value >= 0 ? '#27ae60' : '#e74c3c'};">${point.value >= 0 ? '+$' : '-$'}${Math.abs(point.value).toFixed(2)}</span>
+                </div>
+            `;
+            tooltip.style.display = 'block';
+            
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const x = evt.clientX - wrapperRect.left;
+            const y = evt.clientY - wrapperRect.top;
+            
+            let left = x + 16;
+            let top = y - 16;
+            const tooltipWidth = tooltip.offsetWidth;
+            const tooltipHeight = tooltip.offsetHeight;
+            
+            // Keep the popup inside the chart area instead of spilling off the edge
+            if (left + tooltipWidth > wrapperRect.width) left = x - tooltipWidth - 16;
+            if (top + tooltipHeight > wrapperRect.height) top = wrapperRect.height - tooltipHeight - 4;
+            if (top < 0) top = 4;
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+        
+        function hideChartTooltip() {
+            const tooltip = document.getElementById('chart-tooltip');
+            const wrapper = document.getElementById('chart-tooltip-wrapper');
+            if (tooltip) tooltip.style.display = 'none';
+            if (wrapper) wrapper.querySelectorAll('.chart-dot').forEach(dot => dot.setAttribute('r', '4'));
         }
         
         function updateWeeklyPerformance() {
