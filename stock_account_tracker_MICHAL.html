@@ -2410,9 +2410,9 @@
         }
         
         function getDayR(dateStr) {
-            // For R journal - sum R values, BE trades count as 0
+            // Calendar day total = raw sum of every trade's RR that day (BE included as its actual small value, not zeroed)
             return trades
-                .filter(t => t.date === dateStr && t.result !== 'be_win' && t.result !== 'be_loss')
+                .filter(t => t.date === dateStr)
                 .reduce((sum, t) => sum + (t.rValue || 0), 0);
         }
         
@@ -2714,10 +2714,11 @@
         }
         
         // A realized RR within ±BE_THRESHOLD of zero counts as breakeven, not a win or loss.
+        // BE doesn't distinguish win/loss — anything in the band is just "BE".
         const BE_THRESHOLD = 0.3;
         
         function deriveResultFromRR(r) {
-            if (Math.abs(r) <= BE_THRESHOLD) return r >= 0 ? 'be_win' : 'be_loss';
+            if (Math.abs(r) <= BE_THRESHOLD) return 'be_win'; // canonical BE value (win/loss distinction not used)
             return r > 0 ? 'win' : 'loss';
         }
         
@@ -3403,7 +3404,7 @@
             if (!url) return;
             
             const resultEmoji = trade.result === 'win' ? '🟢' : trade.result === 'loss' ? '🔴' : '🟡';
-            const resultLabel = trade.result === 'win' ? 'WIN' : trade.result === 'loss' ? 'LOSS' : trade.result === 'be_win' ? 'BE/WIN' : 'BE/LOSS';
+            const resultLabel = trade.result === 'win' ? 'WIN' : trade.result === 'loss' ? 'LOSS' : 'BE';
             const dirEmoji = trade.direction === 'long' ? '📈' : '📉';
             const rDisplay = (trade.rValue >= 0 ? '+' : '') + trade.rValue.toFixed(2) + 'RR';
             const dollarDisplay = trade.pnl !== undefined && trade.pnl !== null ? `${trade.pnl >= 0 ? '+' : '-'}$${Math.abs(trade.pnl).toFixed(2)}` : null;
@@ -3664,7 +3665,7 @@
             const losses = statsOnly.filter(t => t.result === 'loss');
             
             const winRate = winLoss.length > 0 ? Math.round(wins.length / winLoss.length * 100) : 0;
-            const totalR = all.filter(t => !t.excludeFromStats && t.result !== 'be_win' && t.result !== 'be_loss').reduce((s, t) => s + (t.rValue || 0), 0); // Wins/losses only, BE = 0
+            const totalR = statsOnly.reduce((s, t) => s + (t.rValue || 0), 0); // Raw sum — every trade's actual RR, BE included
             const avgRR = statsOnly.length > 0 ? totalR / statsOnly.length : 0;
             const totalDollar = statsOnly.reduce((s, t) => s + (t.pnl || 0), 0);
             
@@ -3815,8 +3816,8 @@
                 const dateStr = toLocalDateStr(date);
                 const dayTrades = unique.filter(t => t.date === dateStr);
                 
-                // Calculate total R for the day (all trades)
-                const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s, t) => s + (t.rValue || 0), 0);
+                // Calculate total R for the day (raw sum, all trades — BE included at its real value)
+                const dayR = dayTrades.reduce((s, t) => s + (t.rValue || 0), 0);
                 
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
@@ -4120,7 +4121,7 @@
                                 };">${
                                     trade.result === 'win' ? '🟢 WIN' : 
                                     trade.result === 'loss' ? '🔴 LOSS' : 
-                                    trade.result === 'be_win' ? '🟡 BE/WIN' : '🟡 BE/LOSS'
+                                    '🟡 BE'
                                 }</span>` : ''}
                             </div>
                             <div class="trade-pnl ${displayR !== null ? (displayR >= 0 ? 'profit' : 'loss') : (displayPnl >= 0 ? 'profit' : 'loss')}">
@@ -4246,7 +4247,7 @@
             content.innerHTML = sortedDates.map(date => {
                 const dayTrades = tradesByDate[date];
                 const dayPnl = dayTrades.reduce((sum, t) => sum + t.pnl, 0);
-                const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((sum, t) => sum + (t.rValue || 0), 0);
+                const dayR = dayTrades.reduce((sum, t) => sum + (t.rValue || 0), 0);
                 const dateObj = new Date(date + 'T00:00:00');
                 const dateLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
                 
@@ -4286,8 +4287,8 @@
             const resultLabels = {
                 win: '🟢 WIN',
                 loss: '🔴 LOSS',
-                'be_win': '🟡 BE/WIN',
-                'be_loss': '🟡 BE/LOSS'
+                'be_win': '🟡 BE',
+                'be_loss': '🟡 BE'
             };
             
             const exitsSummary = (trade.exits && trade.exits.length)
