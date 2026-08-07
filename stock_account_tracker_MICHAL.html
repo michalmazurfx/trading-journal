@@ -1210,9 +1210,23 @@
                     <button type="button" class="btn" onclick="addExitPartial()" style="width: auto; padding: 8px 18px; margin: 8px 0 0 0; font-size: 0.9em; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">+ Add Exit</button>
                 </div>
                 
+                <div class="input-group">
+                    <label>RR Calculation Method</label>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="filter-btn active" id="tradeRRMode-stopLoss" onclick="setTradeRRMode('stopLoss')" style="flex:1;">Stop Loss Based</button>
+                        <button type="button" class="filter-btn" id="tradeRRMode-fixed" onclick="setTradeRRMode('fixed')" style="flex:1;">Fixed $ per R</button>
+                    </div>
+                    <input type="hidden" id="tradeRRModeValue" value="stopLoss">
+                </div>
+                
+                <div class="input-group" id="tradeRDollarValueGroup" style="display:none;">
+                    <label>R Value ($) <span style="color:#aaa;font-weight:400;">this trade's $ per 1R</span></label>
+                    <input type="number" id="tradeRDollarValue" step="0.01" placeholder="e.g. 400" oninput="updateTradePreview()">
+                </div>
+                
                 <div class="input-row">
                     <div class="input-group">
-                        <label>RR <span style="color:#aaa;font-weight:400;">auto-calculated from stop loss</span></label>
+                        <label>RR <span style="color:#aaa;font-weight:400;" id="tradeRRHint">auto-calculated from stop loss</span></label>
                         <input type="text" id="tradeRR" readonly style="background: var(--stat-box-bg); font-weight: 700; font-size: 1.05em;" value="">
                     </div>
                     <div class="input-group">
@@ -1444,6 +1458,20 @@
                 </div>
                 
                 <div class="content-grid">
+                    <!-- Risk Settings -->
+                    <div class="card">
+                        <h2>🎯 Risk Settings</h2>
+                        <p style="color:#7f8c8d; margin-bottom:20px; font-size:0.95em;">
+                            Used when a trade's RR is calculated with "Fixed $ per R" instead of stop-loss math. Each trade snapshots whatever value is set here at the moment it's logged — changing this later only affects new trades, never trades you've already logged.
+                        </p>
+                        <div class="input-group">
+                            <label>Default R Value ($)</label>
+                            <input type="number" id="defaultRValueInput" step="0.01" placeholder="e.g. 400">
+                        </div>
+                        <button class="btn" onclick="saveDefaultRValue()">Save Default R Value</button>
+                        <div id="defaultRValueStatus" style="margin-top:10px; font-size:0.9em; color:#7f8c8d;"></div>
+                    </div>
+                    
                     <!-- Backup & Restore System -->
                     <div class="card">
                         <h2>💾 Backup & Restore</h2>
@@ -2450,10 +2478,10 @@
                     tradeDays++;
                     monthPnl += pnl;
                     monthR += r;
-                    // Use R to determine win/loss/BE (not P&L)
-                    if (Math.abs(r) < 0.01) beDays++;  // R is ~0 = BE
-                    else if (r > 0) winDays++;          // R > 0 = win
-                    else lossDays++;                    // R < 0 = loss
+                    // Use R to determine win/loss/BE (not P&L) -- within +/-0.3R counts as BE
+                    if (Math.abs(r) <= BE_THRESHOLD) beDays++;
+                    else if (r > 0) winDays++;
+                    else lossDays++;
                 }
             }
             
@@ -2479,8 +2507,8 @@
                     bg = isWeekend ? '#f0f0f0' : '#f9fafb';
                     borderColor = isToday ? '#3498db' : 'transparent';
                     pnlColor = '#d0d5dd';
-                } else if (Math.abs(r) < 0.01) {
-                    // R is ~0 = BE day (yellow)
+                } else if (Math.abs(r) <= BE_THRESHOLD) {
+                    // Within +/-0.3R = BE day (yellow)
                     bg = 'linear-gradient(145deg, rgba(255, 252, 240, 0.9), rgba(254, 243, 208, 0.8))';
                     borderColor = '#f39c12';
                     pnlColor = '#d68910';
@@ -2497,14 +2525,14 @@
                 }
                 
                 const shadow = hasTraded
-                    ? `0 4px 15px ${Math.abs(r) < 0.01 ? 'rgba(243,156,18,0.2)' : r > 0 ? 'rgba(72,187,120,0.25)' : 'rgba(245,101,101,0.25)'}`
+                    ? `0 4px 15px ${Math.abs(r) <= BE_THRESHOLD ? 'rgba(243,156,18,0.2)' : r > 0 ? 'rgba(72,187,120,0.25)' : 'rgba(245,101,101,0.25)'}`
                     : 'none';
                 const todayStyle = isToday 
                     ? `box-shadow: 0 0 0 3px #667eea, ${shadow}; border-color: #667eea;` 
                     : `box-shadow:${shadow};`;
                 
                 const hoverEffect = hasTraded 
-                    ? `onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 8px 25px ${Math.abs(r) < 0.01 ? 'rgba(243,156,18,0.35)' : r > 0 ? 'rgba(72,187,120,0.4)' : 'rgba(245,101,101,0.4)'}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='${shadow}'"`
+                    ? `onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 8px 25px ${Math.abs(r) <= BE_THRESHOLD ? 'rgba(243,156,18,0.35)' : r > 0 ? 'rgba(72,187,120,0.4)' : 'rgba(245,101,101,0.4)'}'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='${shadow}'"`
                     : '';
                 
                 const formattedPnl = calShowPnl
@@ -2623,6 +2651,30 @@
             if (webhookInput) {
                 webhookInput.value = localStorage.getItem('stockDiscordWebhookUrl') || '';
             }
+            
+            // Populate Default R Value input
+            const rValueInput = document.getElementById('defaultRValueInput');
+            if (rValueInput) {
+                rValueInput.value = localStorage.getItem('stockDefaultRValue') || '';
+            }
+        }
+        
+        function getDefaultRValue() {
+            const v = parseFloat(localStorage.getItem('stockDefaultRValue'));
+            return isNaN(v) ? null : v;
+        }
+        
+        function saveDefaultRValue() {
+            const val = parseFloat(document.getElementById('defaultRValueInput').value);
+            const statusEl = document.getElementById('defaultRValueStatus');
+            if (isNaN(val) || val <= 0) {
+                statusEl.textContent = '⚠️ Enter a valid dollar amount greater than 0';
+                statusEl.style.color = '#e74c3c';
+                return;
+            }
+            localStorage.setItem('stockDefaultRValue', val);
+            statusEl.textContent = `✅ Saved — new trades logged with "Fixed $ per R" will default to $${val.toFixed(2)} = 1R`;
+            statusEl.style.color = '#27ae60';
         }
         
         // ── END SETTINGS FUNCTIONS ──────────────────────────────────
@@ -2788,7 +2840,38 @@
         // Weighted-average-exit RR calc, driven by Entry / Stop Loss / Exits / Direction.
         // Returns null if there isn't enough info yet (missing entry, stop, or exits) or
         // if the stop loss is on the wrong side of entry (zero/invalid risk).
+        function setTradeRRMode(mode) {
+            document.getElementById('tradeRRModeValue').value = mode;
+            document.getElementById('tradeRRMode-stopLoss').classList.toggle('active', mode === 'stopLoss');
+            document.getElementById('tradeRRMode-fixed').classList.toggle('active', mode === 'fixed');
+            
+            const fixedGroup = document.getElementById('tradeRDollarValueGroup');
+            const rrHint = document.getElementById('tradeRRHint');
+            fixedGroup.style.display = mode === 'fixed' ? 'block' : 'none';
+            rrHint.textContent = mode === 'fixed' ? 'auto-calculated from $ per R' : 'auto-calculated from stop loss';
+            
+            // Pre-fill with the current Settings default so it's one less thing to type,
+            // but this is just a starting value — it gets saved onto the trade itself.
+            if (mode === 'fixed') {
+                const rDollarInput = document.getElementById('tradeRDollarValue');
+                if (!rDollarInput.value) {
+                    const def = getDefaultRValue();
+                    if (def !== null) rDollarInput.value = def;
+                }
+            }
+            updateTradePreview();
+        }
+        
         function computeRealizedRR() {
+            const mode = document.getElementById('tradeRRModeValue').value;
+            const dollarResult = computeDollarResult();
+            
+            if (mode === 'fixed') {
+                const rDollar = parseFloat(document.getElementById('tradeRDollarValue').value);
+                if (isNaN(rDollar) || rDollar <= 0) return null;
+                return dollarResult / rDollar;
+            }
+            
             const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value);
             const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value);
             const direction = document.getElementById('tradeDirection').value;
@@ -2808,6 +2891,7 @@
         }
         
         function updateTradePreview() {
+            const mode = document.getElementById('tradeRRModeValue').value;
             const dollarResult = computeDollarResult();
             const dollarEl = document.getElementById('tradeDollarResult');
             if (dollarEl) {
@@ -2828,7 +2912,7 @@
                 }
             }
             
-            // Warnings: exit sizes not matching entry size, or stop loss on the wrong side
+            // Warnings: exit sizes not matching entry size, or (stop-loss mode only) stop on the wrong side
             const entryPrice = parseFloat(document.getElementById('tradeEntryPrice').value);
             const stopLoss = parseFloat(document.getElementById('tradeStopLoss').value);
             const direction = document.getElementById('tradeDirection').value;
@@ -2842,10 +2926,16 @@
                     const remaining = entrySize - totalExitSize;
                     messages.push(remaining > 0 ? `${remaining} shares not yet accounted for in exits` : `Exit size exceeds entry size by ${Math.abs(remaining)} shares`);
                 }
-                if (!isNaN(entryPrice) && !isNaN(stopLoss)) {
+                if (mode === 'stopLoss' && !isNaN(entryPrice) && !isNaN(stopLoss)) {
                     const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
                     if (riskPerShare <= 0) {
                         messages.push(`Stop loss looks like it's on the wrong side of entry for a ${direction.toUpperCase()} trade`);
+                    }
+                }
+                if (mode === 'fixed') {
+                    const rDollar = parseFloat(document.getElementById('tradeRDollarValue').value);
+                    if (isNaN(rDollar) || rDollar <= 0) {
+                        messages.push(`Enter an R Value ($) to calculate RR, or set a default in Settings`);
                     }
                 }
                 alertDiv.innerHTML = messages.length ? `<div class="alert alert-info" style="margin-top:10px;">💡 ${messages.join('<br>💡 ')}</div>` : '';
@@ -2872,16 +2962,25 @@
             const note = document.getElementById('tradeNote').value;
             const screenshotFile = document.getElementById('tradeScreenshot').files[0];
             const type = document.getElementById('tradeType').value;
+            const rrMode = document.getElementById('tradeRRModeValue').value;
+            const rDollarValue = rrMode === 'fixed' ? parseFloat(document.getElementById('tradeRDollarValue').value) : null;
             
             if (!stockName) { alert('Please enter a stock name'); return; }
             if (!date) { alert('Please enter a date'); return; }
             if (isNaN(entryPrice)) { alert('Please enter an entry price'); return; }
-            if (isNaN(stopLoss)) { alert('Please enter a stop loss price'); return; }
+            if (isNaN(stopLoss)) { alert('Please enter a stop loss price'); return; } // still required for record-keeping, even in Fixed $ mode
             if (exits.length === 0) { alert('Please add at least one exit'); return; }
+            if (rrMode === 'fixed' && (isNaN(rDollarValue) || rDollarValue <= 0)) {
+                alert('Please enter an R Value ($), or set a default in Settings.');
+                return;
+            }
             
             const rValue = computeRealizedRR();
             if (rValue === null) {
-                alert('Could not calculate RR — check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.');
+                const reason = rrMode === 'fixed'
+                    ? 'check the R Value ($) field.'
+                    : 'check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.';
+                alert('Could not calculate RR — ' + reason);
                 return;
             }
             
@@ -2917,6 +3016,8 @@
                     stopLoss: stopLoss,
                     exits: exits,
                     riskSize: 1,
+                    rrMode: rrMode, // 'stopLoss' | 'fixed' — how this trade's RR was calculated
+                    rDollarValue: rrMode === 'fixed' ? rDollarValue : null, // snapshot at log time, never live-recalculated
                     rValue: rValue,
                     pnl: dollarResult,
                     date: date,
@@ -2950,6 +3051,7 @@
                 addExitPartial();
                 document.getElementById('tradeRR').value = '';
                 document.getElementById('tradeDollarResult').value = '$0.00';
+                document.getElementById('tradeRDollarValue').value = '';
                 document.getElementById('tradeNote').value = '';
                 document.getElementById('tradeScreenshot').value = '';
                 document.getElementById('riskAlert').innerHTML = '';
@@ -2958,6 +3060,7 @@
                 document.getElementById('tradeType').value = 'system';
                 document.getElementById('tradeResult').value = 'win';
                 document.getElementById('tradeDirection').value = 'long';
+                setTradeRRMode('stopLoss');
                 
                 const now = new Date();
                 document.getElementById('tradeDate').valueAsDate = now;
@@ -3086,6 +3189,20 @@
                             <button type="button" class="btn" onclick="addEditExitPartial()" style="width: auto; padding: 8px 18px; margin: 8px 0 0 0; font-size: 0.9em; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">+ Add Exit</button>
                         </div>
                         
+                        <div class="input-group">
+                            <label>RR Calculation Method</label>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="filter-btn ${trade.rrMode !== 'fixed' ? 'active' : ''}" id="editRRMode-stopLoss" onclick="setEditRRMode('stopLoss')" style="flex:1;">Stop Loss Based</button>
+                                <button type="button" class="filter-btn ${trade.rrMode === 'fixed' ? 'active' : ''}" id="editRRMode-fixed" onclick="setEditRRMode('fixed')" style="flex:1;">Fixed $ per R</button>
+                            </div>
+                            <input type="hidden" id="editRRModeValue" value="${trade.rrMode === 'fixed' ? 'fixed' : 'stopLoss'}">
+                        </div>
+                        
+                        <div class="input-group" id="editRDollarValueGroup" style="display:${trade.rrMode === 'fixed' ? 'block' : 'none'};">
+                            <label>R Value ($) <span style="color:#aaa;font-weight:400;">this trade's $ per 1R (unaffected by later Settings changes)</span></label>
+                            <input type="number" id="edit-rDollarValue" step="0.01" value="${trade.rDollarValue !== undefined && trade.rDollarValue !== null ? trade.rDollarValue : ''}" oninput="updateEditTradePreview()">
+                        </div>
+                        
                         <div class="input-row">
                             <div class="input-group">
                                 <label>RR <span style="color:#aaa;font-weight:400;">auto-calculated</span></label>
@@ -3156,7 +3273,24 @@
             }, 0);
         }
         
+        function setEditRRMode(mode) {
+            document.getElementById('editRRModeValue').value = mode;
+            document.getElementById('editRRMode-stopLoss').classList.toggle('active', mode === 'stopLoss');
+            document.getElementById('editRRMode-fixed').classList.toggle('active', mode === 'fixed');
+            document.getElementById('editRDollarValueGroup').style.display = mode === 'fixed' ? 'block' : 'none';
+            updateEditTradePreview();
+        }
+        
         function computeEditRealizedRR() {
+            const mode = document.getElementById('editRRModeValue').value;
+            const dollarResult = computeEditDollarResult();
+            
+            if (mode === 'fixed') {
+                const rDollar = parseFloat(document.getElementById('edit-rDollarValue').value);
+                if (isNaN(rDollar) || rDollar <= 0) return null;
+                return dollarResult / rDollar;
+            }
+            
             const entryPrice = parseFloat(document.getElementById('edit-entryPrice').value);
             const stopLoss = parseFloat(document.getElementById('edit-stopLoss').value);
             const direction = document.getElementById('edit-direction').value;
@@ -3176,6 +3310,7 @@
         }
         
         function updateEditTradePreview() {
+            const mode = document.getElementById('editRRModeValue').value;
             const dollarResult = computeEditDollarResult();
             const dollarEl = document.getElementById('edit-dollarResult');
             if (dollarEl) {
@@ -3208,10 +3343,16 @@
                     const remaining = entrySize - totalExitSize;
                     messages.push(remaining > 0 ? `${remaining} shares not yet accounted for in exits` : `Exit size exceeds entry size by ${Math.abs(remaining)} shares`);
                 }
-                if (!isNaN(entryPrice) && !isNaN(stopLoss)) {
+                if (mode === 'stopLoss' && !isNaN(entryPrice) && !isNaN(stopLoss)) {
                     const riskPerShare = direction === 'long' ? (entryPrice - stopLoss) : (stopLoss - entryPrice);
                     if (riskPerShare <= 0) {
                         messages.push(`Stop loss looks like it's on the wrong side of entry for a ${direction.toUpperCase()} trade`);
+                    }
+                }
+                if (mode === 'fixed') {
+                    const rDollar = parseFloat(document.getElementById('edit-rDollarValue').value);
+                    if (isNaN(rDollar) || rDollar <= 0) {
+                        messages.push(`Enter an R Value ($) to calculate RR`);
                     }
                 }
                 alertDiv.innerHTML = messages.length ? `<div class="alert alert-info" style="margin-top:10px;">💡 ${messages.join('<br>💡 ')}</div>` : '';
@@ -3277,6 +3418,8 @@
             const stopLoss = parseFloat(document.getElementById('edit-stopLoss').value);
             const note = document.getElementById('edit-note').value;
             const exits = getEditExitPartials();
+            const rrMode = document.getElementById('editRRModeValue').value;
+            const rDollarValue = rrMode === 'fixed' ? parseFloat(document.getElementById('edit-rDollarValue').value) : null;
             
             if (!date) {
                 alert('Please enter a date');
@@ -3294,10 +3437,15 @@
                 alert('Please add at least one exit');
                 return;
             }
+            if (rrMode === 'fixed' && (isNaN(rDollarValue) || rDollarValue <= 0)) {
+                alert('Please enter an R Value ($)');
+                return;
+            }
             
             const rValue = computeEditRealizedRR();
             if (rValue === null) {
-                alert('Could not calculate RR — check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.');
+                const reason = rrMode === 'fixed' ? 'check the R Value ($) field.' : 'check that the stop loss is on the correct side of entry for a ' + direction.toUpperCase() + ' trade.';
+                alert('Could not calculate RR — ' + reason);
                 return;
             }
             
@@ -3312,6 +3460,8 @@
             trade.entrySize = isNaN(entrySize) ? null : entrySize;
             trade.stopLoss = stopLoss;
             trade.exits = exits;
+            trade.rrMode = rrMode;
+            trade.rDollarValue = rrMode === 'fixed' ? rDollarValue : null;
             trade.rValue = rValue;
             trade.pnl = dollarResult;
             trade.date = date;
@@ -3905,12 +4055,12 @@
                             bg = '#f8f9fa'; border = '#e0e0e0'; textColor = '#bdc3c7';
                         } else if (d.dayTrades.length === 0) {
                             bg = '#f8f9fa'; border = '#e0e0e0'; textColor = '#95a5a6';
+                        } else if (Math.abs(d.pnl) <= BE_THRESHOLD) {
+                            bg = '#fffbf0'; border = '#f39c12'; textColor = '#f39c12';
                         } else if (d.pnl > 0) {
                             bg = '#f0fff4'; border = '#27ae60'; textColor = '#27ae60';
-                        } else if (d.pnl < 0) {
-                            bg = '#fff5f5'; border = '#e74c3c'; textColor = '#e74c3c';
                         } else {
-                            bg = '#fffbf0'; border = '#f39c12'; textColor = '#f39c12';
+                            bg = '#fff5f5'; border = '#e74c3c'; textColor = '#e74c3c';
                         }
                         const todayRing = d.isToday ? 'box-shadow: 0 0 0 2px #3498db;' : '';
                         return `
