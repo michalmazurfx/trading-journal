@@ -2052,6 +2052,7 @@
         updateDisplay();
         displayTrades();
         renderTradeHistory();
+        setTimeout(loadScreenshots, 100);
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
@@ -5097,6 +5098,7 @@
                     </div>
                 `;
             }).join('');
+            setTimeout(loadScreenshots, 50);
         }
         
         // Payouts and Costs data (declared globally above)
