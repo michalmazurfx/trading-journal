@@ -2117,10 +2117,15 @@
         }
 
         function loadScreenshots() {
-            document.querySelectorAll('img[data-tradeid]').forEach(img => {
-                const id = parseInt(img.getAttribute('data-tradeid'));
-                const trade = trades.find(t => t.id === id);
-                if (trade && trade.screenshot) img.src = trade.screenshot;
+            const imgs = document.querySelectorAll('img[data-tradeid]');
+            console.log('loadScreenshots: found', imgs.length, 'images, trades with screenshots:', trades.filter(t=>t.screenshot).length);
+            imgs.forEach(img => {
+                const id = img.getAttribute('data-tradeid');
+                const trade = trades.find(t => String(t.id) === String(id));
+                if (trade && trade.screenshot) {
+                    img.src = trade.screenshot;
+                    console.log('Set screenshot for trade', id);
+                }
             });
         }
 
