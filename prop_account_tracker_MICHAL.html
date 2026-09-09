@@ -1085,23 +1085,43 @@
         <div class="nav-menu">
             <div class="nav-item active" onclick="switchTab('overview')">
                 <span class="icon">📊</span>
-                <span>Overview</span>
+                <span>H1 Overview</span>
             </div>
             <div class="nav-item" onclick="switchTab('calendar')">
                 <span class="icon">📅</span>
-                <span>Calendar</span>
+                <span>H1 Calendar</span>
             </div>
             <div class="nav-item" onclick="switchTab('performance')">
                 <span class="icon">📈</span>
-                <span>Performance</span>
+                <span>H1 Performance</span>
             </div>
             <div class="nav-item" onclick="switchTab('trade-history')">
                 <span class="icon">📋</span>
-                <span>Trade History</span>
+                <span>H1 History</span>
             </div>
             <div class="nav-item" onclick="switchTab('journal')">
                 <span class="icon">📖</span>
-                <span>Journal</span>
+                <span>H1 Journal</span>
+            </div>
+            
+            <!-- M15 Separator -->
+            <div style="margin: 10px 12px 6px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; font-size: 0.7em; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase;">M15 Setups</div>
+            
+            <div class="nav-item" onclick="switchTab('m15-overview')">
+                <span class="icon">⚡</span>
+                <span>M15 Overview</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('m15-calendar')">
+                <span class="icon">📅</span>
+                <span>M15 Calendar</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('m15-performance')">
+                <span class="icon">📈</span>
+                <span>M15 Performance</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('m15-history')">
+                <span class="icon">📋</span>
+                <span>M15 History</span>
             </div>
             
             <div class="nav-item" onclick="switchTab('settings')">
@@ -1632,18 +1652,34 @@
                 <div class="card" style="margin-top: 30px;">
                     <h2>🎮 Discord Integration</h2>
                     <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                        Post a message to a Discord channel every time you log a trade. Create a webhook in your Discord channel settings → Integrations → Webhooks.
+                        Post a message to Discord when you log a trade. Create a webhook in your Discord channel settings → Integrations → Webhooks.
                     </p>
-                    <div style="display: flex; gap: 10px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <label style="display:block; font-weight:600; margin-bottom:6px;">Webhook URL</label>
-                            <input type="text" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/..." 
-                                style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                    
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">H1 Setups Webhook</label>
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <input type="text" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/..." 
+                                    style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                            </div>
+                            <button onclick="saveDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
+                            <button onclick="testDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
                         </div>
-                        <button onclick="saveDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
-                        <button onclick="testDiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
+                        <div id="discordWebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
                     </div>
-                    <div id="discordWebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
+
+                    <div>
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">M15 Setups Webhook</label>
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <input type="text" id="discordM15WebhookInput" placeholder="https://discord.com/api/webhooks/..." 
+                                    style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                            </div>
+                            <button onclick="saveM15DiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
+                            <button onclick="testM15DiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
+                        </div>
+                        <div id="discordM15WebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
+                    </div>
                 </div>
                 
                 <!-- Danger Zone -->
@@ -1656,6 +1692,184 @@
                         🗑️ Clear All Trade Data
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- M15 SETUPS TABS                            -->
+    <!-- ═══════════════════════════════════════════ -->
+
+    <!-- M15 Overview -->
+    <div id="m15-overview" class="tab-content">
+        <div class="container">
+            <div class="header">
+                <h1>⚡ M15 Setups</h1>
+                <div class="subtitle" id="m15-totalProfitLabel">Total R — This Month</div>
+                <div class="total-profit" id="m15-totalProfit">+0.00R</div>
+            </div>
+            <div class="content-grid">
+                <!-- Log Trade -->
+                <div class="card">
+                    <h2>⚡ Log M15 Trade</h2>
+                    <p style="color:var(--text-secondary); font-size:0.9em;">Win = +0.8R · Loss = -1R · BE = 0R</p>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Result</label>
+                            <select id="m15-result" onchange="m15SyncResult()">
+                                <option value="win">🟢 WIN</option>
+                                <option value="loss">🔴 LOSS</option>
+                                <option value="be_win">🟡 BE/WIN</option>
+                                <option value="be_loss">🟡 BE/LOSS</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Type</label>
+                            <select id="m15-type">
+                                <option value="continuation">📈 Continuation</option>
+                                <option value="reversal">🔄 Reversal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Direction</label>
+                            <select id="m15-direction">
+                                <option value="long">📈 LONG</option>
+                                <option value="short">📉 SHORT</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Date</label>
+                            <input type="date" id="m15-date">
+                        </div>
+                        <div class="input-group">
+                            <label>Entry Time</label>
+                            <input type="time" id="m15-entryTime">
+                        </div>
+                    </div>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Exit Time</label>
+                            <input type="time" id="m15-exitTime">
+                        </div>
+                    </div>
+
+                    <button class="btn" onclick="m15LogTrade()" style="margin-top:16px;">
+                        ⚡ Add M15 Trade
+                    </button>
+                </div>
+
+                <!-- This Week -->
+                <div class="card">
+                    <h3 style="margin-top:0;">📅 This Week</h3>
+                    <div id="m15-weeklyPerformance"></div>
+                    <div id="m15-weekStats" style="margin-top:16px;"></div>
+                </div>
+            </div>
+
+            <!-- Trade History -->
+            <div class="card" style="margin-top:20px;">
+                <h2>📋 M15 Trade History</h2>
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <div class="filter-btn active" onclick="m15FilterTrades('all', this)">All</div>
+                    <div class="filter-btn" onclick="m15FilterTrades('system', this)">System Only</div>
+                </div>
+                <div id="m15-tradeLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- M15 Calendar -->
+    <div id="m15-calendar" class="tab-content">
+        <div class="container">
+            <div class="header">
+                <h1>📅 M15 Calendar</h1>
+                <div class="subtitle" id="m15-cal-monthLabel">Monthly Overview</div>
+            </div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <button class="btn" onclick="m15CalPrev()" style="width:auto; padding:8px 20px;">‹</button>
+                    <h2 id="m15-cal-title" style="margin:0;"></h2>
+                    <button class="btn" onclick="m15CalNext()" style="width:auto; padding:8px 20px;">›</button>
+                </div>
+                <div id="m15-calGrid"></div>
+                <div id="m15-calStats" style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- M15 Performance -->
+    <div id="m15-performance" class="tab-content">
+        <div class="container">
+            <div class="header">
+                <h1>📈 M15 Performance</h1>
+                <div class="subtitle">M15 Setups Analytics</div>
+            </div>
+            <div class="card">
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">
+                    <label style="font-weight:600; color:var(--text-primary); margin-bottom:4px; width:100%;">Time Range:</label>
+                    <button class="filter-btn" onclick="m15SetTimeRange('all', this)">Since Beginning</button>
+                    <button class="filter-btn" onclick="m15SetTimeRange('today', this)">Today</button>
+                    <button class="filter-btn active" onclick="m15SetTimeRange('week', this)">This Week</button>
+                    <button class="filter-btn" onclick="m15SetTimeRange('month', this)">This Month</button>
+                    <button class="filter-btn" onclick="m15SetTimeRange('quarter', this)">This Quarter</button>
+                    <button class="filter-btn" onclick="m15SetTimeRange('year', this)">This Year</button>
+                    <button class="filter-btn" onclick="m15SetTimeRange('custom', this)">Custom</button>
+                </div>
+                <div id="m15-perf-custom-dates" style="display:none; margin-bottom:12px; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <input type="date" id="m15-perf-start" onchange="m15UpdatePerformance()" style="padding:6px 10px; border:2px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font-size:0.9em;">
+                    <span>to</span>
+                    <input type="date" id="m15-perf-end" onchange="m15UpdatePerformance()" style="padding:6px 10px; border:2px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-primary); font-size:0.9em;">
+                </div>
+
+                <!-- Stats boxes -->
+                <div class="stats-grid" style="margin-bottom:24px;">
+                    <div class="stat-box"><div class="value" id="m15-perf-trades">0</div><div class="label">Total Trades</div></div>
+                    <div class="stat-box"><div class="value" id="m15-perf-winrate">0%</div><div class="label">Win Rate</div></div>
+                    <div class="stat-box"><div class="value" id="m15-perf-totalR">+0.00R</div><div class="label">Total R</div></div>
+                    <div class="stat-box"><div class="value" id="m15-perf-winStreak" style="color:#27ae60;">0</div><div class="label">Best Win Streak</div></div>
+                    <div class="stat-box"><div class="value" id="m15-perf-lossStreak" style="color:#e74c3c;">0</div><div class="label">Worst Loss Streak</div></div>
+                </div>
+
+                <!-- By Type -->
+                <div class="content-grid">
+                    <div class="card" style="background:var(--bg-secondary);">
+                        <h3>📈 Continuation vs Reversal</h3>
+                        <div id="m15-perf-byType"></div>
+                    </div>
+                    <div class="card" style="background:var(--bg-secondary);">
+                        <h3>📉 Long vs Short</h3>
+                        <div id="m15-perf-byDir"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- M15 History -->
+    <div id="m15-history" class="tab-content">
+        <div class="container">
+            <div class="header">
+                <h1>📋 M15 Trade History</h1>
+                <div class="subtitle">All M15 setup entries</div>
+            </div>
+            <div class="card">
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" id="m15-history-filters">
+                    <div class="filter-btn active" onclick="m15SetHistoryFilter('all', this)">All</div>
+                    <div class="filter-btn" onclick="m15SetHistoryFilter('win', this)">Wins</div>
+                    <div class="filter-btn" onclick="m15SetHistoryFilter('loss', this)">Losses</div>
+                    <div class="filter-btn" onclick="m15SetHistoryFilter('be', this)">BE</div>
+                    <div class="filter-btn" onclick="m15SetHistoryFilter('continuation', this)">Continuation</div>
+                    <div class="filter-btn" onclick="m15SetHistoryFilter('reversal', this)">Reversal</div>
+                </div>
+                <div id="m15-historyContent"></div>
             </div>
         </div>
     </div>
@@ -3519,11 +3733,11 @@
                 </div>
             `;
             
-            // Populate Discord webhook input
+            // Populate Discord webhook inputs
             const webhookInput = document.getElementById('discordWebhookInput');
-            if (webhookInput) {
-                webhookInput.value = localStorage.getItem('discordWebhookUrl') || '';
-            }
+            if (webhookInput) webhookInput.value = localStorage.getItem('discordWebhookUrl') || '';
+            const m15WebhookInput = document.getElementById('discordM15WebhookInput');
+            if (m15WebhookInput) m15WebhookInput.value = localStorage.getItem('discordM15WebhookUrl') || '';
         }
         
         // ── END SETTINGS FUNCTIONS ──────────────────────────────────
@@ -5737,6 +5951,593 @@
         }, 100);
 
         updateDisplay();
+    </script>
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // M15 SETUPS JOURNAL
+    // Separate Drive file: r_trading_journal_m15.json
+    // Win = +0.8R, Loss = -1R, BE = 0R
+    // Fields: date, entryTime, exitTime, direction, result, type
+    // ═══════════════════════════════════════════════════════
+
+    let m15Trades = JSON.parse(localStorage.getItem('m15Trades') || '[]');
+    let m15TimeRange = 'week';
+    let m15HistoryFilter = 'all';
+    let m15CalMonth = new Date().getMonth();
+    let m15CalYear = new Date().getFullYear();
+    let m15DriveFileId = null;
+    const M15_FILENAME = 'r_trading_journal_m15.json';
+    const M15_WIN_R = 0.8;
+    const M15_LOSS_R = -1.0;
+    const M15_BE_R = 0;
+
+    function m15GetR(result) {
+        if (result === 'win') return M15_WIN_R;
+        if (result === 'loss') return M15_LOSS_R;
+        return M15_BE_R;
+    }
+
+    // ── Init ──────────────────────────────────────────────
+    function m15Init() {
+        const now = new Date();
+        document.getElementById('m15-date').valueAsDate = now;
+        document.getElementById('m15-entryTime').value = now.toTimeString().slice(0,5);
+        document.getElementById('m15-exitTime').value = now.toTimeString().slice(0,5);
+        m15UpdateDisplay();
+        m15LoadFromDrive();
+    }
+
+    function m15SyncResult() {
+        // Auto-set nothing — result is explicit
+    }
+
+    // ── Drive Sync ────────────────────────────────────────
+    async function m15LoadFromDrive() {
+        if (!useDriveSync || !accessToken) return;
+        try {
+            const search = await gapi.client.drive.files.list({
+                q: `name='${M15_FILENAME}' and trashed=false`,
+                fields: 'files(id,name,size)',
+                spaces: 'drive'
+            });
+            const files = search.result.files;
+            if (!files || files.length === 0) { m15UpdateDisplay(); return; }
+            const file = files[0];
+            m15DriveFileId = file.id;
+            const resp = await gapi.client.drive.files.get({ fileId: file.id, alt: 'media' });
+            const data = resp.result;
+            if (data && data.trades) {
+                m15Trades = data.trades;
+                localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+            }
+            m15UpdateDisplay();
+            console.log('✅ M15 data loaded from Drive');
+        } catch(e) {
+            console.warn('M15 Drive load error:', e);
+            m15UpdateDisplay();
+        }
+    }
+
+    async function m15SaveToDrive() {
+        if (!useDriveSync || !accessToken || !driveHasLoaded) return;
+        const data = { trades: m15Trades, lastUpdated: new Date().toISOString() };
+        const body = JSON.stringify(data);
+        try {
+            if (m15DriveFileId) {
+                await fetch(`https://www.googleapis.com/upload/drive/v3/files/${m15DriveFileId}?uploadType=media`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body
+                });
+            } else {
+                const meta = await fetch('https://www.googleapis.com/drive/v3/files', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: M15_FILENAME, mimeType: 'application/json' })
+                }).then(r => r.json());
+                m15DriveFileId = meta.id;
+                await fetch(`https://www.googleapis.com/upload/drive/v3/files/${m15DriveFileId}?uploadType=media`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                    body
+                });
+            }
+            localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+            console.log('✅ M15 saved to Drive');
+        } catch(e) {
+            console.warn('M15 Drive save error:', e);
+        }
+    }
+
+    function m15ScheduleSave() {
+        clearTimeout(window.m15SyncTimeout);
+        window.m15SyncTimeout = setTimeout(m15SaveToDrive, 1500);
+        showSavingOverlay();
+        setTimeout(hideSavingOverlay, 2000);
+    }
+
+    // ── Log Trade ─────────────────────────────────────────
+    function m15LogTrade() {
+        const result = document.getElementById('m15-result').value;
+        const type = document.getElementById('m15-type').value;
+        const direction = document.getElementById('m15-direction').value;
+        const date = document.getElementById('m15-date').value;
+        const entryTime = document.getElementById('m15-entryTime').value;
+        const exitTime = document.getElementById('m15-exitTime').value;
+
+        if (!date || !entryTime || !exitTime) {
+            alert('Please fill in date and times.');
+            return;
+        }
+
+        const trade = {
+            id: Date.now(),
+            date, entryTime, exitTime,
+            direction, result, type,
+            rValue: m15GetR(result)
+        };
+
+        m15Trades.unshift(trade);
+        m15ScheduleSave();
+        m15PostToDiscord(trade);
+        m15UpdateDisplay();
+
+        // Reset form
+        document.getElementById('m15-result').value = 'win';
+        const now = new Date();
+        document.getElementById('m15-entryTime').value = now.toTimeString().slice(0,5);
+        document.getElementById('m15-exitTime').value = now.toTimeString().slice(0,5);
+    }
+
+    function m15DeleteTrade(id) {
+        if (!confirm('Delete this M15 trade?')) return;
+        m15Trades = m15Trades.filter(t => t.id !== id);
+        m15ScheduleSave();
+        m15UpdateDisplay();
+        if (document.getElementById('m15-history').classList.contains('active')) m15RenderHistory();
+        if (document.getElementById('m15-performance').classList.contains('active')) m15UpdatePerformance();
+    }
+
+    // ── Display ───────────────────────────────────────────
+    function m15UpdateDisplay() {
+        m15RenderOverviewStats();
+        m15RenderWeeklyBoxes();
+        m15RenderTradeLog();
+        if (document.getElementById('m15-calendar').classList.contains('active')) m15RenderCalendar();
+        if (document.getElementById('m15-performance').classList.contains('active')) m15UpdatePerformance();
+        if (document.getElementById('m15-history').classList.contains('active')) m15RenderHistory();
+    }
+
+    function m15RenderOverviewStats() {
+        const now = new Date();
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        const monthTrades = m15Trades.filter(t => (t.date||'').startsWith(monthStr));
+        const totalR = monthTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s,t) => s+(t.rValue||0), 0);
+        const el = document.getElementById('m15-totalProfit');
+        if (el) {
+            el.textContent = (totalR >= 0 ? '+' : '') + totalR.toFixed(2) + 'R';
+            el.style.color = totalR > 0 ? '#2ecc71' : totalR < 0 ? '#e74c3c' : 'var(--text-primary)';
+        }
+        const lbl = document.getElementById('m15-totalProfitLabel');
+        if (lbl) lbl.textContent = `Total R — ${now.toLocaleString('default', {month:'long'})}`;
+    }
+
+    function m15RenderWeeklyBoxes() {
+        const container = document.getElementById('m15-weeklyPerformance');
+        const statsContainer = document.getElementById('m15-weekStats');
+        if (!container) return;
+
+        const now = new Date();
+        const days = ['Mon','Tue','Wed','Thu','Fri'];
+        const weekDates = [];
+        const day = now.getDay() || 7;
+        for (let i = 1; i <= 5; i++) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - day + i);
+            weekDates.push(d);
+        }
+
+        const RESULT_COLORS = {win:'#27ae60', loss:'#e74c3c', be_win:'#f39c12', be_loss:'#f39c12'};
+
+        let html = '<div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:12px;">';
+        let weekR = 0, weekWins = 0, weekLosses = 0, weekBE = 0, tradedDays = 0;
+
+        weekDates.forEach((d, i) => {
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const dayTrades = m15Trades.filter(t => t.date === dateStr);
+            const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s,t) => s+(t.rValue||0), 0);
+            const isToday = d.toDateString() === now.toDateString();
+            const hasTrades = dayTrades.length > 0;
+
+            if (hasTrades) { tradedDays++; weekR += dayR; }
+            dayTrades.forEach(t => {
+                if (t.result === 'win') weekWins++;
+                else if (t.result === 'loss') weekLosses++;
+                else weekBE++;
+            });
+
+            const bg = !hasTrades ? 'var(--card-bg)' : dayR > 0 ? '#d4edda' : dayR < 0 ? '#f8d7da' : '#fff3cd';
+            const border = isToday ? '2px solid #3498db' : '1px solid var(--border-color)';
+            const rColor = dayR > 0 ? '#27ae60' : dayR < 0 ? '#e74c3c' : '#f39c12';
+
+            html += `<div style="background:${bg}; border:${border}; border-radius:10px; padding:10px; text-align:center; min-height:70px;">
+                <div style="font-size:0.8em; color:var(--text-secondary);">${days[i]}</div>
+                <div style="font-size:0.75em; color:var(--text-secondary);">${d.getDate()}/${d.getMonth()+1}</div>
+                ${hasTrades ? `<div style="font-weight:700; color:${rColor}; margin-top:4px;">${dayR >= 0 ? '+' : ''}${dayR.toFixed(2)}R</div>
+                <div style="font-size:0.75em; color:var(--text-secondary);">${dayTrades.length} trade${dayTrades.length !== 1 ? 's' : ''}</div>` 
+                : `<div style="color:var(--text-secondary); margin-top:8px; font-size:0.85em;">–</div>`}
+            </div>`;
+        });
+        html += '</div>';
+        html += `<div style="display:flex; justify-content:space-between; padding:8px 12px; background:var(--bg-secondary); border-radius:8px; font-size:0.9em;">
+            <span style="color:var(--text-secondary);">Week Total</span>
+            <span style="font-weight:700; color:${weekR>0?'#27ae60':weekR<0?'#e74c3c':'#f39c12'};">${weekR>=0?'+':''}${weekR.toFixed(2)}R</span>
+            <span style="color:var(--text-secondary);">${tradedDays} day${tradedDays!==1?'s':''} traded</span>
+        </div>`;
+
+        container.innerHTML = html;
+
+        // Week stats row
+        const wl = weekWins + weekLosses;
+        const wr = wl > 0 ? Math.round(weekWins / wl * 100) : 0;
+        const streak = m15GetCurrentStreak();
+        if (statsContainer) statsContainer.innerHTML = `
+            <div style="font-weight:700; margin-bottom:8px; font-size:0.95em;">Current Week Stats</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${[
+                    ['Wins', weekWins, '#27ae60'],
+                    ['Losses', weekLosses, '#e74c3c'],
+                    ['BE/Win', weekBE, '#f39c12'],
+                    ['Win Rate', wr+'%', wr>=60?'#27ae60':wr>=45?'#f39c12':'#e74c3c'],
+                    ['Total R', (weekR>=0?'+':'')+weekR.toFixed(2)+'R', weekR>0?'#27ae60':weekR<0?'#e74c3c':'#f39c12'],
+                    [streak.label, streak.count, streak.color],
+                ].map(([l,v,c]) => `<div style="flex:1; min-width:70px; text-align:center; padding:10px 6px; background:var(--card-bg); border-radius:8px; border:1px solid var(--border-color);">
+                    <div style="font-weight:700; font-size:1.1em; color:${c};">${v}</div>
+                    <div style="font-size:0.75em; color:var(--text-secondary);">${l}</div>
+                </div>`).join('')}
+            </div>`;
+    }
+
+    function m15GetCurrentStreak() {
+        const sorted = [...m15Trades].sort((a,b) => (b.date+b.entryTime).localeCompare(a.date+a.entryTime));
+        const wl = sorted.filter(t => t.result === 'win' || t.result === 'loss');
+        if (!wl.length) return {label:'STREAK', count:0, color:'var(--text-secondary)'};
+        let count = 0;
+        const first = wl[0].result;
+        for (const t of wl) {
+            if (t.result !== first) break;
+            count++;
+        }
+        return first === 'win'
+            ? {label:'🔥 WIN STREAK', count, color:'#27ae60'}
+            : {label:'❄️ LOSS STREAK', count, color:'#e74c3c'};
+    }
+
+    function m15RenderTradeLog() {
+        const el = document.getElementById('m15-tradeLog');
+        if (!el) return;
+        const display = m15Trades.slice(0, 20);
+        if (!display.length) { el.innerHTML = '<div class="no-data">No M15 trades yet</div>'; return; }
+        el.innerHTML = display.map(t => m15TradeCard(t)).join('');
+    }
+
+    function m15TradeCard(t) {
+        const RESULT_BG = {win:'#d4edda', loss:'#f8d7da', be_win:'#fff3cd', be_loss:'#fff3cd'};
+        const RESULT_FG = {win:'#27ae60', loss:'#e74c3c', be_win:'#f39c12', be_loss:'#f39c12'};
+        const RESULT_LABELS = {win:'WIN', loss:'LOSS', be_win:'BE/WIN', be_loss:'BE/LOSS'};
+        const bg = RESULT_BG[t.result] || 'var(--card-bg)';
+        const fg = RESULT_FG[t.result] || 'var(--text-primary)';
+        const dir = t.direction === 'long' ? '📈 LONG' : '📉 SHORT';
+        const type = t.type === 'continuation' ? '📈 Continuation' : '🔄 Reversal';
+        const rv = t.rValue || 0;
+        const rStr = (rv >= 0 ? '+' : '') + rv.toFixed(2) + 'R';
+        const dur = t.entryTime && t.exitTime ? m15Duration(t.entryTime, t.exitTime) : '';
+        return `<div style="background:${bg}; border-left:4px solid ${fg}; border-radius:8px; padding:12px 16px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
+                    <span style="font-weight:700; color:${fg};">${RESULT_LABELS[t.result]||t.result}</span>
+                    <span style="font-size:0.85em; color:var(--text-secondary);">${dir}</span>
+                    <span style="font-size:0.85em; color:var(--text-secondary);">${type}</span>
+                </div>
+                <div style="font-size:0.8em; color:var(--text-secondary);">
+                    ${t.date} · ${t.entryTime}→${t.exitTime}${dur?' ('+dur+')':''}
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:700; font-size:1.1em; color:${fg};">${rStr}</span>
+                <button onclick="m15DeleteTrade(${t.id})" style="background:#e74c3c; color:white; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:0.8em;">Delete</button>
+            </div>
+        </div>`;
+    }
+
+    function m15Duration(entry, exit) {
+        try {
+            const [eh,em] = entry.split(':').map(Number);
+            const [xh,xm] = exit.split(':').map(Number);
+            const mins = (xh*60+xm) - (eh*60+em);
+            if (mins <= 0) return '';
+            return mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h${mins%60?mins%60+'m':''}`;
+        } catch(e) { return ''; }
+    }
+
+    // ── Calendar ──────────────────────────────────────────
+    function m15CalPrev() { m15CalMonth--; if (m15CalMonth < 0) { m15CalMonth = 11; m15CalYear--; } m15RenderCalendar(); }
+    function m15CalNext() { m15CalMonth++; if (m15CalMonth > 11) { m15CalMonth = 0; m15CalYear++; } m15RenderCalendar(); }
+
+    function m15RenderCalendar() {
+        const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const title = `${MONTHS[m15CalMonth]} ${m15CalYear}`;
+        document.getElementById('m15-cal-title').textContent = title;
+        document.getElementById('m15-cal-monthLabel').textContent = title;
+
+        const firstDay = new Date(m15CalYear, m15CalMonth, 1).getDay();
+        const offset = firstDay === 0 ? 6 : firstDay - 1;
+        const daysInMonth = new Date(m15CalYear, m15CalMonth+1, 0).getDate();
+        const today = new Date();
+
+        const monthTrades = m15Trades.filter(t => {
+            const mk = (t.date||'').slice(0,7);
+            return mk === `${m15CalYear}-${String(m15CalMonth+1).padStart(2,'0')}`;
+        });
+
+        let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;">';
+        ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => {
+            html += `<div style="text-align:center; font-weight:700; font-size:0.8em; color:var(--text-secondary); padding:4px;">${d}</div>`;
+        });
+        for (let i = 0; i < offset; i++) html += '<div></div>';
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${m15CalYear}-${String(m15CalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayTrades = monthTrades.filter(t => t.date === dateStr);
+            const dayR = dayTrades.filter(t => t.result !== 'be_win' && t.result !== 'be_loss').reduce((s,t) => s+(t.rValue||0), 0);
+            const isToday = today.getDate()===d && today.getMonth()===m15CalMonth && today.getFullYear()===m15CalYear;
+            const bg = !dayTrades.length ? 'var(--card-bg)' : dayR > 0 ? '#d4edda' : dayR < 0 ? '#f8d7da' : '#fff3cd';
+            const rColor = dayR > 0 ? '#27ae60' : dayR < 0 ? '#e74c3c' : '#f39c12';
+            html += `<div style="background:${bg}; border:${isToday?'2px solid #3498db':'1px solid var(--border-color)'}; border-radius:8px; padding:6px; min-height:60px; text-align:center;">
+                <div style="font-size:0.8em; color:var(--text-secondary);">${d}</div>
+                ${dayTrades.length ? `<div style="font-weight:700; font-size:0.85em; color:${rColor};">${dayR>=0?'+':''}${dayR.toFixed(2)}R</div>
+                <div style="font-size:0.7em; color:var(--text-secondary);">${dayTrades.length}t</div>` : ''}
+            </div>`;
+        }
+        html += '</div>';
+        document.getElementById('m15-calGrid').innerHTML = html;
+
+        // Month stats
+        const wins = monthTrades.filter(t=>t.result==='win').length;
+        const losses = monthTrades.filter(t=>t.result==='loss').length;
+        const be = monthTrades.filter(t=>t.result==='be_win'||t.result==='be_loss').length;
+        const totalR = monthTrades.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+        const wl = wins+losses;
+        const wr = wl>0?Math.round(wins/wl*100):0;
+        document.getElementById('m15-calStats').innerHTML = [
+            ['Total R', (totalR>=0?'+':'')+totalR.toFixed(2)+'R', totalR>0?'#27ae60':totalR<0?'#e74c3c':'#f39c12'],
+            ['Trades', monthTrades.length, 'var(--text-primary)'],
+            ['Win Rate', wr+'%', wr>=60?'#27ae60':wr>=45?'#f39c12':'#e74c3c'],
+            ['Green Days', monthTrades.reduce((days,t)=>{ const d=t.date; if(!days.dates) days.dates={}; if(!days.dates[d]) days.dates[d]=0; days.dates[d]+=(t.rValue||0); return days; },{dates:{}}) && Object.values(Object.fromEntries(Object.entries(monthTrades.reduce((acc,t)=>{if(!acc[t.date])acc[t.date]=0;acc[t.date]+=(t.result!=='be_win'&&t.result!=='be_loss'?t.rValue||0:0);return acc;},{}))).filter(v=>v>0)).length, '#27ae60'],
+        ].map(([l,v,c]) => `<div style="flex:1; min-width:100px; text-align:center; padding:12px; background:var(--card-bg); border-radius:8px; border:1px solid var(--border-color);">
+            <div style="font-weight:700; font-size:1.2em; color:${c};">${v}</div>
+            <div style="font-size:0.8em; color:var(--text-secondary);">${l}</div>
+        </div>`).join('');
+    }
+
+    // ── Performance ───────────────────────────────────────
+    function m15SetTimeRange(range, btn) {
+        m15TimeRange = range;
+        document.querySelectorAll('#m15-performance .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cd = document.getElementById('m15-perf-custom-dates');
+        if (range === 'custom') {
+            cd.style.display = 'flex';
+            if (!document.getElementById('m15-perf-end').value) {
+                const today = new Date();
+                const weekAgo = new Date(today); weekAgo.setDate(today.getDate()-7);
+                document.getElementById('m15-perf-end').value = today.toISOString().split('T')[0];
+                document.getElementById('m15-perf-start').value = weekAgo.toISOString().split('T')[0];
+            }
+        } else {
+            cd.style.display = 'none';
+        }
+        m15UpdatePerformance();
+    }
+
+    function m15GetFilteredTrades() {
+        const now = new Date();
+        let filtered = [...m15Trades];
+        if (m15TimeRange === 'today') {
+            const today = now.toISOString().split('T')[0];
+            filtered = filtered.filter(t => t.date === today);
+        } else if (m15TimeRange === 'week') {
+            const day = now.getDay() || 7;
+            const mon = new Date(now); mon.setDate(now.getDate()-day+1);
+            const monStr = mon.toISOString().split('T')[0];
+            filtered = filtered.filter(t => t.date >= monStr);
+        } else if (m15TimeRange === 'month') {
+            const mk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            filtered = filtered.filter(t => (t.date||'').startsWith(mk));
+        } else if (m15TimeRange === 'quarter') {
+            const q = Math.floor(now.getMonth()/3);
+            const qStart = new Date(now.getFullYear(), q*3, 1);
+            filtered = filtered.filter(t => t.date >= qStart.toISOString().split('T')[0]);
+        } else if (m15TimeRange === 'year') {
+            filtered = filtered.filter(t => (t.date||'').startsWith(now.getFullYear()+''));
+        } else if (m15TimeRange === 'custom') {
+            const s = document.getElementById('m15-perf-start')?.value;
+            const e = document.getElementById('m15-perf-end')?.value;
+            if (s && e) filtered = filtered.filter(t => t.date >= s && t.date <= e);
+        }
+        return filtered;
+    }
+
+    function m15UpdatePerformance() {
+        const filtered = m15GetFilteredTrades();
+        const wins = filtered.filter(t=>t.result==='win');
+        const losses = filtered.filter(t=>t.result==='loss');
+        const winLoss = [...wins, ...losses].sort((a,b)=>(a.date+a.entryTime).localeCompare(b.date+b.entryTime));
+        const totalR = winLoss.reduce((s,t)=>s+(t.rValue||0),0);
+        const wl = wins.length+losses.length;
+        const wr = wl>0?Math.round(wins.length/wl*100):0;
+
+        let bestWin=0, worstLoss=0, curWin=0, curLoss=0;
+        winLoss.forEach(t => {
+            if(t.result==='win'){curWin++;curLoss=0;bestWin=Math.max(bestWin,curWin);}
+            else{curLoss++;curWin=0;worstLoss=Math.max(worstLoss,curLoss);}
+        });
+
+        const set = (id, val, color) => { const el=document.getElementById(id); if(el){el.textContent=val; if(color) el.style.color=color;} };
+        set('m15-perf-trades', filtered.length);
+        set('m15-perf-winrate', wr+'%', wr>=60?'#27ae60':wr>=45?'#f39c12':'#e74c3c');
+        set('m15-perf-totalR', (totalR>=0?'+':'')+totalR.toFixed(2)+'R', totalR>0?'#27ae60':totalR<0?'#e74c3c':'#f39c12');
+        set('m15-perf-winStreak', bestWin);
+        set('m15-perf-lossStreak', worstLoss);
+
+        // By Type
+        const byType = document.getElementById('m15-perf-byType');
+        if (byType) {
+            byType.innerHTML = ['continuation','reversal'].map(type => {
+                const ts = filtered.filter(t=>t.type===type);
+                const tw = ts.filter(t=>t.result==='win').length;
+                const tl = ts.filter(t=>t.result==='loss').length;
+                const tr = ts.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+                const twr = (tw+tl)>0?Math.round(tw/(tw+tl)*100):0;
+                const label = type==='continuation'?'📈 Continuation':'🔄 Reversal';
+                return `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-color);">
+                    <span style="font-weight:600;">${label}</span>
+                    <span>${ts.length} trades · ${twr}% WR · <span style="color:${tr>=0?'#27ae60':'#e74c3c'};">${tr>=0?'+':''}${tr.toFixed(2)}R</span></span>
+                </div>`;
+            }).join('');
+        }
+
+        // By Direction
+        const byDir = document.getElementById('m15-perf-byDir');
+        if (byDir) {
+            byDir.innerHTML = ['long','short'].map(dir => {
+                const ts = filtered.filter(t=>t.direction===dir);
+                const tw = ts.filter(t=>t.result==='win').length;
+                const tl = ts.filter(t=>t.result==='loss').length;
+                const tr = ts.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+                const twr = (tw+tl)>0?Math.round(tw/(tw+tl)*100):0;
+                const label = dir==='long'?'📈 Long':'📉 Short';
+                return `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-color);">
+                    <span style="font-weight:600;">${label}</span>
+                    <span>${ts.length} trades · ${twr}% WR · <span style="color:${tr>=0?'#27ae60':'#e74c3c'};">${tr>=0?'+':''}${tr.toFixed(2)}R</span></span>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // ── History ───────────────────────────────────────────
+    function m15SetHistoryFilter(filter, btn) {
+        m15HistoryFilter = filter;
+        document.querySelectorAll('#m15-history-filters .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        m15RenderHistory();
+    }
+
+    function m15RenderHistory() {
+        const el = document.getElementById('m15-historyContent');
+        if (!el) return;
+        let filtered = [...m15Trades];
+        if (m15HistoryFilter === 'win') filtered = filtered.filter(t=>t.result==='win');
+        else if (m15HistoryFilter === 'loss') filtered = filtered.filter(t=>t.result==='loss');
+        else if (m15HistoryFilter === 'be') filtered = filtered.filter(t=>t.result==='be_win'||t.result==='be_loss');
+        else if (m15HistoryFilter === 'continuation') filtered = filtered.filter(t=>t.type==='continuation');
+        else if (m15HistoryFilter === 'reversal') filtered = filtered.filter(t=>t.type==='reversal');
+
+        filtered.sort((a,b) => (b.date+b.entryTime).localeCompare(a.date+a.entryTime));
+
+        if (!filtered.length) { el.innerHTML = '<div class="no-data">No trades found</div>'; return; }
+
+        // Group by day
+        const days = {};
+        filtered.forEach(t => { if(!days[t.date]) days[t.date]=[]; days[t.date].push(t); });
+
+        el.innerHTML = Object.keys(days).sort().reverse().map(date => {
+            const dt = days[date];
+            const dayR = dt.filter(t=>t.result!=='be_win'&&t.result!=='be_loss').reduce((s,t)=>s+(t.rValue||0),0);
+            const d = new Date(date+'T00:00:00');
+            const label = d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+            return `<div style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; padding:8px 12px; background:var(--bg-secondary); border-radius:8px; margin-bottom:6px;">
+                    <span style="font-weight:700;">${label}</span>
+                    <span style="font-weight:700; color:${dayR>0?'#27ae60':dayR<0?'#e74c3c':'#f39c12'};">${dayR>=0?'+':''}${dayR.toFixed(2)}R · ${dt.length} trade${dt.length!==1?'s':''}</span>
+                </div>
+                ${dt.map(t => m15TradeCard(t)).join('')}
+            </div>`;
+        }).join('');
+    }
+
+    // ── M15 Discord ───────────────────────────────────────
+    function saveM15DiscordWebhook() {
+        const url = document.getElementById('discordM15WebhookInput').value.trim();
+        localStorage.setItem('discordM15WebhookUrl', url);
+        const status = document.getElementById('discordM15WebhookStatus');
+        status.textContent = url ? '✅ M15 Webhook URL saved.' : 'Webhook URL cleared.';
+        status.style.color = url ? '#27ae60' : '#7f8c8d';
+    }
+
+    async function testM15DiscordWebhook() {
+        const url = localStorage.getItem('discordM15WebhookUrl');
+        if (!url) { alert('Please enter and save an M15 webhook URL first.'); return; }
+        const status = document.getElementById('discordM15WebhookStatus');
+        status.textContent = '⏳ Sending test message...';
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({embeds:[{title:'✅ M15 Journal Connected', description:'Your M15 Discord integration is working!', color:0x27ae60, footer:{text:'R Journal — M15 Setups'}}]})
+            });
+            status.textContent = '✅ Test message sent!';
+            status.style.color = '#27ae60';
+        } catch(e) {
+            status.textContent = '❌ Failed: ' + e.message;
+            status.style.color = '#e74c3c';
+        }
+    }
+
+    async function m15PostToDiscord(trade) {
+        const url = localStorage.getItem('discordM15WebhookUrl');
+        if (!url) return;
+        const RESULT_EMOJI = {win:'🟢', loss:'🔴', be_win:'🟡', be_loss:'🟡'};
+        const RESULT_LABEL = {win:'WIN', loss:'LOSS', be_win:'BE/WIN', be_loss:'BE/LOSS'};
+        const rv = trade.rValue || 0;
+        const rStr = (rv >= 0 ? '+' : '') + rv.toFixed(2) + 'R';
+        const color = rv > 0 ? 0x27ae60 : rv < 0 ? 0xe74c3c : 0xf39c12;
+        const dir = trade.direction === 'long' ? '📈 LONG' : '📉 SHORT';
+        const type = trade.type === 'continuation' ? '📈 Continuation' : '🔄 Reversal';
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({embeds:[{
+                    title: `⚡ M15 Trade — ${trade.date}`,
+                    color,
+                    fields: [
+                        {name: 'Result', value: `${RESULT_EMOJI[trade.result]} ${RESULT_LABEL[trade.result]} **${rStr}**`, inline: true},
+                        {name: 'Direction', value: dir, inline: true},
+                        {name: 'Type', value: type, inline: true},
+                        {name: 'Time', value: `${trade.entryTime} → ${trade.exitTime}`, inline: true},
+                    ],
+                    footer: {text: 'R Journal — M15 Setups'},
+                    timestamp: new Date().toISOString()
+                }]})
+            });
+        } catch(e) { console.warn('M15 Discord post failed:', e.message); }
+    }
+
+    // ── switchTab hook for M15 ────────────────────────────
+    const _origSwitchTab = switchTab;
+    function switchTab(tabName) {
+        _origSwitchTab(tabName);
+        if (tabName === 'm15-calendar') m15RenderCalendar();
+        if (tabName === 'm15-performance') m15UpdatePerformance();
+        if (tabName === 'm15-history') m15RenderHistory();
+        if (tabName === 'm15-overview') m15UpdateDisplay();
+    }
+
+    // Init when DOM ready
+    window.addEventListener('load', () => {
+        // Delay slightly to let main journal init first
+        setTimeout(m15Init, 500);
+    });
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
     <div id="drive-status-widget" style="position: fixed; bottom: 90px; left: 20px; width: 210px; background: var(--card-bg); padding: 14px 20px; border-radius: 10px; box-shadow: 0 4px 12px var(--card-shadow); z-index: 1001; border: 2px solid #4285f4;">
