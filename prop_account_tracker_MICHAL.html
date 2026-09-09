@@ -105,6 +105,9 @@
         .nav-menu {
             flex: 1;
             padding: 20px 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.2) transparent;
         }
         
         .nav-item {
@@ -1697,7 +1700,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════ -->
-    <!-- M15 SETUPS TABS                            -->
+    <!-- M15 SETUPS TABS (inside main-content)      -->
     <!-- ═══════════════════════════════════════════ -->
 
     <!-- M15 Overview -->
@@ -1873,6 +1876,8 @@
             </div>
         </div>
     </div>
+
+    </div><!-- end main-content -->
     
     <!-- Image Modal -->
     <div id="imageModal" class="modal" onclick="closeModal()">
