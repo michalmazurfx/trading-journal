@@ -6158,7 +6158,7 @@
         const RESULT_COLORS = {win:'#27ae60', loss:'#e74c3c', be_win:'#f39c12', be_loss:'#f39c12'};
 
         let html = '<div style="display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:12px;">';
-        let weekR = 0, weekWins = 0, weekLosses = 0, weekBE = 0, tradedDays = 0;
+        let weekR = 0, weekWins = 0, weekLosses = 0, weekBE = 0, weekBELoss = 0, tradedDays = 0;
 
         weekDates.forEach((d, i) => {
             const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -6171,7 +6171,8 @@
             dayTrades.forEach(t => {
                 if (t.result === 'win') weekWins++;
                 else if (t.result === 'loss') weekLosses++;
-                else weekBE++;
+                else if (t.result === 'be_win') weekBE++;
+                else if (t.result === 'be_loss') weekBELoss++;
             });
 
             const bg = !hasTrades ? 'var(--card-bg)' : dayR > 0 ? '#d4edda' : dayR < 0 ? '#f8d7da' : '#fff3cd';
@@ -6206,6 +6207,7 @@
                     ['Wins', weekWins, '#27ae60'],
                     ['Losses', weekLosses, '#e74c3c'],
                     ['BE/Win', weekBE, '#f39c12'],
+                    ['BE/Loss', weekBELoss, '#f39c12'],
                     ['Win Rate', wr+'%', wr>=60?'#27ae60':wr>=45?'#f39c12':'#e74c3c'],
                     ['Total R', (weekR>=0?'+':'')+weekR.toFixed(2)+'R', weekR>0?'#27ae60':weekR<0?'#e74c3c':'#f39c12'],
                     [streak.label, streak.count, streak.color],
