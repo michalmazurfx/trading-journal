@@ -2758,6 +2758,11 @@
             if (tabName === 'performance') {
                 updatePerformanceTab();
             }
+            // M15 tabs
+            if (tabName === 'm15-calendar') m15RenderCalendar();
+            if (tabName === 'm15-performance') m15UpdatePerformance();
+            if (tabName === 'm15-history') m15RenderHistory();
+            if (tabName === 'm15-overview') m15UpdateDisplay();
         }
         
         // Account configurations - load from localStorage or use defaults
@@ -6521,16 +6526,6 @@
                 }]})
             });
         } catch(e) { console.warn('M15 Discord post failed:', e.message); }
-    }
-
-    // ── switchTab hook for M15 ────────────────────────────
-    const _origSwitchTab = switchTab;
-    function switchTab(tabName) {
-        _origSwitchTab(tabName);
-        if (tabName === 'm15-calendar') m15RenderCalendar();
-        if (tabName === 'm15-performance') m15UpdatePerformance();
-        if (tabName === 'm15-history') m15RenderHistory();
-        if (tabName === 'm15-overview') m15UpdateDisplay();
     }
 
     // Init when DOM ready
