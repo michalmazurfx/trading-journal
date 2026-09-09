@@ -1707,8 +1707,8 @@
     <!-- ═══════════════════════════════════════════ -->
 
     <!-- M15 Overview -->
-    <div id="m15-overview" class="tab-content">
-        <div class="container">
+    <div id="m15-overview" class="tab-content" style="width:100%; display:none;">
+        <div style="width:100%; padding:20px; box-sizing:border-box;">
             <div class="header">
                 <h1>⚡ M15 Setups</h1>
                 <div class="subtitle" id="m15-totalProfitLabel">Total R — This Month</div>
@@ -1793,27 +1793,27 @@
     </div>
 
     <!-- M15 Calendar -->
-    <div id="m15-calendar" class="tab-content">
-        <div class="container">
+    <div id="m15-calendar" class="tab-content" style="width:100%; display:none;">
+        <div style="width:100%; padding:20px; box-sizing:border-box;">
             <div class="header">
                 <h1>📅 M15 Calendar</h1>
                 <div class="subtitle" id="m15-cal-monthLabel">Monthly Overview</div>
             </div>
-            <div class="card">
+            <div class="card" style="width:100%; box-sizing:border-box;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                     <button class="btn" onclick="m15CalPrev()" style="width:auto; padding:8px 20px;">‹</button>
                     <h2 id="m15-cal-title" style="margin:0;"></h2>
                     <button class="btn" onclick="m15CalNext()" style="width:auto; padding:8px 20px;">›</button>
                 </div>
-                <div id="m15-calGrid"></div>
+                <div id="m15-calGrid" style="width:100%;"></div>
                 <div id="m15-calStats" style="margin-top:20px; display:flex; gap:12px; flex-wrap:wrap;"></div>
             </div>
         </div>
     </div>
 
     <!-- M15 Performance -->
-    <div id="m15-performance" class="tab-content">
-        <div class="container">
+    <div id="m15-performance" class="tab-content" style="width:100%; display:none;">
+        <div style="width:100%; padding:20px; box-sizing:border-box;">
             <div class="header">
                 <h1>📈 M15 Performance</h1>
                 <div class="subtitle">M15 Setups Analytics</div>
@@ -1860,8 +1860,8 @@
     </div>
 
     <!-- M15 History -->
-    <div id="m15-history" class="tab-content">
-        <div class="container">
+    <div id="m15-history" class="tab-content" style="width:100%; display:none;">
+        <div style="width:100%; padding:20px; box-sizing:border-box;">
             <div class="header">
                 <h1>📋 M15 Trade History</h1>
                 <div class="subtitle">All M15 setup entries</div>
@@ -2752,9 +2752,14 @@
         // ========================================
         
         function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+                tab.style.display = '';
+            });
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
+            const activeTab = document.getElementById(tabName);
+            activeTab.classList.add('active');
+            activeTab.style.display = 'block';
             event.target.closest('.nav-item').classList.add('active');
             if (tabName === 'settings') renderSettingsPage();
             if (tabName === 'payouts')
