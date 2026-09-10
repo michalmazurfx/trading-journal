@@ -6306,6 +6306,8 @@
             if (trade && trade.screenshot) img.src = trade.screenshot;
         });
     }
+
+    function m15Duration(entry, exit) {
         try {
             const [eh,em] = entry.split(':').map(Number);
             const [xh,xm] = exit.split(':').map(Number);
