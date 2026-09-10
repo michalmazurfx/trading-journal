@@ -6105,6 +6105,7 @@
         }) : Promise.resolve(null);
 
         processScreenshot.then(screenshotData => {
+        try {
         const trade = {
             id: Date.now(),
             date, entryTime, exitTime,
@@ -6124,6 +6125,7 @@
         const now = new Date();
         document.getElementById('m15-entryTime').value = now.toTimeString().slice(0,5);
         document.getElementById('m15-exitTime').value = now.toTimeString().slice(0,5);
+        } catch(e) { console.error('m15LogTrade error:', e); alert('Error: ' + e.message); }
         });
     }
 
