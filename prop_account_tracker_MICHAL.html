@@ -2259,6 +2259,7 @@
                         console.log('✅ Data loaded from Google Drive');
                         updateDriveStatus('Loaded from Drive', data.lastUpdated);
                         driveLoadInProgress = false;
+                        driveHasLoaded = true;
                         hideLoadingOverlay();
                         
                         // Reinitialize UI with loaded data
@@ -2285,10 +2286,12 @@
                     } else {
                         console.log('No Drive file found yet');
                         updateDriveStatus('No file in Drive', null);
+                        driveHasLoaded = true;
                         hideLoadingOverlay();
                     }
                 } catch (err) {
                     console.error('Error loading from Drive:', err);
+                    driveHasLoaded = true;
                     hideLoadingOverlay();
                     alert('⚠️ Could not load data from Drive. Check console for details.');
                 }
@@ -2697,7 +2700,9 @@
         
         // Override localStorage setItem to auto-sync
         // driveLoadInProgress prevents syncing during Drive load (which would overwrite Drive with screenshot-less data)
+        // driveHasLoaded tracks whether Drive auth+first load has completed (used by M15 journal to avoid racing Drive)
         let driveLoadInProgress = false;
+        let driveHasLoaded = false;
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
             originalSetItem.apply(this, arguments);
