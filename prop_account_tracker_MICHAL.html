@@ -1767,6 +1767,13 @@
                         </div>
                     </div>
 
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>Screenshot (Optional)</label>
+                            <input type="file" id="m15-screenshot" accept="image/*" style="padding:8px; border:2px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-primary); width:100%;">
+                        </div>
+                    </div>
+
                     <button class="btn" onclick="m15LogTrade()" style="margin-top:16px;">
                         ⚡ Add M15 Trade
                     </button>
@@ -6083,16 +6090,27 @@
         const entryTime = document.getElementById('m15-entryTime').value;
         const exitTime = document.getElementById('m15-exitTime').value;
 
+        const screenshotFile = document.getElementById('m15-screenshot').files[0];
+
         if (!date || !entryTime || !exitTime) {
             alert('Please fill in date and times.');
             return;
         }
 
+        const processScreenshot = screenshotFile ? new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result);
+            reader.onerror = () => rej(new Error('Failed to read screenshot'));
+            reader.readAsDataURL(screenshotFile);
+        }) : Promise.resolve(null);
+
+        processScreenshot.then(screenshotData => {
         const trade = {
             id: Date.now(),
             date, entryTime, exitTime,
             direction, result, type,
-            rValue: m15GetR(result)
+            rValue: m15GetR(result),
+            screenshot: screenshotData || null
         };
 
         m15Trades.unshift(trade);
@@ -6102,9 +6120,11 @@
 
         // Reset form
         document.getElementById('m15-result').value = 'win';
+        document.getElementById('m15-screenshot').value = '';
         const now = new Date();
         document.getElementById('m15-entryTime').value = now.toTimeString().slice(0,5);
         document.getElementById('m15-exitTime').value = now.toTimeString().slice(0,5);
+        });
     }
 
     function m15DeleteTrade(id) {
@@ -6239,6 +6259,7 @@
         const display = m15Trades.slice(0, 20);
         if (!display.length) { el.innerHTML = '<div class="no-data">No M15 trades yet</div>'; return; }
         el.innerHTML = display.map(t => m15TradeCard(t)).join('');
+        setTimeout(m15LoadScreenshots, 50);
     }
 
     function m15TradeCard(t) {
@@ -6253,7 +6274,7 @@
         const rStr = (rv >= 0 ? '+' : '') + rv.toFixed(2) + 'R';
         const dur = t.entryTime && t.exitTime ? m15Duration(t.entryTime, t.exitTime) : '';
         return `<div style="background:${bg}; border-left:4px solid ${fg}; border-radius:8px; padding:12px 16px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-            <div>
+            <div style="flex:1;">
                 <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
                     <span style="font-weight:700; color:${fg};">${RESULT_LABELS[t.result]||t.result}</span>
                     <span style="font-size:0.85em; color:var(--text-secondary);">${dir}</span>
@@ -6264,13 +6285,25 @@
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
+                ${t.screenshot ? `<img data-m15id="${t.id}" onclick="m15ViewScreenshot(${t.id})" style="width:60px; height:60px; object-fit:cover; border-radius:6px; cursor:pointer; border:2px solid ${fg};" alt="screenshot">` : ''}
                 <span style="font-weight:700; font-size:1.1em; color:${fg};">${rStr}</span>
                 <button onclick="m15DeleteTrade(${t.id})" style="background:#e74c3c; color:white; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:0.8em;">Delete</button>
             </div>
         </div>`;
     }
 
-    function m15Duration(entry, exit) {
+    function m15ViewScreenshot(id) {
+        const trade = m15Trades.find(t => t.id === id);
+        if (trade && trade.screenshot) openImageModal(trade.screenshot);
+    }
+
+    function m15LoadScreenshots() {
+        document.querySelectorAll('img[data-m15id]').forEach(img => {
+            const id = parseInt(img.getAttribute('data-m15id'));
+            const trade = m15Trades.find(t => t.id === id);
+            if (trade && trade.screenshot) img.src = trade.screenshot;
+        });
+    }
         try {
             const [eh,em] = entry.split(':').map(Number);
             const [xh,xm] = exit.split(':').map(Number);
@@ -6483,6 +6516,7 @@
                 ${dt.map(t => m15TradeCard(t)).join('')}
             </div>`;
         }).join('');
+        setTimeout(m15LoadScreenshots, 50);
     }
 
     // ── M15 Discord ───────────────────────────────────────
