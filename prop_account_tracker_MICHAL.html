@@ -6009,7 +6009,17 @@
         document.getElementById('m15-entryTime').value = now.toTimeString().slice(0,5);
         document.getElementById('m15-exitTime').value = now.toTimeString().slice(0,5);
         m15UpdateDisplay();
-        m15LoadFromDrive();
+        m15WaitForDriveThenLoad();
+    }
+
+    function m15WaitForDriveThenLoad(attempts) {
+        attempts = attempts || 0;
+        // Wait for H1's Drive auth to be ready (driveHasLoaded true, or Drive sync disabled)
+        if (!useDriveSync || driveHasLoaded || attempts > 40) {
+            m15LoadFromDrive();
+            return;
+        }
+        setTimeout(() => m15WaitForDriveThenLoad(attempts + 1), 250);
     }
 
     function m15SyncResult() {
@@ -6022,7 +6032,8 @@
         try {
             const search = await gapi.client.drive.files.list({
                 q: `name='${M15_FILENAME}' and trashed=false`,
-                fields: 'files(id,name,size)',
+                fields: 'files(id,name,size,modifiedTime)',
+                orderBy: 'modifiedTime desc',
                 spaces: 'drive'
             });
             const files = search.result.files;
@@ -6048,6 +6059,20 @@
         const data = { trades: m15Trades, lastUpdated: new Date().toISOString() };
         const body = JSON.stringify(data);
         try {
+            // If we don't have a file id yet, search for an existing file first
+            // to avoid creating duplicate M15 files in Drive
+            if (!m15DriveFileId) {
+                const search = await gapi.client.drive.files.list({
+                    q: `name='${M15_FILENAME}' and trashed=false`,
+                    fields: 'files(id,name,modifiedTime)',
+                    orderBy: 'modifiedTime desc',
+                    spaces: 'drive'
+                });
+                if (search.result.files && search.result.files.length > 0) {
+                    m15DriveFileId = search.result.files[0].id;
+                }
+            }
+
             if (m15DriveFileId) {
                 await fetch(`https://www.googleapis.com/upload/drive/v3/files/${m15DriveFileId}?uploadType=media`, {
                     method: 'PATCH',
@@ -6077,8 +6102,13 @@
     function m15ScheduleSave() {
         clearTimeout(window.m15SyncTimeout);
         window.m15SyncTimeout = setTimeout(m15SaveToDrive, 1500);
-        showSavingOverlay();
-        setTimeout(hideSavingOverlay, 2000);
+        if (useDriveSync && accessToken && driveHasLoaded) {
+            showSavingOverlay();
+            setTimeout(hideSavingOverlay, 2000);
+        } else {
+            // Always persist to localStorage even if Drive isn't ready
+            localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+        }
     }
 
     // ── Log Trade ─────────────────────────────────────────
@@ -6115,6 +6145,7 @@
         };
 
         m15Trades.unshift(trade);
+        localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
         m15ScheduleSave();
         m15PostToDiscord(trade);
         m15UpdateDisplay();
