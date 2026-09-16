@@ -1658,11 +1658,11 @@
                 <div class="card" style="margin-top: 30px;">
                     <h2>🎮 Discord Integration</h2>
                     <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                        Post a message to Discord when you log a trade. Create a webhook in your Discord channel settings → Integrations → Webhooks.
+                        Post a message to Discord when you log a trade. Create a webhook in your Discord channel settings → Integrations → Webhooks. You can set a second webhook to post to a second channel too.
                     </p>
                     
                     <div style="margin-bottom:20px;">
-                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">H1 Setups Webhook</label>
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">H1 Setups Webhook #1</label>
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <div style="flex: 1;">
                                 <input type="text" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/..." 
@@ -1674,8 +1674,21 @@
                         <div id="discordWebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
                     </div>
 
-                    <div>
-                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">M15 Setups Webhook</label>
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">H1 Setups Webhook #2 <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <input type="text" id="discordWebhookInput2" placeholder="https://discord.com/api/webhooks/..." 
+                                    style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                            </div>
+                            <button onclick="saveDiscordWebhook2()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
+                            <button onclick="testDiscordWebhook2()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
+                        </div>
+                        <div id="discordWebhookStatus2" style="margin-top:10px; font-size:0.9em;"></div>
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">M15 Setups Webhook #1</label>
                         <div style="display: flex; gap: 10px; align-items: flex-end;">
                             <div style="flex: 1;">
                                 <input type="text" id="discordM15WebhookInput" placeholder="https://discord.com/api/webhooks/..." 
@@ -1685,6 +1698,19 @@
                             <button onclick="testM15DiscordWebhook()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
                         </div>
                         <div id="discordM15WebhookStatus" style="margin-top:10px; font-size:0.9em;"></div>
+                    </div>
+
+                    <div>
+                        <label style="display:block; font-weight:700; margin-bottom:8px; color:var(--text-primary);">M15 Setups Webhook #2 <span style="font-weight:400; color:var(--text-secondary);">(optional)</span></label>
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div style="flex: 1;">
+                                <input type="text" id="discordM15WebhookInput2" placeholder="https://discord.com/api/webhooks/..." 
+                                    style="width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; font-size:0.95em; background:var(--card-bg); color:var(--text-primary);">
+                            </div>
+                            <button onclick="saveM15DiscordWebhook2()" class="btn" style="width:auto; padding:10px 20px; white-space:nowrap;">Save</button>
+                            <button onclick="testM15DiscordWebhook2()" class="btn" style="width:auto; padding:10px 20px; background:#5865F2; white-space:nowrap;">Test</button>
+                        </div>
+                        <div id="discordM15WebhookStatus2" style="margin-top:10px; font-size:0.9em;"></div>
                     </div>
                 </div>
                 
@@ -3766,8 +3792,12 @@
             // Populate Discord webhook inputs
             const webhookInput = document.getElementById('discordWebhookInput');
             if (webhookInput) webhookInput.value = localStorage.getItem('discordWebhookUrl') || '';
+            const webhookInput2 = document.getElementById('discordWebhookInput2');
+            if (webhookInput2) webhookInput2.value = localStorage.getItem('discordWebhookUrl2') || '';
             const m15WebhookInput = document.getElementById('discordM15WebhookInput');
             if (m15WebhookInput) m15WebhookInput.value = localStorage.getItem('discordM15WebhookUrl') || '';
+            const m15WebhookInput2 = document.getElementById('discordM15WebhookInput2');
+            if (m15WebhookInput2) m15WebhookInput2.value = localStorage.getItem('discordM15WebhookUrl2') || '';
         }
         
         // ── END SETTINGS FUNCTIONS ──────────────────────────────────
@@ -4371,6 +4401,19 @@
                 status.style.color = '#7f8c8d';
             }
         }
+
+        function saveDiscordWebhook2() {
+            const url = document.getElementById('discordWebhookInput2').value.trim();
+            localStorage.setItem('discordWebhookUrl2', url);
+            const status = document.getElementById('discordWebhookStatus2');
+            if (url) {
+                status.textContent = '✅ Webhook URL saved.';
+                status.style.color = '#27ae60';
+            } else {
+                status.textContent = 'Webhook URL cleared.';
+                status.style.color = '#7f8c8d';
+            }
+        }
         
         async function testDiscordWebhook() {
             const url = localStorage.getItem('discordWebhookUrl');
@@ -4382,7 +4425,33 @@
             status.textContent = '⏳ Sending test message...';
             status.style.color = '#7f8c8d';
             try {
-                await postDiscordMessage({
+                await postDiscordMessage(url, {
+                    embeds: [{
+                        title: '✅ R Journal Connected',
+                        description: 'Your Discord integration is working! Trade notifications will appear here.',
+                        color: 0x27ae60,
+                        footer: { text: 'R Journal' }
+                    }]
+                });
+                status.textContent = '✅ Test message sent successfully!';
+                status.style.color = '#27ae60';
+            } catch (e) {
+                status.textContent = '❌ Failed: ' + e.message;
+                status.style.color = '#e74c3c';
+            }
+        }
+
+        async function testDiscordWebhook2() {
+            const url = localStorage.getItem('discordWebhookUrl2');
+            if (!url) {
+                alert('Please enter and save a webhook URL first.');
+                return;
+            }
+            const status = document.getElementById('discordWebhookStatus2');
+            status.textContent = '⏳ Sending test message...';
+            status.style.color = '#7f8c8d';
+            try {
+                await postDiscordMessage(url, {
                     embeds: [{
                         title: '✅ R Journal Connected',
                         description: 'Your Discord integration is working! Trade notifications will appear here.',
@@ -4398,8 +4467,7 @@
             }
         }
         
-        async function postDiscordMessage(payload) {
-            const url = localStorage.getItem('discordWebhookUrl');
+        async function postDiscordMessage(url, payload) {
             if (!url) return;
             const res = await fetch(url, {
                 method: 'POST',
@@ -4410,8 +4478,8 @@
         }
         
         async function postTradeToDiscord(trade) {
-            const url = localStorage.getItem('discordWebhookUrl');
-            if (!url) return;
+            const urls = [localStorage.getItem('discordWebhookUrl'), localStorage.getItem('discordWebhookUrl2')].filter(Boolean);
+            if (!urls.length) return;
             
             const resultEmoji = trade.result === 'win' ? '🟢' : trade.result === 'loss' ? '🔴' : '🟡';
             const resultLabel = trade.result === 'win' ? 'WIN' : trade.result === 'loss' ? 'LOSS' : trade.result === 'be_win' ? 'BE/WIN' : 'BE/LOSS';
@@ -4431,18 +4499,22 @@
             if (trade.entryTime) fields.push({ name: 'Time', value: `${trade.entryTime}${trade.exitTime ? ' → ' + trade.exitTime : ''}${duration ? ' (' + duration + ')' : ''}`, inline: true });
             if (trade.note) fields.push({ name: 'Note', value: trade.note, inline: false });
             
-            try {
-                await postDiscordMessage({
-                    embeds: [{
-                        title: `📊 Trade Logged — ${trade.date}`,
-                        color: color,
-                        fields: fields,
-                        footer: { text: 'R Journal' },
-                        timestamp: new Date().toISOString()
-                    }]
-                });
-            } catch (e) {
-                console.warn('Discord post failed:', e.message);
+            const payload = {
+                embeds: [{
+                    title: `📊 Trade Logged — ${trade.date}`,
+                    color: color,
+                    fields: fields,
+                    footer: { text: 'R Journal' },
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            for (const url of urls) {
+                try {
+                    await postDiscordMessage(url, payload);
+                } catch (e) {
+                    console.warn('Discord post failed:', e.message);
+                }
             }
         }
         
@@ -6568,28 +6640,44 @@
         status.style.color = url ? '#27ae60' : '#7f8c8d';
     }
 
-    async function testM15DiscordWebhook() {
-        const url = localStorage.getItem('discordM15WebhookUrl');
+    function saveM15DiscordWebhook2() {
+        const url = document.getElementById('discordM15WebhookInput2').value.trim();
+        localStorage.setItem('discordM15WebhookUrl2', url);
+        const status = document.getElementById('discordM15WebhookStatus2');
+        status.textContent = url ? '✅ M15 Webhook URL saved.' : 'Webhook URL cleared.';
+        status.style.color = url ? '#27ae60' : '#7f8c8d';
+    }
+
+    async function m15SendDiscordTest(url, statusEl) {
         if (!url) { alert('Please enter and save an M15 webhook URL first.'); return; }
-        const status = document.getElementById('discordM15WebhookStatus');
-        status.textContent = '⏳ Sending test message...';
+        statusEl.textContent = '⏳ Sending test message...';
         try {
             await fetch(url, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({embeds:[{title:'✅ M15 Journal Connected', description:'Your M15 Discord integration is working!', color:0x27ae60, footer:{text:'R Journal — M15 Setups'}}]})
             });
-            status.textContent = '✅ Test message sent!';
-            status.style.color = '#27ae60';
+            statusEl.textContent = '✅ Test message sent!';
+            statusEl.style.color = '#27ae60';
         } catch(e) {
-            status.textContent = '❌ Failed: ' + e.message;
-            status.style.color = '#e74c3c';
+            statusEl.textContent = '❌ Failed: ' + e.message;
+            statusEl.style.color = '#e74c3c';
         }
     }
 
-    async function m15PostToDiscord(trade) {
+    async function testM15DiscordWebhook() {
         const url = localStorage.getItem('discordM15WebhookUrl');
-        if (!url) return;
+        await m15SendDiscordTest(url, document.getElementById('discordM15WebhookStatus'));
+    }
+
+    async function testM15DiscordWebhook2() {
+        const url = localStorage.getItem('discordM15WebhookUrl2');
+        await m15SendDiscordTest(url, document.getElementById('discordM15WebhookStatus2'));
+    }
+
+    async function m15PostToDiscord(trade) {
+        const urls = [localStorage.getItem('discordM15WebhookUrl'), localStorage.getItem('discordM15WebhookUrl2')].filter(Boolean);
+        if (!urls.length) return;
         const RESULT_EMOJI = {win:'🟢', loss:'🔴', be_win:'🟡', be_loss:'🟡'};
         const RESULT_LABEL = {win:'WIN', loss:'LOSS', be_win:'BE/WIN', be_loss:'BE/LOSS'};
         const rv = trade.rValue || 0;
@@ -6597,24 +6685,27 @@
         const color = rv > 0 ? 0x27ae60 : rv < 0 ? 0xe74c3c : 0xf39c12;
         const dir = trade.direction === 'long' ? '📈 LONG' : '📉 SHORT';
         const type = trade.type === 'continuation' ? '📈 Continuation' : '🔄 Reversal';
-        try {
-            await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({embeds:[{
-                    title: `⚡ M15 Trade — ${trade.date}`,
-                    color,
-                    fields: [
-                        {name: 'Result', value: `${RESULT_EMOJI[trade.result]} ${RESULT_LABEL[trade.result]} **${rStr}**`, inline: true},
-                        {name: 'Direction', value: dir, inline: true},
-                        {name: 'Type', value: type, inline: true},
-                        {name: 'Time', value: `${trade.entryTime} → ${trade.exitTime}`, inline: true},
-                    ],
-                    footer: {text: 'R Journal — M15 Setups'},
-                    timestamp: new Date().toISOString()
-                }]})
-            });
-        } catch(e) { console.warn('M15 Discord post failed:', e.message); }
+        const payload = {embeds:[{
+            title: `⚡ M15 Trade — ${trade.date}`,
+            color,
+            fields: [
+                {name: 'Result', value: `${RESULT_EMOJI[trade.result]} ${RESULT_LABEL[trade.result]} **${rStr}**`, inline: true},
+                {name: 'Direction', value: dir, inline: true},
+                {name: 'Type', value: type, inline: true},
+                {name: 'Time', value: `${trade.entryTime} → ${trade.exitTime}`, inline: true},
+            ],
+            footer: {text: 'R Journal — M15 Setups'},
+            timestamp: new Date().toISOString()
+        }]};
+        for (const url of urls) {
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+            } catch(e) { console.warn('M15 Discord post failed:', e.message); }
+        }
     }
 
     // Init when DOM ready
