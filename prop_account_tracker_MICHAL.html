@@ -6063,6 +6063,23 @@
     // ═══════════════════════════════════════════════════════
 
     let m15Trades = JSON.parse(localStorage.getItem('m15Trades') || '[]');
+
+    // localStorage has limited quota — strip screenshots before saving locally.
+    // Full data (with screenshots) still goes to Drive via m15SaveToDrive.
+    function saveM15ToLocalStorage() {
+        try {
+            const withoutScreenshots = m15Trades.map(t => {
+                if (t.screenshot) {
+                    const { screenshot, ...rest } = t;
+                    return rest;
+                }
+                return t;
+            });
+            localStorage.setItem('m15Trades', JSON.stringify(withoutScreenshots));
+        } catch (e) {
+            console.warn('M15 localStorage save failed (non-fatal, Drive still has full data):', e.message);
+        }
+    }
     let m15TimeRange = 'week';
     let m15HistoryFilter = 'all';
     let m15CalMonth = new Date().getMonth();
@@ -6121,7 +6138,7 @@
             const data = resp.result;
             if (data && data.trades) {
                 m15Trades = data.trades;
-                localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+                saveM15ToLocalStorage();
             }
             m15UpdateDisplay();
             console.log('✅ M15 data loaded from Drive');
@@ -6169,7 +6186,7 @@
                     body
                 });
             }
-            localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+            saveM15ToLocalStorage();
             console.log('✅ M15 saved to Drive');
         } catch(e) {
             console.warn('M15 Drive save error:', e);
@@ -6184,7 +6201,7 @@
             setTimeout(hideSavingOverlay, 2000);
         } else {
             // Always persist to localStorage even if Drive isn't ready
-            localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+            saveM15ToLocalStorage();
         }
     }
 
@@ -6222,7 +6239,7 @@
         };
 
         m15Trades.unshift(trade);
-        localStorage.setItem('m15Trades', JSON.stringify(m15Trades));
+        saveM15ToLocalStorage();
         m15ScheduleSave();
         m15PostToDiscord(trade);
         m15UpdateDisplay();
