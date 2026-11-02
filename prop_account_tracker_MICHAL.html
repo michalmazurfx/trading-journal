@@ -1118,6 +1118,51 @@
         .dsc-settings { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-top: 10px; box-shadow: 0 4px 14px var(--card-shadow); }
         .dsc-settings h3 { margin: 0 0 10px 0; color: var(--text-primary); }
 
+        .dsc-tabs { display: flex; gap: 6px; background: var(--stat-box-bg); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
+        .dsc-tab { flex: 1; min-height: 42px; border: none; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 15px; font-weight: 700; cursor: pointer; }
+        .dsc-tab.on { background: var(--card-bg); color: var(--text-primary); box-shadow: 0 2px 8px var(--card-shadow); }
+        .dsc-slot { margin: 10px 0 0 0; font-weight: 700; }
+        .dsc-supp-edit { display: flex; gap: 6px; margin-bottom: 6px; }
+        .dsc-supp-edit input[type="text"] { flex: 1 1 auto; min-width: 0; }
+        .dsc-supp-edit select { flex: 0 0 110px; width: 110px; }
+        .dsc-supp-edit .dsc-btn { flex: 0 0 56px; padding: 0 8px; }
+        .dsc-monthbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .dsc-monthbar .dsc-btn { flex: 0 0 auto; min-width: 48px; }
+        .dsc-monthname { flex: 1; text-align: center; font-weight: 700; font-size: 1.05em; color: var(--text-primary); }
+        .dsc-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .dsc-dow { text-align: center; font-size: 0.75em; font-weight: 700; color: var(--text-secondary); padding-bottom: 2px; }
+        .dsc-cell { aspect-ratio: 1 / 1; min-height: 42px; border-radius: 10px; border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-family: inherit; padding: 0; position: relative; }
+        button.dsc-cell { cursor: pointer; }
+        .dsc-cell.empty { visibility: hidden; }
+        .dsc-cell .dn { position: absolute; top: 2px; left: 5px; font-size: 0.68em; font-weight: 600; opacity: 0.85; }
+        .dsc-cell .dn:only-child { position: static; font-size: 0.95em; }
+        .dsc-cell .sc { font-size: 1.2em; font-weight: 800; }
+        .dsc-cell.s5, .dsc-legend i.s5 { background: #1e8449; color: #fff; }
+        .dsc-cell.s4, .dsc-legend i.s4 { background: #7bc67e; color: #0b3d1a; }
+        .dsc-cell.s3, .dsc-legend i.s3 { background: #f4d03f; color: #3d3000; }
+        .dsc-cell.s2, .dsc-legend i.s2 { background: #f5a64a; color: #3d2600; }
+        .dsc-cell.s01, .dsc-legend i.s01 { background: #e74c3c; color: #fff; }
+        .dsc-cell.none, .dsc-legend i.none { background: transparent; border: 2px dashed var(--border-color); color: var(--text-secondary); }
+        .dsc-cell.future { background: var(--stat-box-bg); color: var(--text-secondary); opacity: 0.45; }
+        .dsc-cell.outp { opacity: 0.5; }
+        .dsc-cell.today { border-color: #667eea; box-shadow: 0 0 0 2px #667eea; }
+        .dsc-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; font-size: 0.8em; color: var(--text-secondary); }
+        .dsc-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .dsc-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+        .dsc-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+        .dsc-tile { background: var(--card-bg); border-radius: 12px; padding: 12px 14px; box-shadow: 0 4px 14px var(--card-shadow); }
+        .dsc-tile b { display: block; font-size: 1.7em; line-height: 1.1; color: var(--text-primary); }
+        .dsc-tile b small { font-size: 0.5em; color: var(--text-secondary); font-weight: 600; }
+        .dsc-tile span { font-size: 0.8em; color: var(--text-secondary); }
+        .dsc-bar { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 0.9em; color: var(--text-primary); }
+        .dsc-bar .bl { flex: 0 0 88px; }
+        .dsc-bar .bt { flex: 1; height: 10px; background: var(--stat-box-bg); border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; }
+        .dsc-bar .bt i { display: block; height: 100%; background: #27ae60; }
+        .dsc-bar .bv { flex: 0 0 82px; text-align: right; font-weight: 600; font-size: 0.9em; }
+        .dsc-wk { display: grid; grid-template-columns: 1.8fr 1fr 0.5fr 0.9fr; gap: 6px; padding: 9px 0; border-bottom: 1px solid var(--border-color); font-size: 0.9em; color: var(--text-primary); align-items: center; }
+        .dsc-wk.hd { font-weight: 700; font-size: 0.78em; color: var(--text-secondary); padding-top: 2px; }
+        @media (min-width: 600px) { .dsc-tiles { grid-template-columns: repeat(4, 1fr); } }
+
         /* Phone layout: sidebar becomes a top bar (affects all tabs on narrow screens) */
         @media (max-width: 768px) {
             body { display: block; }
@@ -6831,6 +6876,8 @@
     let dscConnectTimer = null;
     let dscLastPull = 0;
     let dscSettingsOpen = false;
+    let dscView = 'today';          // today | cal
+    let dscCalMonth = null;         // 'YYYY-MM' shown in the calendar view
 
     // ── Dates ─────────────────────────────────────────────
     function dscFmt(dt) { return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
@@ -6842,8 +6889,17 @@
     function dscEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
     // ── Data ──────────────────────────────────────────────
+    function dscDefaultSupps() {
+        return [
+            { id: 'creatine', name: 'Creatine', slot: 'am' },
+            { id: 'd3', name: 'Vitamin D3', slot: 'am' },
+            { id: 'zinc', name: 'Zinc', slot: 'am' },
+            { id: 'magnesium', name: 'Magnesium glycinate', slot: 'pm' },
+            { id: 'theanine', name: 'L-Theanine', slot: 'pm' }
+        ];
+    }
     function dscDefaults() {
-        return { start: '2026-11-02', end: '2026-12-19', startWeightKg: 98.5, targetWeightKg: 93.5, proteinMinG: 150, kcalCap: 2400, sleepMinH: 6.5, windowStart: '14:00', windowEnd: '17:00' };
+        return { start: '2026-11-02', end: '2026-12-19', startWeightKg: 98.5, targetWeightKg: 93.5, proteinMinG: 150, kcalCap: 2400, sleepMinH: 6.5, windowStart: '14:00', windowEnd: '17:00', weeklyTarget: 32, supplements: dscDefaultSupps() };
     }
 
     function dscLoadLocal() {
@@ -6869,12 +6925,13 @@
     function dscBlankDay() {
         const s = dsc.settings;
         return {
-            snapshot: { proteinMinG: s.proteinMinG, kcalCap: s.kcalCap, sleepMinH: s.sleepMinH, windowStart: s.windowStart, windowEnd: s.windowEnd },
+            snapshot: { proteinMinG: s.proteinMinG, kcalCap: s.kcalCap, sleepMinH: s.sleepMinH, windowStart: s.windowStart, windowEnd: s.windowEnd, supps: dscSuppList().map(dscSuppCopy) },
             trading: { count: null, inWindow: false, platformClosed: false, riskFixed: false, journaled: false },
             training: { done: false, type: '' },
             nutrition: { proteinG: null, underKcal: false },
             alcohol: { drank: null },
             sleep: { hours: null, bedtime: '' },
+            supps: { taken: {} },
             weightKg: null,
             note: '',
             updatedAt: null
@@ -6914,17 +6971,28 @@
         return r;
     }
 
-    function dscStreak() {
+    // Consecutive days (ending today, or yesterday if today isn't done yet) where isGood(day, date) holds
+    function dscStreakBy(isGood) {
         let date = dscTodayStr();
         let n = 0;
-        if (dscEval(dscDay(date)).score !== 5) date = dscAddDays(date, -1);
+        if (!isGood(dscDay(date), date)) date = dscAddDays(date, -1);
         while (n < 400) {
             const d = dsc.days[date];
-            if (!d || dscEval(dscFill(d)).score !== 5) break;
+            if (!d || !isGood(dscFill(d), date)) break;
             n++;
             date = dscAddDays(date, -1);
         }
         return n;
+    }
+    function dscStreak() { return dscStreakBy(function (d) { return dscEval(d).score === 5; }); }
+
+    function dscBestStreak(from, to) {
+        let best = 0, cur = 0, i = 0;
+        for (let dt = from; dt <= to && i < 400; dt = dscAddDays(dt, 1), i++) {
+            const d = dsc.days[dt];
+            if (d && dscEval(dscFill(d)).score === 5) { cur++; if (cur > best) best = cur; } else cur = 0;
+        }
+        return best;
     }
 
     function dscPerfectDays() {
@@ -6952,6 +7020,7 @@
         if (!d) { d = dsc.days[dscDate] = dscBlankDay(); }
         dscFill(d);
         fn(d);
+        if (dscDate === dscTodayStr()) d.snapshot.supps = dscSuppList().map(dscSuppCopy);   // today follows the live supplement list
         d.updatedAt = new Date().toISOString();
         dsc.lastUpdated = d.updatedAt;
         dscSaveLocal();
@@ -7006,6 +7075,235 @@
     function dscGoToday() { dscDate = dscTodayStr(); dscRender(); }
     function dscToggleSettings() { dscSettingsOpen = !dscSettingsOpen; dscRender(); }
 
+    // ── Supplements (checklist outside the 5-point score) ─
+    function dscSuppCopy(x) { return { id: x.id, name: x.name, slot: x.slot === 'pm' ? 'pm' : 'am' }; }
+    function dscSuppList() {
+        const l = dsc && dsc.settings && dsc.settings.supplements;
+        return Array.isArray(l) ? l.filter(function (x) { return x && x.id && x.name; }) : [];
+    }
+
+    // Today follows the live list; past days use the list they were logged with
+    function dscSuppState(date) {
+        const d = dscDay(date);
+        const list = (date === dscTodayStr() ? dscSuppList() : (Array.isArray(d.snapshot.supps) ? d.snapshot.supps : [])).map(dscSuppCopy);
+        const taken = (d.supps && d.supps.taken) || {};
+        const n = list.filter(function (x) { return taken[x.id]; }).length;
+        return { list: list, taken: taken, n: n, total: list.length, done: list.length > 0 && n === list.length };
+    }
+    function dscSuppStreak() { return dscStreakBy(function (d, date) { return dscSuppState(date).done; }); }
+
+    function dscToggleSupp(i) {
+        const x = dscSuppState(dscDate).list[i];
+        if (!x) return;
+        dscUpdate(function (d) { d.supps.taken[x.id] = !d.supps.taken[x.id]; });
+    }
+
+    function dscSuppCardHtml(date) {
+        const ss = dscSuppState(date);
+        let inner = '';
+        if (!ss.total) {
+            inner = '<div class="dsc-hint">No supplements set up yet. Add them in Settings.</div>';
+        } else {
+            [['am', '☀️ Morning'], ['pm', '🌙 Evening']].forEach(function (g) {
+                const items = ss.list.map(function (x, i) { return { x: x, i: i }; }).filter(function (o) { return o.x.slot === g[0]; });
+                if (!items.length) return;
+                const nt = items.filter(function (o) { return ss.taken[o.x.id]; }).length;
+                inner += '<div class="dsc-hint dsc-slot">' + g[1] + ' · ' + nt + '/' + items.length + '</div><div class="dsc-row">' +
+                    items.map(function (o) { return dscBtn(dscEsc(o.x.name), !!ss.taken[o.x.id], 'dscToggleSupp(' + o.i + ')'); }).join('') + '</div>';
+            });
+            inner += '<div class="dsc-hint">Streak with everything taken: ' + dscSuppStreak() + ' · not part of the 5 points</div>';
+        }
+        return '<div class="dsc-card ' + (ss.done ? 'pass' : '') + '"><h3><span>💊 Supplements</span>' +
+            (ss.total ? '<span class="dsc-badge ' + (ss.done ? 'pass' : 'todo') + '">' + ss.n + '/' + ss.total + '</span>' : '') + '</h3>' + inner + '</div>';
+    }
+
+    function dscSuppCommit() {
+        const now = new Date().toISOString();
+        dsc.settingsUpdatedAt = now;
+        const d = dsc.days[dscTodayStr()];
+        if (d) { dscFill(d); d.snapshot.supps = dscSuppList().map(dscSuppCopy); d.updatedAt = now; dsc.lastUpdated = now; }
+        dscSaveLocal();
+        dscScheduleSave();
+        dscRender();
+    }
+    function dscSuppSet(i, field, val) {
+        const l = dscSuppList().map(dscSuppCopy);
+        if (!l[i]) return;
+        if (field === 'name') { val = String(val).trim().slice(0, 40); if (!val) { dscRender(); return; } }
+        if (field === 'slot' && val !== 'am' && val !== 'pm') return;
+        l[i][field] = val;
+        dsc.settings.supplements = l;
+        dscSuppCommit();
+    }
+    function dscSuppDel(i) {
+        const l = dscSuppList().map(dscSuppCopy);
+        if (!l[i]) return;
+        if (!confirm('Remove ' + l[i].name + ' from the list? Past days keep it.')) return;
+        l.splice(i, 1);
+        dsc.settings.supplements = l;
+        dscSuppCommit();
+    }
+    function dscSuppAdd() {
+        const inp = document.getElementById('dsc-supp-new'), sl = document.getElementById('dsc-supp-slot');
+        const name = inp ? inp.value.trim().slice(0, 40) : '';
+        if (!name) return;
+        const l = dscSuppList().map(dscSuppCopy);
+        l.push({ id: 's' + Date.now().toString(36) + Math.floor(Math.random() * 10000), name: name, slot: (sl && sl.value === 'pm') ? 'pm' : 'am' });
+        dsc.settings.supplements = l;
+        dscSuppCommit();
+    }
+    function dscSuppSettingsHtml() {
+        let h = '<h3 style="margin-top:16px;">Supplements</h3>' +
+            '<div class="dsc-hint" style="margin:0 0 8px 0;">Today follows this list. Past days keep the list they were logged with.</div>';
+        dscSuppList().forEach(function (x, i) {
+            h += '<div class="dsc-supp-edit"><input type="text" class="dsc-input" value="' + dscEsc(x.name) + '" onchange="dscSuppSet(' + i + ',\'name\',this.value)">' +
+                '<select class="dsc-input" onchange="dscSuppSet(' + i + ',\'slot\',this.value)"><option value="am"' + (x.slot !== 'pm' ? ' selected' : '') + '>Morning</option><option value="pm"' + (x.slot === 'pm' ? ' selected' : '') + '>Evening</option></select>' +
+                '<button type="button" class="dsc-btn bad" onclick="dscSuppDel(' + i + ')">✕</button></div>';
+        });
+        h += '<div class="dsc-supp-edit"><input type="text" id="dsc-supp-new" class="dsc-input" placeholder="Add supplement…">' +
+            '<select id="dsc-supp-slot" class="dsc-input"><option value="am">Morning</option><option value="pm">Evening</option></select>' +
+            '<button type="button" class="dsc-btn" onclick="dscSuppAdd()">Add</button></div>';
+        return h;
+    }
+
+    // ── Views: Today | Calendar ───────────────────────────
+    function dscPeriodText(date) {
+        const st = dsc.settings;
+        const n = dscDiffDays(date, st.start) + 1, total = dscDiffDays(st.end, st.start) + 1;
+        return (n >= 1 && n <= total) ? ('Day ' + n + ' of ' + total) : (n < 1 ? 'Before the period' : 'After the period');
+    }
+    function dscShort(s) { return dscParse(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+
+    function dscTabsHtml() {
+        return '<div class="dsc-tabs"><button type="button" class="dsc-tab' + (dscView === 'today' ? ' on' : '') + '" onclick="dscSetView(\'today\')">Today</button>' +
+            '<button type="button" class="dsc-tab' + (dscView === 'cal' ? ' on' : '') + '" onclick="dscSetView(\'cal\')">Calendar</button></div>';
+    }
+    function dscSetView(v) {
+        dscView = v;
+        if (v === 'cal') dscCalMonth = dscDate.slice(0, 7);
+        dscRender();
+    }
+    function dscOpenDay(date) {
+        if (date > dscTodayStr()) return;
+        dscDate = date;
+        dscView = 'today';
+        dscRender();
+        try { if (typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (e) { }
+    }
+    function dscCalMin() {
+        const ks = Object.keys(dsc.days).sort();
+        const s = dsc.settings.start;
+        return ((ks.length && ks[0] < s) ? ks[0] : s).slice(0, 7);
+    }
+    function dscCalMax() {
+        const t = dscTodayStr(), e = dsc.settings.end;
+        return (e > t ? e : t).slice(0, 7);
+    }
+    function dscShiftMonth(n) {
+        const p = dscCalMonth.split('-').map(Number);
+        const k = dscFmt(new Date(p[0], p[1] - 1 + n, 1)).slice(0, 7);
+        if (k < dscCalMin() || k > dscCalMax()) return;
+        dscCalMonth = k;
+        dscRender();
+    }
+
+    function dscCalHtml() {
+        const st = dsc.settings, today = dscTodayStr();
+        if (!dscCalMonth) dscCalMonth = today.slice(0, 7);
+        const p = dscCalMonth.split('-').map(Number);
+        const first = new Date(p[0], p[1] - 1, 1);
+        const dim = new Date(p[0], p[1], 0).getDate();
+        const lead = (first.getDay() + 6) % 7;      // Monday first
+        let g = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(function (x) { return '<div class="dsc-dow">' + x + '</div>'; }).join('');
+        for (let i = 0; i < lead; i++) g += '<div class="dsc-cell empty"></div>';
+        for (let day = 1; day <= dim; day++) {
+            const date = dscFmt(new Date(p[0], p[1] - 1, day));
+            const rec = dsc.days[date];
+            let cls = 'dsc-cell', inner = '<span class="dn">' + day + '</span>', label = dscLabel(date);
+            if (date > today) cls += ' future';
+            else if (rec) {
+                const sc = dscEval(dscFill(rec)).score;
+                cls += ' ' + (sc <= 1 ? 's01' : 's' + sc);
+                inner += '<span class="sc">' + sc + '</span>';
+                label += ', score ' + sc + ' of 5';
+            } else { cls += ' none'; label += ', not logged'; }
+            if (date === today) cls += ' today';
+            if (date < st.start || date > st.end) cls += ' outp';
+            g += (date > today)
+                ? '<div class="' + cls + '">' + inner + '</div>'
+                : '<button type="button" class="' + cls + '" aria-label="' + dscEsc(label) + '" onclick="dscOpenDay(\'' + date + '\')">' + inner + '</button>';
+        }
+        let h = '<div class="dsc-card"><div class="dsc-monthbar">' + dscBtn('◀', false, 'dscShiftMonth(-1)') +
+            '<div class="dsc-monthname">' + first.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) + '</div>' +
+            dscBtn('▶', false, 'dscShiftMonth(1)') + '</div>';
+        h += '<div class="dsc-cal">' + g + '</div>' +
+            '<div class="dsc-legend"><span><i class="s5"></i>5</span><span><i class="s4"></i>4</span><span><i class="s3"></i>3</span><span><i class="s2"></i>2</span><span><i class="s01"></i>0–1</span><span><i class="none"></i>not logged</span></div>' +
+            '<div class="dsc-hint">Tap a day to open it. Faded days are outside the ' + dscShort(st.start) + ' – ' + dscShort(st.end) + ' period.</div></div>';
+        return h + dscStatsHtml();
+    }
+
+    function dscStatsHtml() {
+        const st = dsc.settings, today = dscTodayStr();
+        const note = function (t) { return '<div class="dsc-card"><div class="dsc-hint">' + t + '</div></div>'; };
+        if (today < st.start) return note('The period starts ' + dscLabel(st.start) + '. Stats appear once it begins.');
+        const to = today < st.end ? today : st.end;
+        const dates = [];
+        for (let dt = st.start, i = 0; dt <= to && i < 400; dt = dscAddDays(dt, 1), i++) {
+            if (dt === today && !dsc.days[dt]) continue;     // today only counts once something is logged
+            dates.push(dt);
+        }
+        if (!dates.length) return note('Log your first day to see stats.');
+        const evs = dates.map(function (dt) { return dsc.days[dt] ? dscEval(dscFill(dsc.days[dt])) : null; });
+        const sum = evs.reduce(function (a, e) { return a + (e ? e.score : 0); }, 0);
+        const perfect = evs.filter(function (e) { return e && e.score === 5; }).length;
+        const logged = evs.filter(Boolean).length;
+        const N = dates.length;
+
+        const tile = function (v, l) { return '<div class="dsc-tile"><b>' + v + '</b><span>' + l + '</span></div>'; };
+        let h = '<div class="dsc-tiles">' +
+            tile((sum / N).toFixed(1) + '<small>/5</small>', 'Average score') +
+            tile(perfect + '<small>/' + N + '</small>', 'Perfect days') +
+            tile(dscBestStreak(st.start, to), 'Best streak (now ' + dscStreak() + ')') +
+            tile(logged + '<small>/' + N + '</small>', 'Days logged') + '</div>';
+
+        const bar = function (label, pass) {
+            const pct = Math.round(100 * pass / N);
+            return '<div class="dsc-bar"><span class="bl">' + label + '</span><span class="bt"><i style="width:' + pct + '%"></i></span><span class="bv">' + pct + '% · ' + pass + '/' + N + '</span></div>';
+        };
+        const names = { trading: 'Trading', training: 'Training', nutrition: 'Nutrition', alcohol: 'Alcohol', sleep: 'Sleep' };
+        h += '<div class="dsc-card"><h3><span>Pillars</span></h3>' +
+            DSC_PILLARS.map(function (pl) { return bar(names[pl], evs.filter(function (e) { return e && e[pl] === 'pass'; }).length); }).join('') +
+            bar('Supplements', dates.filter(function (dt) { return dscSuppState(dt).done; }).length) +
+            '<div class="dsc-hint">Share of days passed since ' + dscShort(st.start) + '. Days not logged count as missed. Supplements are not scored.</div></div>';
+
+        // Weeks (Mon–Sun, only days inside the period)
+        let rows = '<div class="dsc-wk hd"><span>Week</span><span>Score</span><span></span><span>Avg kg</span></div>';
+        let ws = dscAddDays(st.start, -((dscParse(st.start).getDay() + 6) % 7));
+        for (let i = 0; ws <= to && i < 60; ws = dscAddDays(ws, 7), i++) {
+            const wd = [];
+            for (let k = 0; k < 7; k++) { const dt = dscAddDays(ws, k); if (dt >= st.start && dt <= st.end) wd.push(dt); }
+            if (!wd.length) continue;
+            let sc = 0, wsum = 0, wn = 0;
+            wd.forEach(function (dt) {
+                const r = dsc.days[dt];
+                if (!r) return;
+                sc += dscEval(dscFill(r)).score;
+                if (r.weightKg != null) { wsum += r.weightKg; wn++; }
+            });
+            const complete = wd[wd.length - 1] < today;
+            const target = Math.ceil(st.weeklyTarget * wd.length / 7);
+            rows += '<div class="dsc-wk"><span>' + dscShort(ws) + ' – ' + dscShort(dscAddDays(ws, 6)) + '</span>' +
+                '<span><b>' + sc + '</b>/' + (5 * wd.length) + '</span>' +
+                '<span>' + (complete ? (sc >= target ? '✅' : '❌') : '…') + '</span>' +
+                '<span>' + (wn ? (wsum / wn).toFixed(1) : '–') + '</span></div>';
+        }
+        const ws7 = dscWeightStats(today);
+        h += '<div class="dsc-card"><h3><span>Weeks</span></h3>' + rows +
+            '<div class="dsc-hint">Target ' + st.weeklyTarget + '/35 for a full week (scaled for a part week). The mark appears once the week is over.</div>' +
+            '<div class="dsc-hint">Weight: start ' + st.startWeightKg + ' kg → ' + (ws7 ? ws7.avg.toFixed(1) + ' kg (7-day avg)' : 'no recent weigh-ins') + ' → goal ' + st.targetWeightKg + ' kg</div></div>';
+        return h;
+    }
+
     // ── Rendering ─────────────────────────────────────────
     function dscBtn(label, on, onclick, cls) {
         return '<button type="button" class="dsc-btn ' + (cls || '') + (on ? ' on' : '') + '" onclick="' + onclick + '">' + label + '</button>';
@@ -7029,12 +7327,15 @@
         const d = dscDay(date), ev = dscEval(d), s = d.snapshot, st = dsc.settings;
 
         // Subtitle: day counter
-        const dayNo = dscDiffDays(date, st.start) + 1, total = dscDiffDays(st.end, st.start) + 1;
-        const period = (dayNo >= 1 && dayNo <= total) ? ('Day ' + dayNo + ' of ' + total) : (dayNo < 1 ? 'Before the period' : 'After the period');
         const sub = document.getElementById('dsc-sub');
-        if (sub) sub.textContent = dscLabel(date) + ' · ' + period;
+        if (sub) sub.textContent = (dscView === 'cal') ? ('Overview · ' + dscPeriodText(today)) : (dscLabel(date) + ' · ' + dscPeriodText(date));
 
-        let h = '';
+        let h = dscTabsHtml();
+        if (dscView === 'cal') {
+            root.innerHTML = h + dscCalHtml();
+            dscRenderSync();
+            return;
+        }
 
         // Date bar
         h += '<div class="dsc-datebar">' +
@@ -7095,6 +7396,9 @@
             '<input type="number" class="dsc-input" inputmode="decimal" min="0" max="24" step="0.1" value="' + (sl.hours == null ? '' : sl.hours) + '" placeholder="from Apple Watch" onchange="dscNum(\'sleep.hours\', this.value, 0, 24)"></div>' +
             '<div class="dsc-field"><label>Bedtime (optional)</label><input type="time" class="dsc-input" value="' + dscEsc(sl.bedtime) + '" onchange="dscSetPath(\'sleep.bedtime\', this.value)"></div></div>');
 
+        // Supplements (not scored)
+        h += dscSuppCardHtml(date);
+
         // Weigh-in (not scored)
         const ws = dscWeightStats(date);
         h += '<div class="dsc-card"><h3><span>⚖️ Weigh-in</span></h3><div class="dsc-row"><div class="dsc-field"><label>Morning weight (kg)</label>' +
@@ -7113,9 +7417,11 @@
             h += '<div class="dsc-settings"><h3>Targets</h3>' +
                 '<div class="dsc-hint" style="margin:0 0 8px 0;">Changes apply to days you log from now on. Days already logged keep the thresholds they were logged with.</div>' +
                 '<div class="dsc-row">' + num('Protein min (g)', 'proteinMinG') + num('Calorie cap (kcal)', 'kcalCap') + num('Sleep min (h)', 'sleepMinH') + '</div>' +
+                '<div class="dsc-row">' + num('Weekly target (of 35)', 'weeklyTarget') + '</div>' +
                 '<div class="dsc-row">' + tm('Trading window start', 'windowStart') + tm('Trading window end', 'windowEnd') + '</div>' +
                 '<div class="dsc-row">' + num('Start weight (kg)', 'startWeightKg') + num('Goal weight (kg)', 'targetWeightKg') + '</div>' +
                 '<div class="dsc-row">' + dt('Period start', 'start') + dt('Period end', 'end') + '</div>' +
+                dscSuppSettingsHtml() +
                 '<h3 style="margin-top:16px;">Backup</h3><div class="dsc-row">' +
                 dscBtn('📥 Export JSON', false, 'dscExport()') +
                 dscBtn('📤 Import JSON (merges)', false, "document.getElementById('dsc-import').click()") + '</div>' +
