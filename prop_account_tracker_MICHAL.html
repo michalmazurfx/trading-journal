@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="R Journal">
     <title>R Trading Journal</title>
     <style>
         :root {
@@ -1077,6 +1080,59 @@
             display: none !important;
         }
 
+
+        /* ═══ DISCIPLINE TAB ═══ */
+        .dsc-wrap { max-width: 720px; margin: 0 auto; }
+        .dsc-datebar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+        .dsc-datebar .dsc-btn { flex: 0 0 auto; min-width: 48px; }
+        .dsc-datebar input[type="date"] { flex: 1; min-width: 0; }
+        .dsc-score { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--card-shadow); text-align: center; }
+        .dsc-big { font-size: 3em; font-weight: 800; color: var(--text-primary); line-height: 1; }
+        .dsc-big span { font-size: 0.45em; color: var(--text-secondary); font-weight: 600; }
+        .dsc-dots { margin: 10px 0 6px; font-size: 1.3em; letter-spacing: 6px; }
+        .dsc-meta { font-size: 0.85em; color: var(--text-secondary); }
+        .dsc-card { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 14px var(--card-shadow); border-left: 5px solid var(--border-color); }
+        .dsc-card.pass { border-left-color: #27ae60; }
+        .dsc-card.fail { border-left-color: #e74c3c; }
+        .dsc-card.missed { border-left-color: #f39c12; }
+        .dsc-card h3 { margin: 0 0 6px 0; font-size: 1.05em; color: var(--text-primary); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .dsc-badge { font-size: 0.78em; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+        .dsc-badge.pass { background: #d4edda; color: #155724; }
+        .dsc-badge.fail { background: #f8d7da; color: #721c24; }
+        .dsc-badge.todo { background: var(--stat-box-bg); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .dsc-badge.missed { background: #fff3cd; color: #856404; }
+        .dsc-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .dsc-btn { flex: 1 1 auto; min-height: 44px; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--stat-box-bg); color: var(--text-primary); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+        .dsc-btn:hover { border-color: #667eea; }
+        .dsc-btn.on { background: #27ae60; border-color: #27ae60; color: #fff; }
+        .dsc-btn.bad.on { background: #e74c3c; border-color: #e74c3c; }
+        .dsc-input { width: 100%; min-height: 44px; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--input-bg); color: var(--text-primary); font-size: 16px; }
+        .dsc-field { flex: 1 1 120px; min-width: 0; }
+        .dsc-field label { display: block; font-size: 0.8em; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; }
+        .dsc-hint { font-size: 0.85em; color: var(--text-secondary); margin-top: 4px; }
+        .dsc-note { margin-top: 8px; padding: 8px 12px; border-radius: 8px; font-size: 0.9em; font-weight: 600; }
+        .dsc-note.bad { background: #f8d7da; color: #721c24; }
+        .dsc-sync { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.9em; color: var(--text-primary); background: var(--card-bg); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; box-shadow: 0 2px 8px var(--card-shadow); }
+        .dsc-sync .dsc-btn { flex: 0 0 auto; min-height: 36px; padding: 6px 14px; font-size: 14px; }
+        .dsc-settings-toggle { width: 100%; margin-top: 4px; }
+        .dsc-settings { background: var(--card-bg); border-radius: 14px; padding: 16px; margin-top: 10px; box-shadow: 0 4px 14px var(--card-shadow); }
+        .dsc-settings h3 { margin: 0 0 10px 0; color: var(--text-primary); }
+
+        /* Phone layout: sidebar becomes a top bar (affects all tabs on narrow screens) */
+        @media (max-width: 768px) {
+            body { display: block; }
+            .sidebar { position: static; width: 100%; height: auto; flex-direction: column; box-shadow: 0 2px 10px var(--card-shadow); }
+            .sidebar-header { padding: 10px 14px; }
+            .sidebar-header p { display: none; }
+            .nav-menu { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px; flex: none; }
+            .nav-menu > div:not(.nav-item) { display: none; }
+            .nav-item { flex: 0 0 auto; padding: 10px 12px; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
+            .nav-item.active { border-bottom-color: #2196f3; }
+            .theme-toggle-container { padding: 6px 14px; }
+            .main-content { margin-left: 0; padding: 12px; }
+            #drive-status-widget { display: none; }
+            .header h1 { font-size: 1.8em; }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1089,6 +1145,10 @@
             <p>Stay Disciplined. Stay Locked In.</p>
         </div>
         <div class="nav-menu">
+            <div class="nav-item" onclick="switchTab('discipline')">
+                <span class="icon">🔒</span>
+                <span>Discipline</span>
+            </div>
             <div class="nav-item active" onclick="switchTab('overview')">
                 <span class="icon">📊</span>
                 <span>H1 Overview</span>
@@ -1339,6 +1399,18 @@
         </div>
         <!-- End Overview Tab -->
         
+        <!-- Discipline Tab -->
+        <div id="discipline" class="tab-content">
+            <div class="container dsc-wrap">
+                <div class="header">
+                    <h1>🔒 Discipline</h1>
+                    <div class="subtitle" id="dsc-sub"></div>
+                </div>
+                <div id="dsc-sync"></div>
+                <div id="dsc-root"></div>
+            </div>
+        </div>
+
         <!-- Calendar Tab -->
         <div id="calendar" class="tab-content">
             <div class="container">
@@ -2800,6 +2872,7 @@
             activeTab.style.display = 'block';
             event.target.closest('.nav-item').classList.add('active');
             if (tabName === 'settings') renderSettingsPage();
+            if (tabName === 'discipline') dscRender();
             if (tabName === 'payouts')
             if (tabName === 'trade-history') renderTradeHistory();
             if (tabName === 'calendar') {
@@ -6729,6 +6802,567 @@
     window.addEventListener('load', () => {
         // Delay slightly to let main journal init first
         setTimeout(m15Init, 500);
+    });
+    </script>
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // DISCIPLINE TAB — Phase 1 (Today screen, scoring, storage, Drive sync)
+    // Own storage: localStorage 'discipline' + Drive file discipline_journal.json
+    // Never touches `trades` or r_trading_journal.json
+    // ═══════════════════════════════════════════════════════
+    const DSC_KEY = 'discipline';
+    const DSC_FILE = 'discipline_journal.json';
+    const DSC_PILLARS = ['trading', 'training', 'nutrition', 'alcohol', 'sleep'];
+    const DSC_PLAN = { 0: 'Rest day', 1: 'Kickboxing', 2: 'Upper lift', 3: 'Kickboxing', 4: 'Lower lift', 5: 'Floating: padel or 3rd lift', 6: 'Floating: padel or 3rd lift' };
+    const DSC_TYPES = ['', 'Kickboxing', 'Upper lift', 'Lower lift', 'Full body / 3rd lift', 'Padel', 'Zone 2', 'Rest day'];
+
+    // All state declared up front (hoisting lesson from the main journal)
+    let dsc = null;
+    let dscDate = null;
+    let dscToken = null;
+    let dscDriveFileId = null;
+    let dscDriveReady = false;      // true only after a successful Drive load (or confirmed no file)
+    let dscStatus = 'local';        // local | connecting | loading | saving | synced | error | expired
+    let dscStatusTime = null;
+    let dscDirty = false;
+    let dscSaving = false;
+    let dscSaveAgain = false;
+    let dscSaveTimer = null;
+    let dscConnectTimer = null;
+    let dscLastPull = 0;
+    let dscSettingsOpen = false;
+
+    // ── Dates ─────────────────────────────────────────────
+    function dscFmt(dt) { return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+    function dscParse(s) { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+    function dscTodayStr() { return dscFmt(new Date()); }
+    function dscAddDays(s, n) { const d = dscParse(s); d.setDate(d.getDate() + n); return dscFmt(d); }
+    function dscDiffDays(a, b) { return Math.round((dscParse(a) - dscParse(b)) / 86400000); }
+    function dscLabel(s) { return dscParse(s).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+    function dscEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+    // ── Data ──────────────────────────────────────────────
+    function dscDefaults() {
+        return { start: '2026-11-02', end: '2026-12-19', startWeightKg: 98.5, targetWeightKg: 93.5, proteinMinG: 150, kcalCap: 2400, sleepMinH: 6.5, windowStart: '14:00', windowEnd: '17:00' };
+    }
+
+    function dscLoadLocal() {
+        try {
+            const raw = localStorage.getItem(DSC_KEY);
+            if (raw) {
+                const d = JSON.parse(raw);
+                if (d && typeof d === 'object') {
+                    d.days = d.days || {};
+                    d.settings = Object.assign(dscDefaults(), d.settings || {});
+                    return d;
+                }
+            }
+        } catch (e) { console.warn('Discipline: local load failed', e); }
+        return { settings: dscDefaults(), settingsUpdatedAt: null, days: {}, lastUpdated: null };
+    }
+
+    function dscSaveLocal() {
+        try { localStorage.setItem(DSC_KEY, JSON.stringify(dsc)); }
+        catch (e) { console.warn('Discipline: local save failed', e); }
+    }
+
+    function dscBlankDay() {
+        const s = dsc.settings;
+        return {
+            snapshot: { proteinMinG: s.proteinMinG, kcalCap: s.kcalCap, sleepMinH: s.sleepMinH, windowStart: s.windowStart, windowEnd: s.windowEnd },
+            trading: { count: null, inWindow: false, platformClosed: false, riskFixed: false, journaled: false },
+            training: { done: false, type: '' },
+            nutrition: { proteinG: null, underKcal: false },
+            alcohol: { drank: null },
+            sleep: { hours: null, bedtime: '' },
+            weightKg: null,
+            note: '',
+            updatedAt: null
+        };
+    }
+
+    // Fill any missing fields (older or imported records) without touching existing values
+    function dscFill(d) {
+        const b = dscBlankDay();
+        Object.keys(b).forEach(function (k) {
+            if (d[k] === undefined) d[k] = b[k];
+            else if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && d[k] && typeof d[k] === 'object') {
+                Object.keys(b[k]).forEach(function (kk) { if (d[k][kk] === undefined) d[k][kk] = b[k][kk]; });
+            }
+        });
+        return d;
+    }
+
+    // Read a day (does not create a record)
+    function dscDay(date) {
+        const d = dsc.days[date];
+        return d ? dscFill(d) : dscBlankDay();
+    }
+
+    // ── Scoring ───────────────────────────────────────────
+    function dscEval(d) {
+        const s = d.snapshot, t = d.trading, n = d.nutrition, r = {};
+        if (t.count === 2) r.trading = 'fail';
+        else if (t.count === 0) r.trading = t.platformClosed ? 'pass' : 'todo';
+        else if (t.count === 1) r.trading = (t.inWindow && t.platformClosed && t.riskFixed && t.journaled) ? 'pass' : 'todo';
+        else r.trading = 'todo';
+        r.training = d.training.done ? 'pass' : 'todo';
+        r.nutrition = (n.proteinG != null && n.proteinG >= s.proteinMinG && n.underKcal) ? 'pass' : 'todo';
+        r.alcohol = d.alcohol.drank === false ? 'pass' : (d.alcohol.drank === true ? 'fail' : 'todo');
+        r.sleep = d.sleep.hours == null ? 'todo' : (d.sleep.hours >= s.sleepMinH ? 'pass' : 'fail');
+        r.score = DSC_PILLARS.filter(function (p) { return r[p] === 'pass'; }).length;
+        return r;
+    }
+
+    function dscStreak() {
+        let date = dscTodayStr();
+        let n = 0;
+        if (dscEval(dscDay(date)).score !== 5) date = dscAddDays(date, -1);
+        while (n < 400) {
+            const d = dsc.days[date];
+            if (!d || dscEval(dscFill(d)).score !== 5) break;
+            n++;
+            date = dscAddDays(date, -1);
+        }
+        return n;
+    }
+
+    function dscPerfectDays() {
+        const s = dsc.settings.start, e = dsc.settings.end;
+        return Object.keys(dsc.days).filter(function (k) {
+            return k >= s && k <= e && dscEval(dscFill(dsc.days[k])).score === 5;
+        }).length;
+    }
+
+    function dscWeightStats(date) {
+        const vals = [];
+        for (let i = 0; i < 7; i++) {
+            const d = dsc.days[dscAddDays(date, -i)];
+            if (d && d.weightKg != null) vals.push(d.weightKg);
+        }
+        if (!vals.length) return null;
+        const avg = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+        return { avg: avg, n: vals.length, toGoal: avg - dsc.settings.targetWeightKg };
+    }
+
+    // ── Updates ───────────────────────────────────────────
+    function dscUpdate(fn) {
+        if (dscDate > dscTodayStr()) return;
+        let d = dsc.days[dscDate];
+        if (!d) { d = dsc.days[dscDate] = dscBlankDay(); }
+        dscFill(d);
+        fn(d);
+        d.updatedAt = new Date().toISOString();
+        dsc.lastUpdated = d.updatedAt;
+        dscSaveLocal();
+        dscScheduleSave();
+        dscRender();
+    }
+
+    function dscSetPath(path, val) {
+        dscUpdate(function (d) {
+            const p = path.split('.');
+            let o = d;
+            for (let i = 0; i < p.length - 1; i++) o = o[p[i]];
+            o[p[p.length - 1]] = val;
+        });
+    }
+
+    function dscTog(path) {
+        const p = path.split('.');
+        let v = dscDay(dscDate);
+        p.forEach(function (k) { v = v[k]; });
+        dscSetPath(path, !v);
+    }
+
+    function dscNum(path, raw, min, max) {
+        let v = (raw === '' || raw == null) ? null : parseFloat(String(raw).replace(',', '.'));
+        if (v !== null && (isNaN(v) || v < min || v > max)) { alert('Value out of range (' + min + '–' + max + ')'); dscRender(); return; }
+        dscSetPath(path, v);
+    }
+
+    function dscSetSetting(key, raw, isNum) {
+        let v = raw;
+        if (isNum) {
+            v = parseFloat(String(raw).replace(',', '.'));
+            if (isNaN(v) || v <= 0) { alert('Enter a positive number'); dscRender(); return; }
+        }
+        if (!v) { dscRender(); return; }
+        dsc.settings[key] = v;
+        dsc.settingsUpdatedAt = new Date().toISOString();
+        dscSaveLocal();
+        dscScheduleSave();
+        dscRender();
+    }
+
+    // ── Date navigation ───────────────────────────────────
+    function dscShift(n) {
+        const nd = dscAddDays(dscDate, n);
+        if (nd > dscTodayStr()) return;
+        dscDate = nd;
+        dscRender();
+    }
+    function dscSetDate(v) { if (v && v <= dscTodayStr()) dscDate = v; dscRender(); }
+    function dscGoToday() { dscDate = dscTodayStr(); dscRender(); }
+    function dscToggleSettings() { dscSettingsOpen = !dscSettingsOpen; dscRender(); }
+
+    // ── Rendering ─────────────────────────────────────────
+    function dscBtn(label, on, onclick, cls) {
+        return '<button type="button" class="dsc-btn ' + (cls || '') + (on ? ' on' : '') + '" onclick="' + onclick + '">' + label + '</button>';
+    }
+
+    function dscBadge(st, past) {
+        if (st === 'pass') return '<span class="dsc-badge pass">✅ Pass</span>';
+        if (st === 'fail') return '<span class="dsc-badge fail">❌ Fail</span>';
+        return past ? '<span class="dsc-badge missed">Missed</span>' : '<span class="dsc-badge todo">To do</span>';
+    }
+
+    function dscCard(title, st, past, inner) {
+        const cls = st === 'todo' ? (past ? 'missed' : '') : st;
+        return '<div class="dsc-card ' + cls + '"><h3><span>' + title + '</span>' + dscBadge(st, past) + '</h3>' + inner + '</div>';
+    }
+
+    function dscRender() {
+        const root = document.getElementById('dsc-root');
+        if (!root) return;
+        const date = dscDate, today = dscTodayStr(), past = date < today;
+        const d = dscDay(date), ev = dscEval(d), s = d.snapshot, st = dsc.settings;
+
+        // Subtitle: day counter
+        const dayNo = dscDiffDays(date, st.start) + 1, total = dscDiffDays(st.end, st.start) + 1;
+        const period = (dayNo >= 1 && dayNo <= total) ? ('Day ' + dayNo + ' of ' + total) : (dayNo < 1 ? 'Before the period' : 'After the period');
+        const sub = document.getElementById('dsc-sub');
+        if (sub) sub.textContent = dscLabel(date) + ' · ' + period;
+
+        let h = '';
+
+        // Date bar
+        h += '<div class="dsc-datebar">' +
+            dscBtn('◀', false, 'dscShift(-1)') +
+            '<input type="date" class="dsc-input" value="' + date + '" max="' + today + '" onchange="dscSetDate(this.value)">' +
+            dscBtn('▶', false, 'dscShift(1)') +
+            (date !== today ? dscBtn('Today', false, 'dscGoToday()') : '') +
+            '</div>';
+
+        // Score banner
+        const dots = DSC_PILLARS.map(function (p) { return ev[p] === 'pass' ? '✅' : ev[p] === 'fail' ? '❌' : '⚪'; }).join('');
+        h += '<div class="dsc-score"><div class="dsc-big">' + ev.score + '<span>/5</span></div><div class="dsc-dots">' + dots + '</div>' +
+            '<div class="dsc-meta">Perfect-day streak: ' + dscStreak() + ' · Perfect days in period: ' + dscPerfectDays() + '</div></div>';
+
+        // Trading
+        const t = d.trading;
+        let ti = '<div class="dsc-row">' +
+            dscBtn('No trade', t.count === 0, "dscSetPath('trading.count',0)") +
+            dscBtn('1 trade', t.count === 1, "dscSetPath('trading.count',1)") +
+            dscBtn('2+ trades', t.count === 2, "dscSetPath('trading.count',2)", 'bad') + '</div>';
+        if (t.count === 2) ti += '<div class="dsc-note bad">Rule broken: one trade per day. Log it as a slip.</div>';
+        if (t.count === 1) {
+            ti += '<div class="dsc-row">' +
+                dscBtn('Entered inside ' + dscEsc(s.windowStart) + '–' + dscEsc(s.windowEnd), t.inWindow, "dscTog('trading.inWindow')") +
+                dscBtn('Risk at fixed size', t.riskFixed, "dscTog('trading.riskFixed')") +
+                dscBtn('Journal entry logged', t.journaled, "dscTog('trading.journaled')") + '</div>';
+        }
+        if (t.count === 0 || t.count === 1) {
+            ti += '<div class="dsc-row">' + dscBtn('Platform closed after session', t.platformClosed, "dscTog('trading.platformClosed')") + '</div>';
+        }
+        h += dscCard('📈 Trading', ev.trading, past, ti);
+
+        // Training
+        const plan = DSC_PLAN[dscParse(date).getDay()];
+        const isRest = dscParse(date).getDay() === 0;
+        let tri = '<div class="dsc-hint">Planned: ' + plan + '</div><div class="dsc-row"><div class="dsc-field"><select class="dsc-input" onchange="dscSetPath(\'training.type\', this.value)">' +
+            DSC_TYPES.map(function (x) { return '<option value="' + x + '"' + (d.training.type === x ? ' selected' : '') + '>' + (x || 'What did you do?') + '</option>'; }).join('') +
+            '</select></div></div><div class="dsc-row">' +
+            dscBtn(isRest ? 'Rest day respected' : 'Session done', d.training.done, "dscTog('training.done')") + '</div>';
+        h += dscCard('🏋️ Training', ev.training, past, tri);
+
+        // Nutrition
+        const n = d.nutrition;
+        let ni = '<div class="dsc-row"><div class="dsc-field"><label>Protein (g), target ≥ ' + s.proteinMinG + '</label>' +
+            '<input type="number" class="dsc-input" inputmode="numeric" min="0" max="500" step="1" value="' + (n.proteinG == null ? '' : n.proteinG) + '" placeholder="grams" onchange="dscNum(\'nutrition.proteinG\', this.value, 0, 500)"></div></div>' +
+            '<div class="dsc-row">' + dscBtn('Under ' + s.kcalCap + ' kcal (estimate)', n.underKcal, "dscTog('nutrition.underKcal')") + '</div>';
+        h += dscCard('🍗 Nutrition', ev.nutrition, past, ni);
+
+        // Alcohol
+        h += dscCard('🚫 Alcohol', ev.alcohol, past,
+            '<div class="dsc-row">' + dscBtn('✅ Zero drinks', d.alcohol.drank === false, "dscSetPath('alcohol.drank',false)") +
+            dscBtn('🍺 Had a drink', d.alcohol.drank === true, "dscSetPath('alcohol.drank',true)", 'bad') + '</div>');
+
+        // Sleep
+        const sl = d.sleep;
+        h += dscCard('😴 Sleep', ev.sleep, past,
+            '<div class="dsc-row"><div class="dsc-field"><label>Hours last night, target ≥ ' + s.sleepMinH + '</label>' +
+            '<input type="number" class="dsc-input" inputmode="decimal" min="0" max="24" step="0.1" value="' + (sl.hours == null ? '' : sl.hours) + '" placeholder="from Apple Watch" onchange="dscNum(\'sleep.hours\', this.value, 0, 24)"></div>' +
+            '<div class="dsc-field"><label>Bedtime (optional)</label><input type="time" class="dsc-input" value="' + dscEsc(sl.bedtime) + '" onchange="dscSetPath(\'sleep.bedtime\', this.value)"></div></div>');
+
+        // Weigh-in (not scored)
+        const ws = dscWeightStats(date);
+        h += '<div class="dsc-card"><h3><span>⚖️ Weigh-in</span></h3><div class="dsc-row"><div class="dsc-field"><label>Morning weight (kg)</label>' +
+            '<input type="number" class="dsc-input" inputmode="decimal" min="30" max="250" step="0.1" value="' + (d.weightKg == null ? '' : d.weightKg) + '" placeholder="kg" onchange="dscNum(\'weightKg\', this.value, 30, 250)"></div></div>' +
+            '<div class="dsc-hint">' + (ws ? ('7-day average: ' + ws.avg.toFixed(1) + ' kg (' + ws.n + ' weigh-in' + (ws.n > 1 ? 's' : '') + ') · ' + (ws.toGoal > 0 ? ws.toGoal.toFixed(1) + ' kg to the ' + st.targetWeightKg + ' kg goal' : 'goal of ' + st.targetWeightKg + ' kg reached')) : ('Start ' + st.startWeightKg + ' kg → goal ' + st.targetWeightKg + ' kg')) + '</div></div>';
+
+        // Note
+        h += '<div class="dsc-card"><h3><span>📝 Note</span></h3><input type="text" class="dsc-input" value="' + dscEsc(d.note) + '" placeholder="One line (optional)" onchange="dscSetPath(\'note\', this.value)"></div>';
+
+        // Settings
+        h += '<button type="button" class="dsc-btn dsc-settings-toggle" onclick="dscToggleSettings()">' + (dscSettingsOpen ? '▲ Hide settings' : '⚙️ Settings and backup') + '</button>';
+        if (dscSettingsOpen) {
+            const num = function (label, key) { return '<div class="dsc-field"><label>' + label + '</label><input type="number" class="dsc-input" inputmode="decimal" step="0.1" value="' + st[key] + '" onchange="dscSetSetting(\'' + key + '\', this.value, true)"></div>'; };
+            const tm = function (label, key) { return '<div class="dsc-field"><label>' + label + '</label><input type="time" class="dsc-input" value="' + st[key] + '" onchange="dscSetSetting(\'' + key + '\', this.value, false)"></div>'; };
+            const dt = function (label, key) { return '<div class="dsc-field"><label>' + label + '</label><input type="date" class="dsc-input" value="' + st[key] + '" onchange="dscSetSetting(\'' + key + '\', this.value, false)"></div>'; };
+            h += '<div class="dsc-settings"><h3>Targets</h3>' +
+                '<div class="dsc-hint" style="margin:0 0 8px 0;">Changes apply to days you log from now on. Days already logged keep the thresholds they were logged with.</div>' +
+                '<div class="dsc-row">' + num('Protein min (g)', 'proteinMinG') + num('Calorie cap (kcal)', 'kcalCap') + num('Sleep min (h)', 'sleepMinH') + '</div>' +
+                '<div class="dsc-row">' + tm('Trading window start', 'windowStart') + tm('Trading window end', 'windowEnd') + '</div>' +
+                '<div class="dsc-row">' + num('Start weight (kg)', 'startWeightKg') + num('Goal weight (kg)', 'targetWeightKg') + '</div>' +
+                '<div class="dsc-row">' + dt('Period start', 'start') + dt('Period end', 'end') + '</div>' +
+                '<h3 style="margin-top:16px;">Backup</h3><div class="dsc-row">' +
+                dscBtn('📥 Export JSON', false, 'dscExport()') +
+                dscBtn('📤 Import JSON (merges)', false, "document.getElementById('dsc-import').click()") + '</div>' +
+                '<input type="file" id="dsc-import" accept=".json" style="display:none;" onchange="dscImport(event)"></div>';
+        }
+
+        root.innerHTML = h;
+        dscRenderSync();
+    }
+
+    // Skip full re-render while the user is typing (used after background Drive pulls)
+    function dscRenderSoft() {
+        const a = document.activeElement;
+        if (a && /INPUT|SELECT|TEXTAREA/.test(a.tagName) && a.closest && a.closest('#dsc-root')) { dscRenderSync(); return; }
+        dscRender();
+    }
+
+    function dscRenderSync() {
+        const el = document.getElementById('dsc-sync');
+        if (!el) return;
+        const tm = dscStatusTime ? dscStatusTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const map = {
+            local: ['💾', 'Saved on this device only.', 'Connect Google Drive', 'dscConnect()'],
+            connecting: ['⏳', 'Connecting to Google Drive…'],
+            loading: ['⏳', 'Loading from Drive…'],
+            saving: ['⏳', 'Saving to Drive…'],
+            synced: ['☁️', 'Synced with Drive' + (tm ? ' at ' + tm : '') + '.'],
+            error: ['⚠️', 'Drive sync failed. Your data is safe on this device.', 'Retry', 'dscRetry()'],
+            expired: ['🔑', 'Drive session expired.', 'Reconnect', 'dscConnect()']
+        };
+        const m = map[dscStatus] || map.local;
+        el.innerHTML = '<div class="dsc-sync"><span>' + m[0] + ' ' + m[1] + '</span>' + (m[2] ? '<button type="button" class="dsc-btn" onclick="' + m[3] + '">' + m[2] + '</button>' : '') + '</div>';
+    }
+
+    function dscSetStatus(s) {
+        dscStatus = s;
+        if (s === 'synced') dscStatusTime = new Date();
+        dscRenderSync();
+    }
+
+    // ── Backup ────────────────────────────────────────────
+    function dscExport() {
+        const blob = new Blob([JSON.stringify(dsc, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'discipline_backup_' + dscTodayStr() + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function dscImport(ev) {
+        const f = ev.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = function (e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!data || !data.days) throw new Error('Not a Discipline backup');
+                if (!confirm('Merge this backup into your Discipline data? Newer entries win; nothing is deleted.')) { ev.target.value = ''; return; }
+                dscMerge(data);
+                dscSaveLocal();
+                dscScheduleSave();
+                dscRender();
+                alert('Backup merged.');
+            } catch (err) { alert('Import failed: ' + err.message); }
+            ev.target.value = '';
+        };
+        r.readAsText(f);
+    }
+
+    // ── Merge (per-day, newest updatedAt wins) ────────────
+    // Returns true if local has anything the remote lacks (so we should push)
+    function dscMerge(remote) {
+        let localAhead = false;
+        if (!remote || typeof remote !== 'object') return true;
+        if (remote.settings && remote.settingsUpdatedAt && (!dsc.settingsUpdatedAt || remote.settingsUpdatedAt > dsc.settingsUpdatedAt)) {
+            dsc.settings = Object.assign(dscDefaults(), remote.settings);
+            dsc.settingsUpdatedAt = remote.settingsUpdatedAt;
+        } else if (dsc.settingsUpdatedAt && (!remote.settingsUpdatedAt || dsc.settingsUpdatedAt > remote.settingsUpdatedAt)) {
+            localAhead = true;
+        }
+        const rd = remote.days || {};
+        Object.keys(rd).forEach(function (k) {
+            const l = dsc.days[k];
+            if (!l || (rd[k].updatedAt || '') > (l.updatedAt || '')) dsc.days[k] = rd[k];
+            else if ((l.updatedAt || '') > (rd[k].updatedAt || '')) localAhead = true;
+        });
+        Object.keys(dsc.days).forEach(function (k) { if (!rd[k]) localAhead = true; });
+        return localAhead;
+    }
+
+    // ── Drive sync (own file, own token handling) ─────────
+    async function dscDriveFetch(url, opts) {
+        const o = Object.assign({}, opts || {});
+        o.headers = Object.assign({ 'Authorization': 'Bearer ' + dscToken }, o.headers || {});
+        const r = await fetch(url, o);
+        if (r.status === 401) { dscToken = null; dscDriveReady = false; dscSetStatus('expired'); throw new Error('401'); }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r;
+    }
+
+    async function dscFindFile() {
+        const q = encodeURIComponent("name='" + DSC_FILE + "' and trashed=false");
+        const r = await dscDriveFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc&spaces=drive');
+        const j = await r.json();
+        return (j.files && j.files.length) ? j.files[0].id : null;
+    }
+
+    async function dscLoadFromDrive(silent) {
+        if (!dscToken) return;
+        if (!silent) dscSetStatus('loading');
+        try {
+            dscDriveFileId = await dscFindFile();
+            let localAhead = true;
+            if (dscDriveFileId) {
+                const r = await dscDriveFetch('https://www.googleapis.com/drive/v3/files/' + dscDriveFileId + '?alt=media');
+                const remote = await r.json();
+                localAhead = dscMerge(remote);
+            }
+            dscDriveReady = true;
+            dscLastPull = Date.now();
+            dscSaveLocal();
+            dscSetStatus('synced');
+            dscRenderSoft();
+            if (localAhead) dscScheduleSave();
+        } catch (e) {
+            console.warn('Discipline: Drive load failed', e);
+            if (dscStatus !== 'expired') dscSetStatus('error');
+        }
+    }
+
+    function dscScheduleSave() {
+        dscDirty = true;
+        if (!dscToken || !dscDriveReady) return;
+        if (dscSaving) { dscSaveAgain = true; return; }
+        clearTimeout(dscSaveTimer);
+        dscSaveTimer = setTimeout(dscSaveToDrive, 1500);
+    }
+
+    async function dscSaveToDrive() {
+        if (!dscToken || !dscDriveReady || dscSaving) return;
+        dscSaving = true;
+        dscDirty = false;
+        dscSetStatus('saving');
+        let failed = false;
+        try {
+            const body = JSON.stringify({ settings: dsc.settings, settingsUpdatedAt: dsc.settingsUpdatedAt, days: dsc.days, lastUpdated: new Date().toISOString() });
+            if (!dscDriveFileId) dscDriveFileId = await dscFindFile();
+            if (!dscDriveFileId) {
+                const meta = await dscDriveFetch('https://www.googleapis.com/drive/v3/files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: DSC_FILE, mimeType: 'application/json' })
+                }).then(function (r) { return r.json(); });
+                dscDriveFileId = meta.id;
+            }
+            await dscDriveFetch('https://www.googleapis.com/upload/drive/v3/files/' + dscDriveFileId + '?uploadType=media', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: body
+            });
+            dscSetStatus('synced');
+        } catch (e) {
+            failed = true;
+            dscDirty = true;
+            console.warn('Discipline: Drive save failed', e);
+            if (dscStatus !== 'expired') dscSetStatus('error');
+        } finally {
+            dscSaving = false;
+            if (dscSaveAgain && !failed) { dscSaveAgain = false; dscScheduleSave(); }
+            else dscSaveAgain = false;
+        }
+    }
+
+    function dscWantDrive() {
+        try { return localStorage.getItem('discipline_drive') === '1' || (typeof useDriveSync !== 'undefined' && useDriveSync); }
+        catch (e) { return false; }
+    }
+
+    function dscRequestToken(interactive) {
+        if (typeof tokenClient === 'undefined' || !tokenClient || typeof gisInited === 'undefined' || !gisInited) {
+            if (interactive) alert('Google sign-in is still loading. Try again in a few seconds.');
+            else dscSetStatus('local');
+            return;
+        }
+        dscSetStatus('connecting');
+        tokenClient.callback = function (resp) {
+            clearTimeout(dscConnectTimer);
+            if (!resp || resp.error || !resp.access_token) { dscSetStatus('local'); return; }
+            dscToken = resp.access_token;
+            try { localStorage.setItem('discipline_drive', '1'); } catch (e) { }
+            dscLoadFromDrive();
+        };
+        const prior = (function () { try { return localStorage.getItem('discipline_drive') === '1'; } catch (e) { return false; } })();
+        tokenClient.requestAccessToken({ prompt: (interactive && !prior) ? 'consent' : '' });
+        if (!interactive) {
+            clearTimeout(dscConnectTimer);
+            dscConnectTimer = setTimeout(function () { if (dscStatus === 'connecting') dscSetStatus('local'); }, 8000);
+        }
+    }
+
+    function dscConnect() { dscRequestToken(true); }
+    function dscRetry() { if (!dscToken) dscRequestToken(true); else dscLoadFromDrive(); }
+
+    function dscDriveInit(tries) {
+        tries = tries || 0;
+        // Reuse the main journal's token when it already has one (desktop with Drive sync on)
+        if (typeof accessToken !== 'undefined' && accessToken) {
+            dscToken = accessToken;
+            try { localStorage.setItem('discipline_drive', '1'); } catch (e) { }
+            dscLoadFromDrive();
+            return;
+        }
+        if (!dscWantDrive()) { dscSetStatus('local'); return; }
+        const mainLoading = (typeof useDriveSync !== 'undefined' && useDriveSync && typeof driveHasLoaded !== 'undefined' && !driveHasLoaded);
+        const gisReady = (typeof gisInited !== 'undefined' && gisInited);
+        if ((!gisReady || mainLoading) && tries < 24) { setTimeout(function () { dscDriveInit(tries + 1); }, 500); return; }
+        dscRequestToken(false);
+    }
+
+    // Flush on leaving, refresh on returning (phone <-> desktop)
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            if (dscDirty && dscToken && dscDriveReady) { clearTimeout(dscSaveTimer); dscSaveToDrive(); }
+        } else if (dscToken && dscDriveReady && !dscDirty && !dscSaving && Date.now() - dscLastPull > 60000) {
+            dscLoadFromDrive(true);
+        }
+    });
+    window.addEventListener('pagehide', function () {
+        if (dscDirty && dscToken && dscDriveReady) { clearTimeout(dscSaveTimer); dscSaveToDrive(); }
+    });
+
+    // ── Init ──────────────────────────────────────────────
+    dsc = dscLoadLocal();
+    dscDate = dscTodayStr();
+    dscRender();
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            if (location.hash === '#discipline') {
+                const nav = document.querySelector('.nav-item[onclick*="discipline"]');
+                if (nav) nav.click();
+            }
+        }, 200);
+        setTimeout(dscDriveInit, 1800);
     });
     </script>
     <!-- Drive Sync Status Widget - Fixed Bottom Left -->
