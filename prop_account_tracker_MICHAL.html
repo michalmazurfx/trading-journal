@@ -6858,8 +6858,8 @@
     const DSC_KEY = 'discipline';
     const DSC_FILE = 'discipline_journal.json';
     const DSC_PILLARS = ['trading', 'training', 'nutrition', 'alcohol', 'sleep'];
-    const DSC_PLAN = { 0: 'Rest day', 1: 'Kickboxing', 2: 'Upper lift', 3: 'Kickboxing', 4: 'Lower lift', 5: 'Floating: padel or 3rd lift', 6: 'Floating: padel or 3rd lift' };
-    const DSC_TYPES = ['', 'Kickboxing', 'Upper lift', 'Lower lift', 'Full body / 3rd lift', 'Padel', 'Zone 2', 'Rest day'];
+    const DSC_TYPES = ['Kickboxing', 'Upper body', 'Lower body', 'Full body', 'Padel', 'Zone 2', 'Rest day'];
+    const DSC_REST = 'Rest day';
 
     // All state declared up front (hoisting lesson from the main journal)
     let dsc = null;
@@ -6927,7 +6927,7 @@
         return {
             snapshot: { proteinMinG: s.proteinMinG, kcalCap: s.kcalCap, sleepMinH: s.sleepMinH, windowStart: s.windowStart, windowEnd: s.windowEnd, supps: dscSuppList().map(dscSuppCopy) },
             trading: { count: null, inWindow: false, platformClosed: false, riskFixed: false, journaled: false },
-            training: { done: false, type: '' },
+            training: { done: false, type: '', types: [] },
             nutrition: { proteinG: null, underKcal: false },
             alcohol: { drank: null },
             sleep: { hours: null, bedtime: '' },
@@ -7042,6 +7042,28 @@
         let v = dscDay(dscDate);
         p.forEach(function (k) { v = v[k]; });
         dscSetPath(path, !v);
+    }
+
+    // Training activities: several per day, in the order tapped. Old single `type` values still show up.
+    function dscActivities(d) {
+        const t = d.training;
+        return (t.types && t.types.length) ? t.types.slice() : (t.type ? [t.type] : []);
+    }
+    function dscActivityOptions(d) {
+        return DSC_TYPES.concat(dscActivities(d).filter(function (x) { return DSC_TYPES.indexOf(x) < 0; }));
+    }
+    function dscToggleActivity(i) {
+        const name = dscActivityOptions(dscDay(dscDate))[i];
+        if (!name) return;
+        dscUpdate(function (d) {
+            const a = dscActivities(d);
+            const k = a.indexOf(name);
+            if (k >= 0) a.splice(k, 1);
+            else if (name === DSC_REST) { a.length = 0; a.push(name); }          // rest day excludes activities
+            else { const r = a.indexOf(DSC_REST); if (r >= 0) a.splice(r, 1); a.push(name); }
+            d.training.types = a;
+            d.training.type = '';
+        });
     }
 
     function dscNum(path, raw, min, max) {
@@ -7369,11 +7391,11 @@
         h += dscCard('📈 Trading', ev.trading, past, ti);
 
         // Training
-        const plan = DSC_PLAN[dscParse(date).getDay()];
-        const isRest = dscParse(date).getDay() === 0;
-        let tri = '<div class="dsc-hint">Planned: ' + plan + '</div><div class="dsc-row"><div class="dsc-field"><select class="dsc-input" onchange="dscSetPath(\'training.type\', this.value)">' +
-            DSC_TYPES.map(function (x) { return '<option value="' + x + '"' + (d.training.type === x ? ' selected' : '') + '>' + (x || 'What did you do?') + '</option>'; }).join('') +
-            '</select></div></div><div class="dsc-row">' +
+        const acts = dscActivities(d);
+        const isRest = acts.indexOf(DSC_REST) >= 0;
+        let tri = '<div class="dsc-hint">What did you do? Tap all that apply.</div><div class="dsc-row">' +
+            dscActivityOptions(d).map(function (x, i) { return dscBtn(dscEsc(x), acts.indexOf(x) >= 0, 'dscToggleActivity(' + i + ')'); }).join('') +
+            '</div><div class="dsc-row">' +
             dscBtn(isRest ? 'Rest day respected' : 'Session done', d.training.done, "dscTog('training.done')") + '</div>';
         h += dscCard('🏋️ Training', ev.training, past, tri);
 
