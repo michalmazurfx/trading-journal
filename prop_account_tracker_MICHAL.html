@@ -1071,15 +1071,6 @@
         .switch input:checked + span + span {
             transform: translateX(26px);
         }
-    
-        /* Hide account selection for R journal */
-        #dropdownMenu, .dropdown-header, [onclick*="applyToAll"], [onclick*="clearSelection"] {
-            display: none !important;
-        }
-        #accountsGrid {
-            display: none !important;
-        }
-
 
         /* ═══ DISCIPLINE TAB ═══ */
         .dsc-wrap { max-width: 720px; margin: 0 auto; }
@@ -1270,23 +1261,6 @@
                 <h2>📝 Log Trade</h2>
                 <p style="margin-bottom: 20px; color: #7f8c8d;">Track your R-based performance</p>
                 
-                <div class="input-group">
-                    <label>Select Accounts</label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button type="button" class="btn" onclick="applyToAll()" style="width: auto; padding: 10px 20px; margin: 0;">Apply to All Accounts</button>
-                        <button type="button" class="btn" onclick="clearSelection()" style="width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);">Clear Selection</button>
-                    </div>
-                    <div class="custom-dropdown">
-                        <div class="dropdown-header" onclick="toggleDropdown()">
-                            <span id="dropdownText">Click to select accounts...</span>
-                            <span style="float: right;">▼</span>
-                        </div>
-                        <div class="dropdown-menu" id="dropdownMenu">
-                            <!-- Account checkboxes will be generated here -->
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="input-row">
                     <div class="input-group">
                         <label>Result</label>
@@ -1308,7 +1282,7 @@
                         <input type="checkbox" id="excludeFromStats" style="width: 18px; height: 18px; cursor: pointer;">
                         <span style="font-weight: 600; color: #2c3e50;">Exclude from Win Rate & R Stats</span>
                     </label>
-                    <p style="margin: 5px 0 0 26px; font-size: 0.85em; color: #7f8c8d;">Use when entering same setup with different risk per account</p>
+                    <p style="margin: 5px 0 0 26px; font-size: 0.85em; color: #7f8c8d;">Use to keep an outlier trade in your journal without it skewing your win rate / R stats</p>
                 </div>
                 
                 <div class="input-row">
@@ -1385,20 +1359,8 @@
                 </div>
                 
                 <div id="planCheck"></div>
-                <div id="riskAlert"></div>
-                
-                <!-- Collapsible Preview Section -->
-                <div class="collapsible-section">
-                    <div class="collapsible-header" onclick="toggleSection('previewSection')">
-                        <span>📊 Trade Preview</span>
-                        <span class="toggle-icon">▼</span>
-                    </div>
-                    <div id="previewSection" class="collapsible-content" style="display: none;">
-                        <div id="batchPreview"></div>
-                    </div>
-                </div>
-                
-                <button class="btn" onclick="logBatchTrade()">Add Trade to Selected Accounts</button>
+
+                <button class="btn" onclick="logBatchTrade()">Add Trade</button>
                 
                 <!-- Collapsible How It Works Section -->
                 <div class="collapsible-section" style="margin-top: 20px;">
@@ -2282,6 +2244,29 @@
         }
 
         async function migrateLocalDataToDrive() {
+            // Safety guard: never overwrite an existing Drive journal with an empty or
+            // different browser copy (e.g. the file opened from a new location/browser).
+            try {
+                const existingId = await findDriveFile();
+                if (existingId) {
+                    const lt = localStorage.getItem('propTrades');
+                    const localCount = lt ? (JSON.parse(lt) || []).length : 0;
+                    const load = localCount === 0 || confirm(`A journal already exists in your Google Drive.\n\nOK = load the Drive journal (recommended, nothing is overwritten)\nCancel = REPLACE the Drive journal with the ${localCount} trades in this browser`);
+                    if (load) {
+                        driveFileId = existingId;
+                        useDriveSync = true;
+                        localStorage.setItem('useDriveSync', 'true');
+                        updateDriveStatus('Found your Drive journal - loading...', null);
+                        alert('✅ Found your journal in Google Drive. The page will reload and load it.');
+                        location.reload();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Drive check failed, not migrating:', e);
+                alert('❌ Could not check Google Drive, so nothing was changed. Please try again.');
+                return;
+            }
             const localTrades = localStorage.getItem('propTrades');
             const localAccounts = localStorage.getItem('propAccounts');
             const localModels = localStorage.getItem('propModels');
@@ -4029,7 +4014,11 @@
         }
         
         function generateAccountOptions() {
+            // Select-Accounts UI was removed from Log Trade (single-account journal now) -
+            // this is kept only because Settings/Drive-load code still calls it; it's a
+            // no-op without the dropdown markup in the page.
             const menu = document.getElementById('dropdownMenu');
+            if (!menu) return;
             menu.innerHTML = Object.keys(ACCOUNTS).map(accountId => {
                 const account = ACCOUNTS[accountId];
                 return `
@@ -4044,6 +4033,7 @@
         
         function toggleDropdown() {
             const menu = document.getElementById('dropdownMenu');
+            if (!menu) return;
             menu.classList.toggle('open');
         }
         
@@ -4069,15 +4059,17 @@
             event.stopPropagation();
             
             const checkbox = document.getElementById('acc_' + accountId);
+            if (!checkbox) return;
             checkbox.checked = !checkbox.checked;
             updateDropdownText();
             updateBatchPreview();
         }
-        
+
         function updateDropdownText() {
             const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
             const text = document.getElementById('dropdownText');
-            
+            if (!text) return;
+
             if (checkboxes.length === 0) {
                 text.textContent = 'Click to select accounts...';
             } else if (checkboxes.length === Object.keys(ACCOUNTS).length) {
@@ -4149,55 +4141,12 @@
         updateResultHint();
         
         function updateBatchPreview() {
-            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
-            const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
-            
-            const basePnl = parseFloat(document.getElementById('tradeRValue').value) || 0;
-            const riskSize = parseFloat(document.getElementById('tradeRiskSize').value) || 1;
-            const baseRisk = Math.abs(basePnl);
-            const rLabel = riskSize === 1 ? '1R' : '0.5R';
-            
-            const previewDiv = document.getElementById('batchPreview');
-            const alertDiv = document.getElementById('riskAlert');
-            
-            if (selectedAccounts.length === 0) {
-                previewDiv.innerHTML = '';
-                alertDiv.innerHTML = '';
-                return;
-            }
-            
-            let previewHtml = `<div class="alert alert-info" style="margin-top: 15px;"><strong>Trade Preview (${rLabel}):</strong><br>`;
-            let hasWarning = false;
-            let hasDanger = false;
-            
-            selectedAccounts.forEach(accountId => {
-                const account = ACCOUNTS[accountId];
-                const actualPnl = basePnl * account.multiplier;
-                const actualRisk = baseRisk * account.multiplier;
-                const rValue = actualRisk > 0 ? (actualPnl / actualRisk) * riskSize : 0;
-                
-                previewHtml += `${account.name}: `;
-                previewHtml += actualPnl >= 0 ? `+$${actualPnl.toFixed(2)}` : `$${actualPnl.toFixed(2)}`;
-                previewHtml += ` (${rValue >= 0 ? '+' : ''}${rValue.toFixed(2)}R, Risk: $${actualRisk.toFixed(0)})<br>`;
-                
-                if (actualRisk > account.maxRisk) hasDanger = true;
-                else if (actualRisk < account.minRisk && actualRisk > 0) hasWarning = true;
-            });
-            
-            previewHtml += '</div>';
-            previewDiv.innerHTML = previewHtml;
-            alertDiv.innerHTML = '';
+            // Was a per-account $ risk preview for the old multi-account version.
+            // No-op now - single account, no dollar/multiplier preview needed.
         }
-        
+
         function logBatchTrade() {
-            const checkboxes = document.querySelectorAll('#dropdownMenu input[type="checkbox"]:checked');
-            const selectedAccounts = Array.from(checkboxes).map(cb => cb.value);
-            
-            if (selectedAccounts.length === 0) {
-                alert('Please select at least one account');
-                return;
-            }
-            
+
             const type = document.getElementById('tradeType').value;
             const result = document.getElementById('tradeResult').value;
             const symbol = document.getElementById('tradeSymbol').value;
@@ -4233,52 +4182,54 @@
             processScreenshot.then(screenshotData => {
                 const timestamp = Date.now();
                 
-                selectedAccounts.forEach((accountId, index) => {
-                    const trade = {
-                        id: timestamp + index,
-                        batchId: timestamp,
-                        account: accountId,
-                        type: type,
-                        result: result,
-                        symbol: symbol,
-                        direction: direction,
-                        model: model,
-                        grade: grade,
-                        riskSize: riskSize,
-                        rValue: rValue,
-                        pnl: rValue * 100, // keep for compatibility
-                        date: date,
-                        entryTime: entryTime,
-                        exitTime: exitTime,
-                        screenshot: screenshotData,
-                        note: note,
-                        excludeFromStats: excludeFromStats,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    trades.push(trade);
-                });
-                
+                // Single-account journal: always exactly one trade record, tagged with
+                // the same account id every one of your existing trades already uses
+                // (checked against your actual Drive backup - all 327 trades use
+                // 'acc_1772714182759'; a new trade must match that, or it would silently
+                // become invisible to any account-filtered view instead of showing up
+                // alongside your history).
+                const EXISTING_ACCOUNT_ID = 'acc_1772714182759';
+                const trade = {
+                    id: timestamp,
+                    batchId: timestamp,
+                    account: (trades.length > 0 && trades[trades.length - 1].account) || EXISTING_ACCOUNT_ID,
+                    type: type,
+                    result: result,
+                    symbol: symbol,
+                    direction: direction,
+                    model: model,
+                    grade: grade,
+                    riskSize: riskSize,
+                    rValue: rValue,
+                    pnl: rValue * 100, // keep for compatibility
+                    date: date,
+                    entryTime: entryTime,
+                    exitTime: exitTime,
+                    screenshot: screenshotData,
+                    note: note,
+                    excludeFromStats: excludeFromStats,
+                    timestamp: new Date().toISOString()
+                };
+
+                trades.push(trade);
+
                 // Save to localStorage WITHOUT screenshots (to avoid quota)
                 saveTradesToLocalStorage();
-                
+
                 // Trigger Drive sync for full data INCLUDING screenshots
                 if (useDriveSync) {
                     clearTimeout(window.syncTimeout);
                     window.syncTimeout = setTimeout(syncToDrive, 1000);
                 }
-                
-                // Post to Discord (use first trade in batch as representative)
-                postTradeToDiscord(trades[trades.length - selectedAccounts.length]);
-                
+
+                postTradeToDiscord(trade);
+
                 // Clear inputs
                 document.getElementById('tradeRValue').selectedIndex = 0;
                 document.getElementById('tradeNote').value = '';
                 document.getElementById('tradeScreenshot').value = '';
                 document.getElementById('excludeFromStats').checked = false;
-                document.getElementById('batchPreview').innerHTML = '';
-                document.getElementById('riskAlert').innerHTML = '';
-                
+
                 // Reset to defaults
                 document.getElementById('tradeType').value = 'system';
                 document.getElementById('tradeResult').value = 'win';
@@ -4288,26 +4239,15 @@
                 document.getElementById('tradeGrade').value = 'A';
                 document.getElementById('excludeFromStats').checked = false;
                 updateResultHint();
-                
-                // Don't clear selection - keep accounts selected
-                
+
                 const now = new Date();
                 document.getElementById('tradeDate').valueAsDate = now;
                 document.getElementById('tradeEntryTime').value = now.toTimeString().slice(0,5);
                 document.getElementById('tradeExitTime').value = now.toTimeString().slice(0,5);
-                
-                
-        // Auto-select all accounts for R journal
-        setTimeout(() => {
-            document.querySelectorAll('#dropdownMenu input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-            });
-            updateDropdownText();
-        }, 100);
 
-        updateDisplay();
-                
-                alert(`✅ Trade added to ${selectedAccounts.length} account(s)`);
+                updateDisplay();
+
+                alert('✅ Trade logged!');
             }).catch(error => {
                 console.error('Error processing trade:', error);
                 if (error.name === 'QuotaExceededError') {
