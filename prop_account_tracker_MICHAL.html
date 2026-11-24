@@ -2089,6 +2089,19 @@
                 client_id: GOOGLE_CLIENT_ID,
                 scope: GOOGLE_SCOPES,
                 callback: '', // Will be set per request
+                // Browsers increasingly block any OAuth popup that isn't triggered directly
+                // by a user click (a mouse/key event in the call stack). Our automatic
+                // page-load attempt to connect to Drive is NOT a user gesture, so when a
+                // popup can't be shown, Google reports it here instead of ever calling our
+                // per-request callback - without this, that failure was silent and the app
+                // just sat on "Checking..." forever until the user clicked a button.
+                error_callback: (err) => {
+                    console.warn('⚠️ Google OAuth error/blocked:', err);
+                    driveLoadInProgress = false;
+                    driveHasLoaded = true; // unblock M15 + sync gating even though auth failed
+                    hideLoadingOverlay();
+                    updateDriveStatus('Click "Load from Drive" to connect', null);
+                }
             });
             gisInited = true;
             maybeEnableButtons();
@@ -2101,7 +2114,7 @@
                     console.log('🔄 Auto-loading from Drive...');
                     updateDriveStatus('Loading...', null);
                     showLoadingOverlay();
-                    loadDataFromDrive();
+                    loadDataFromDrive(true); // true = this is the automatic page-load attempt
                 } else {
                     // Check if user wants to enable Drive sync
                     updateDriveStatus('Not enabled', null);
@@ -2354,10 +2367,14 @@
             }
         }
         
-        async function loadDataFromDrive() {
+        async function loadDataFromDrive(isAutoLoad = false) {
             tokenClient.callback = async (resp) => {
                 if (resp.error !== undefined) {
                     console.error('Auth error loading from Drive:', resp);
+                    driveLoadInProgress = false;
+                    driveHasLoaded = true;
+                    hideLoadingOverlay();
+                    updateDriveStatus('Click "Load from Drive" to connect', null);
                     return;
                 }
                 accessToken = gapi.client.getToken().access_token;
@@ -2439,14 +2456,24 @@
                     alert('⚠️ Could not load data from Drive. Check console for details.');
                 }
             };
-            
-            if (gapi.client.getToken() === null) {
+
+            if (isAutoLoad) {
+                // This call happens automatically on page load (no click behind it), so it is
+                // NEVER allowed to pop the interactive 'consent' window - browsers silently
+                // block OAuth popups that aren't triggered by a direct user gesture, which is
+                // exactly why Drive stopped auto-loading: the popup was being blocked with no
+                // visible error, so the page just sat there until the user clicked a button
+                // themselves. Always request silently here; if there's no existing Google
+                // session to reuse, error_callback above (or resp.error here) catches it and
+                // tells the user to click "Load from Drive" instead of hanging forever.
+                tokenClient.requestAccessToken({prompt: ''});
+            } else if (gapi.client.getToken() === null) {
                 tokenClient.requestAccessToken({prompt: 'consent'});
             } else {
                 tokenClient.requestAccessToken({prompt: ''});
             }
         }
-        
+
         function manualLoadFromDrive() {
             if (!gapiInited || !gisInited) {
                 alert('⏳ Google APIs still loading... Please wait a moment and try again.');
