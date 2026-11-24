@@ -1754,6 +1754,9 @@
                             Auto-sync to Google Drive. <strong style="color:#e74c3c;">Warning:</strong> Use manual backup instead if you experience issues.
                         </p>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn" onclick="enableDriveSync()" style="width:auto; padding:10px 20px; background:#ea4335;">
+                                🔗 Connect Google Drive
+                            </button>
                             <button class="btn" onclick="manualLoadFromDrive()" style="width:auto; padding:10px 20px; background:#4285f4;">
                                 📥 Load from Drive
                             </button>
@@ -2210,11 +2213,17 @@
             if (localTrades) {
                 const tradeCount = JSON.parse(localTrades).length;
                 if (tradeCount > 0) {
+                    // Used to call enableDriveSync() straight out of this timer's confirm()
+                    // dialog. That chain (page-load timer -> confirm() -> requestAccessToken)
+                    // has no real click behind it by the time Google's popup opens, and
+                    // browsers are inconsistent about honoring it as a user gesture - some
+                    // showed the full consent screen ("Continue" and all), others silently
+                    // cut it short right after account selection. Now it just points at the
+                    // real "Connect Google Drive" button in Settings, which is a direct click
+                    // every time and never has this problem.
                     setTimeout(() => {
-                        if (confirm(`📊 Found ${tradeCount} trades in browser storage.\n\n🔄 Enable Google Drive sync?\n\n✓ Unlimited storage\n✓ Never lose data\n✓ Sync across devices\n\nClick OK to enable, or Cancel to continue with browser storage.`)) {
-                            enableDriveSync();
-                        }
-                    }, 2000);
+                        updateDriveStatus(`Not enabled - ${tradeCount} local trades found, click "Connect Google Drive" below to sync`, null);
+                    }, 1000);
                 }
             }
         }
@@ -2237,13 +2246,17 @@
                 await migrateLocalDataToDrive();
             };
 
-            if (gapi.client.getToken() === null) {
-                tokenClient.requestAccessToken({prompt: 'consent'});
-            } else {
-                tokenClient.requestAccessToken({prompt: ''});
-            }
+            // Always force the full interactive consent screen here. Branching on
+            // gapi.client.getToken() === null to pick 'consent' vs '' was unreliable -
+            // stale token state left over from an earlier attempt in this same page
+            // session could silently send this down the '' (silent) path, which can't
+            // show Google's permission/"Continue" screen for a scope not already granted
+            // - so account selection would complete but login would never finish. This
+            // function is only ever reached from a direct button click, so the popup is
+            // never blocked, and forcing 'consent' here is always safe.
+            tokenClient.requestAccessToken({prompt: 'consent'});
         }
-        
+
         async function migrateLocalDataToDrive() {
             const localTrades = localStorage.getItem('propTrades');
             const localAccounts = localStorage.getItem('propAccounts');
