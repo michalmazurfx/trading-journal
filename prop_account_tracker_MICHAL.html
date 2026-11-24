@@ -1384,6 +1384,7 @@
                     <input type="text" id="tradeNote" placeholder="e.g., FOMO after missing setup">
                 </div>
                 
+                <div id="planCheck"></div>
                 <div id="riskAlert"></div>
                 
                 <!-- Collapsible Preview Section -->
@@ -1428,6 +1429,13 @@
             </div>
         </div>
         
+        <!-- Account vs Journal -->
+        <div class="card">
+            <h2>🔍 Account vs Journal</h2>
+            <p style="margin-bottom: 16px; color: var(--text-secondary);">After the session, type the real $ result of your lead account. It is compared with the journal R × your base risk, so any trade or size outside the plan shows up as a gap.</p>
+            <div id="plan-check-root"></div>
+        </div>
+
         <!-- Trade History -->
         <div class="card">
             <h2>📜 Trade History</h2>
@@ -1586,11 +1594,26 @@
                     
                     <!-- System vs Off-System -->
                     <div class="card">
-                        <h2>🧠 Discipline Impact</h2>
+                        <h2>🧭 On Plan vs Off Plan</h2>
                         <div id="perf-discipline"><div class="no-data">No trades yet</div></div>
                     </div>
                 </div>
                 
+                <div class="content-grid" style="margin-top: 20px;">
+                    <div class="card">
+                        <h2>🕐 By Macro Window (NY)</h2>
+                        <div id="perf-byWindow"><div class="no-data">No trades yet</div></div>
+                    </div>
+                    <div class="card">
+                        <h2>🔢 By Trade # of the Day</h2>
+                        <div id="perf-byTradeNum"><div class="no-data">No trades yet</div></div>
+                    </div>
+                    <div class="card">
+                        <h2>↩️ After the Previous Trade</h2>
+                        <div id="perf-byPrev"><div class="no-data">No trades yet</div></div>
+                    </div>
+                </div>
+
                 <!-- BE Trades breakdown -->
                 <div class="card" style="margin-top: 20px;">
                     <h2>🟡 BE Trade Breakdown</h2>
@@ -2387,6 +2410,8 @@
                 symbols: SYMBOLS,
                 payouts: payouts,
                 costs: costs,
+                acctChecks: (window.acctChecks || []),
+                planSettings: (window.planSettings || null),
                 lastUpdated: new Date().toISOString()
             };
             
@@ -2449,6 +2474,7 @@
                         if (data.costs) {
                             costs = data.costs;
                         }
+                        if (window.__applyPlanData) window.__applyPlanData(data);
                         
                         console.log('✅ Data loaded from Google Drive');
                         updateDriveStatus('Loaded from Drive', data.lastUpdated);
@@ -2648,6 +2674,8 @@
                 symbols: SYMBOLS,
                 payouts: payouts,
                 costs: costs,
+                acctChecks: (window.acctChecks || []),
+                planSettings: (window.planSettings || null),
                 exportDate: new Date().toISOString(),
                 version: '1.0'
             };
@@ -2700,6 +2728,7 @@
                     if (data.symbols) SYMBOLS = data.symbols;
                     if (data.payouts) payouts = data.payouts || [];
                     if (data.costs) costs = data.costs || [];
+                    if (window.__applyPlanData) window.__applyPlanData(data);
                     
                     console.log('After assignment - trades with screenshots:', trades.filter(t => t.screenshot).length);
                     
@@ -5078,8 +5107,8 @@
                 ['perf-totalTrades','perf-winRate','perf-totalR','perf-winStreak','perf-lossStreak'].forEach(id => {
                     document.getElementById(id).textContent = '-';
                 });
-                ['perf-byModel','perf-byGrade','perf-byDirection','perf-discipline','perf-beTrades'].forEach(id => {
-                    document.getElementById(id).innerHTML = '<div class="no-data">No trades yet</div>';
+                ['perf-byModel','perf-byGrade','perf-byDirection','perf-discipline','perf-beTrades','perf-byWindow','perf-byTradeNum','perf-byPrev'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.innerHTML = '<div class="no-data">No trades yet</div>';
                 });
                 return;
             }
@@ -5152,7 +5181,7 @@
             document.getElementById('perf-byDirection').innerHTML = renderPerfBreakdown(dirGroups);
             
             // Discipline Impact - hidden for R journal (no type field)
-            document.getElementById('perf-discipline').innerHTML = '<div class="no-data">All trades are system trades</div>';
+            if (window.planRenderPerf) planRenderPerf(statsOnly);
             
             // BE trades
             if (beTrades.length === 0) {
@@ -5562,6 +5591,7 @@
                                     trade.result === 'loss' ? '🔴 LOSS' : 
                                     trade.result === 'be_win' ? '🟡 BE/WIN' : '🟡 BE/LOSS'
                                 }</span>` : ''}
+                                ${window.planBadge ? planBadge(trade) : ''}
                                 ${accountCount > 1 ? `<span style="margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; background: #e3f2fd; color: #0d47a1;">📊 ${accountCount} accounts</span>` : `<span style="margin-left: 10px; font-weight: 600; color: #2c3e50;">${account.name}</span>`}
                             </div>
                             <div class="trade-pnl ${displayR !== null ? (displayR >= 0 ? 'profit' : 'loss') : (displayPnl >= 0 ? 'profit' : 'loss')}">
@@ -7772,5 +7802,308 @@
         </div>
     </div>
     
+    <script>
+    // ═══════════════════════════════════════════════════════
+    // PLAYBOOK RULES — account vs journal check, rule flags, window analytics
+    // All trade times are New York time.
+    // ═══════════════════════════════════════════════════════
+    var PLAN_DEFAULTS = {
+        baseRisk: 250,          // $ per 1R on the lead account
+        allowedGap: 50,         // $ difference tolerated (commissions, slippage)
+        windows: '09:50-10:10, 10:50-11:10, 11:50-12:10',
+        dailyStopR: 1,          // stop for the day once the day is at -1R
+        blockedModel: 'model3', // model id that is off-plan
+        offGrades: ['C', 'troll']
+    };
+    var planSettings = (function () {
+        try { return Object.assign({}, PLAN_DEFAULTS, JSON.parse(localStorage.getItem('planSettings') || '{}')); }
+        catch (e) { return Object.assign({}, PLAN_DEFAULTS); }
+    })();
+    var acctChecks = (function () {
+        try { return JSON.parse(localStorage.getItem('acctChecks') || '[]'); } catch (e) { return []; }
+    })();
+    window.planSettings = planSettings;
+    window.acctChecks = acctChecks;
+
+    function planPersist() {
+        window.planSettings = planSettings; window.acctChecks = acctChecks;
+        try {
+            localStorage.setItem('planSettings', JSON.stringify(planSettings));
+            localStorage.setItem('acctChecks', JSON.stringify(acctChecks));
+        } catch (e) { console.warn('Plan data localStorage save failed:', e); }
+        if (typeof useDriveSync !== 'undefined' && useDriveSync && typeof syncToDrive === 'function') {
+            clearTimeout(window.syncTimeout);
+            window.syncTimeout = setTimeout(syncToDrive, 1000);
+        }
+    }
+    // Called from the Drive load / JSON import code
+    window.__applyPlanData = function (data) {
+        if (data && Array.isArray(data.acctChecks)) acctChecks = data.acctChecks;
+        if (data && data.planSettings) planSettings = Object.assign({}, PLAN_DEFAULTS, data.planSettings);
+        window.planSettings = planSettings; window.acctChecks = acctChecks;
+        try {
+            localStorage.setItem('planSettings', JSON.stringify(planSettings));
+            localStorage.setItem('acctChecks', JSON.stringify(acctChecks));
+        } catch (e) {}
+        planRenderAll();
+    };
+
+    function planEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function planMin(t) { var m = /^\s*(\d{1,2}):(\d{2})/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+    function planFmtMin(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+    function planToday() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function planMoney(v) { return (v < 0 ? '-$' : '+$') + Math.abs(v).toFixed(0); }
+    function planR(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + 'R'; }
+
+    function planWindows() {
+        return String(planSettings.windows || '').split(',').map(function (w) {
+            var p = w.trim().split('-'); var a = planMin(p[0]), b = planMin(p[1]);
+            return (a != null && b != null) ? { start: a, end: b, label: planFmtMin(a) + '–' + planFmtMin(b) } : null;
+        }).filter(Boolean);
+    }
+    function planInWindow(time) {
+        var m = planMin(time); if (m == null) return null;
+        return planWindows().some(function (w) { return m >= w.start && m <= w.end; });
+    }
+    // ICT-style hourly macro bucket (hh:50 – hh+1:10) for analytics
+    function planMacroBucket(time) {
+        var m = planMin(time); if (m == null) return 'No entry time';
+        var h = Math.floor(m / 60), mi = m % 60;
+        if (mi >= 50) return planFmtMin(h * 60 + 50) + '–' + planFmtMin((h + 1) * 60 + 10);
+        if (mi <= 10) return planFmtMin((h - 1) * 60 + 50) + '–' + planFmtMin(h * 60 + 10);
+        return 'Outside macros';
+    }
+    function planIsBE(t) { return t.result === 'be_win' || t.result === 'be_loss'; }
+
+    // One entry per batch (copytraded trade = one trade), adjustments removed
+    function planUniqueTrades() {
+        var seen = {}, out = [];
+        (trades || []).forEach(function (t) {
+            if (t.type === 'adjustment') return;
+            var k = String(t.batchId || t.id);
+            if (seen[k]) return; seen[k] = true; out.push(t);
+        });
+        return out;
+    }
+    function planCmp(a, b) {
+        var ma = planMin(a.entryTime), mb = planMin(b.entryTime);
+        ma = ma == null ? 9999 : ma; mb = mb == null ? 9999 : mb;
+        return ma !== mb ? ma - mb : (+a.id || 0) - (+b.id || 0);
+    }
+    function planDayTrades(date) {
+        return planUniqueTrades().filter(function (t) { return t.date === date; })
+            .sort(planCmp);
+    }
+    // Context of a trade within its day: number and the trades before it
+    function planContext(trade) {
+        var day = planDayTrades(trade.date);
+        var k = String(trade.batchId || trade.id);
+        var idx = day.findIndex(function (t) { return String(t.batchId || t.id) === k; });
+        var prev = idx >= 0 ? day.slice(0, idx) : day.filter(function (t) { return planCmp(t, trade) < 0; });
+        return { n: prev.length + 1, prev: prev };
+    }
+    // Rule check. Returns list of broken rules (empty = on plan).
+    function planFlags(trade, prevOverride) {
+        var flags = [];
+        var prev = prevOverride || planContext(trade).prev;
+        var inW = planInWindow(trade.entryTime);
+        if (inW === false) flags.push('Outside plan window');
+        if (trade.model && trade.model === planSettings.blockedModel) flags.push((MODELS[trade.model] ? MODELS[trade.model].name : trade.model) + ' is off-plan');
+        if ((planSettings.offGrades || []).indexOf(trade.grade) >= 0) flags.push('Grade ' + (trade.grade === 'troll' ? 'Troll' : trade.grade));
+        if (prev.length > 0 && !prev.every(planIsBE)) flags.push('Extra trade (trade #' + (prev.length + 1) + ' after a non-BE trade)');
+        var dayR = prev.reduce(function (s, t) { return s + (t.rValue || 0); }, 0);
+        if (prev.length > 0 && dayR <= -Math.abs(planSettings.dailyStopR)) flags.push('Day already at ' + planR(dayR) + ' (daily stop)');
+        return flags;
+    }
+    window.planFlags = planFlags;
+
+    function planBadge(trade) {
+        if (!trade || trade.type === 'adjustment') return '';
+        var f = planFlags(trade);
+        var style = 'margin-left: 8px; padding: 3px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600;';
+        if (!f.length) return '<span style="' + style + ' background:#d4edda; color:#155724;" title="All playbook rules followed">🧭 On plan</span>';
+        return '<span style="' + style + ' background:#f8d7da; color:#721c24;" title="' + planEsc(f.join(' · ')) + '">⚠️ Off plan: ' + planEsc(f.join(' · ')) + '</span>';
+    }
+    window.planBadge = planBadge;
+
+    // ── Live check in the Log Trade form ─────────────────
+    function planLiveCheck() {
+        var el = document.getElementById('planCheck'); if (!el) return;
+        var draft = {
+            id: Date.now(), date: (document.getElementById('tradeDate') || {}).value,
+            entryTime: (document.getElementById('tradeEntryTime') || {}).value,
+            model: (document.getElementById('tradeModel') || {}).value,
+            grade: (document.getElementById('tradeGrade') || {}).value
+        };
+        if (!draft.date) { el.innerHTML = ''; return; }
+        var m = planMin(draft.entryTime);
+        var prev = planDayTrades(draft.date).filter(function (t) { return m == null || planMin(t.entryTime) == null || planMin(t.entryTime) <= m; });
+        var flags = planFlags(draft, prev);
+        var dayR = prev.reduce(function (s, t) { return s + (t.rValue || 0); }, 0);
+        var head = 'Trade #' + (prev.length + 1) + ' today · day so far ' + planR(dayR) + ' · plan windows ' + planWindows().map(function (w) { return w.label; }).join(', ') + ' NY';
+        if (!flags.length) {
+            el.innerHTML = '<div class="alert" style="margin:10px 0; padding:12px; border-radius:8px; background:#d4edda; color:#155724;"><strong>🧭 On plan.</strong><div style="font-size:0.85em; margin-top:4px;">' + planEsc(head) + '</div></div>';
+        } else {
+            el.innerHTML = '<div class="alert" style="margin:10px 0; padding:12px; border-radius:8px; background:#f8d7da; color:#721c24;"><strong>⚠️ This trade breaks your plan:</strong><ul style="margin:6px 0 0 18px;">' +
+                flags.map(function (f) { return '<li>' + planEsc(f) + '</li>'; }).join('') +
+                '</ul><div style="font-size:0.85em; margin-top:6px;">' + planEsc(head) + '. Log it anyway: every trade goes in the journal.</div></div>';
+        }
+    }
+    window.planLiveCheck = planLiveCheck;
+
+    // ── Account vs journal check ─────────────────────────
+    function planJournalR(date) {
+        return planUniqueTrades().filter(function (t) { return t.date === date; })
+            .reduce(function (s, t) { return s + (t.rValue || 0); }, 0);
+    }
+    function planSaveSettings() {
+        var v = function (id) { return document.getElementById(id); };
+        var br = parseFloat(v('plan-baseRisk').value), gap = parseFloat(v('plan-gap').value), stop = parseFloat(v('plan-stop').value);
+        if (!(br > 0)) { alert('Base risk must be a positive number'); return; }
+        planSettings.baseRisk = br;
+        planSettings.allowedGap = gap >= 0 ? gap : PLAN_DEFAULTS.allowedGap;
+        planSettings.dailyStopR = stop > 0 ? stop : PLAN_DEFAULTS.dailyStopR;
+        var w = v('plan-windows').value.trim();
+        planSettings.windows = w || PLAN_DEFAULTS.windows;
+        planSettings.blockedModel = v('plan-blockedModel').value;
+        planPersist(); planRenderAll();
+        var s = document.getElementById('plan-saved'); if (s) { s.textContent = '✓ Saved'; setTimeout(function () { s.textContent = ''; }, 1500); }
+    }
+    function planRunCheck() {
+        var date = document.getElementById('plan-checkDate').value;
+        var real = parseFloat(document.getElementById('plan-real').value);
+        if (!date || isNaN(real)) { alert('Enter the date and the real $ result of your lead account'); return; }
+        var r = planJournalR(date), expected = r * planSettings.baseRisk;
+        var rec = { date: date, real: real, journalR: r, baseRisk: planSettings.baseRisk, allowedGap: planSettings.allowedGap, gap: real - expected, ts: new Date().toISOString() };
+        acctChecks = acctChecks.filter(function (c) { return c.date !== date; });
+        acctChecks.push(rec);
+        acctChecks.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+        document.getElementById('plan-real').value = '';
+        planPersist(); planRenderCheck();
+    }
+    function planDeleteCheck(date) {
+        if (!confirm('Remove the check for ' + date + '?')) return;
+        acctChecks = acctChecks.filter(function (c) { return c.date !== date; });
+        planPersist(); planRenderCheck();
+    }
+    window.planSaveSettings = planSaveSettings; window.planRunCheck = planRunCheck; window.planDeleteCheck = planDeleteCheck;
+
+    function planCheckRow(c) {
+        var ok = Math.abs(c.gap) <= c.allowedGap;
+        var gapR = c.gap / c.baseRisk;
+        return '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-color); flex-wrap:wrap;">' +
+            '<div><strong style="color:var(--text-primary);">' + (typeof formatDate === 'function' ? formatDate(c.date) : c.date) + '</strong>' +
+            '<div style="font-size:0.85em; color:var(--text-secondary);">Journal ' + planR(c.journalR) + ' × $' + c.baseRisk + ' = ' + planMoney(c.journalR * c.baseRisk) + ' · Account ' + planMoney(c.real) + '</div></div>' +
+            '<div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:700; color:' + (ok ? '#27ae60' : '#e74c3c') + ';">' +
+            (ok ? '✅ Match' : '⚠️ Gap ' + planMoney(c.gap) + ' (' + planR(gapR) + ')') + '</span>' +
+            '<button class="delete-btn" style="padding:4px 10px;" onclick="planDeleteCheck(\'' + c.date + '\')">✕</button></div></div>';
+    }
+    function planRenderCheck() {
+        var root = document.getElementById('plan-check-root'); if (!root) return;
+        var today = planToday();
+        var monthStr = today.slice(0, 7);
+        var month = acctChecks.filter(function (c) { return c.date.slice(0, 7) === monthStr; });
+        var leaks = month.filter(function (c) { return Math.abs(c.gap) > c.allowedGap; });
+        var leakSum = leaks.reduce(function (s, c) { return s + c.gap; }, 0);
+        var leakR = leaks.reduce(function (s, c) { return s + c.gap / c.baseRisk; }, 0);
+        var allLeaks = acctChecks.filter(function (c) { return Math.abs(c.gap) > c.allowedGap; });
+        var allSum = allLeaks.reduce(function (s, c) { return s + c.gap; }, 0);
+        var todayR = planJournalR(today);
+        var tradedToday = planDayTrades(today).length > 0;
+        var checkedToday = acctChecks.some(function (c) { return c.date === today; });
+        var reminder = (tradedToday && !checkedToday)
+            ? '<div class="alert" style="margin:0 0 14px; padding:10px 12px; border-radius:8px; background:#fff3cd; color:#856404;">You traded today and haven\'t checked the account yet. Journal today: ' + planR(todayR) + ' = ' + planMoney(todayR * planSettings.baseRisk) + ' expected.</div>' : '';
+        var preview = '';
+        var dEl = document.getElementById('plan-checkDate');
+        var d = dEl && dEl.value ? dEl.value : today;
+        var r = planJournalR(d);
+        preview = 'Journal for this day: ' + planR(r) + ' → expected ' + planMoney(r * planSettings.baseRisk) + ' on the lead account';
+        var inputStyle = 'width:100%; padding:10px; border:2px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-primary);';
+        var modelOpts = '<option value="">(none)</option>' + Object.keys(MODELS).map(function (id) {
+            return '<option value="' + planEsc(id) + '"' + (id === planSettings.blockedModel ? ' selected' : '') + '>' + planEsc(MODELS[id].name) + '</option>';
+        }).join('');
+        root.innerHTML = reminder +
+            '<div class="stats-grid" style="margin-bottom:16px;">' +
+            '<div class="stat-box"><div class="value" style="color:' + (leakSum < 0 ? '#e74c3c' : leakSum > 0 ? '#f39c12' : '#27ae60') + ';">' + (leaks.length ? planMoney(leakSum) : '$0') + '</div><div class="label">Off-journal $ this month</div></div>' +
+            '<div class="stat-box"><div class="value" style="color:' + (leakR < 0 ? '#e74c3c' : '#27ae60') + ';">' + planR(leakR) + '</div><div class="label">Same, in R</div></div>' +
+            '<div class="stat-box"><div class="value">' + leaks.length + ' / ' + month.length + '</div><div class="label">Days with a gap / checked</div></div>' +
+            '<div class="stat-box"><div class="value" style="color:' + (allSum < 0 ? '#e74c3c' : '#27ae60') + ';">' + (allLeaks.length ? planMoney(allSum) : '$0') + '</div><div class="label">Off-journal $ all time</div></div>' +
+            '</div>' +
+            '<div class="input-row">' +
+            '<div class="input-group"><label>Date</label><input type="date" id="plan-checkDate" value="' + d + '" onchange="planRenderCheck()" style="' + inputStyle + '"></div>' +
+            '<div class="input-group"><label>Lead account real P&amp;L ($)</label><input type="number" step="0.01" id="plan-real" placeholder="e.g. -312.50" style="' + inputStyle + '"></div>' +
+            '</div>' +
+            '<div style="font-size:0.85em; color:var(--text-secondary); margin:-6px 0 10px;">' + preview + '</div>' +
+            '<button class="btn" onclick="planRunCheck()">Check account vs journal</button>' +
+            '<div style="margin-top:14px;">' + (acctChecks.length ? acctChecks.slice(0, 10).map(planCheckRow).join('') : '<div class="no-data">No checks yet. After your session, type the day\'s real result from your lead account.</div>') + '</div>' +
+            '<details style="margin-top:16px;"><summary style="cursor:pointer; font-weight:600; color:var(--text-primary);">⚙️ Plan settings</summary>' +
+            '<div class="input-row" style="margin-top:12px;">' +
+            '<div class="input-group"><label>Base risk per 1R ($, lead account)</label><input type="number" id="plan-baseRisk" value="' + planSettings.baseRisk + '" style="' + inputStyle + '"></div>' +
+            '<div class="input-group"><label>Allowed gap ($, fees/slippage)</label><input type="number" id="plan-gap" value="' + planSettings.allowedGap + '" style="' + inputStyle + '"></div>' +
+            '</div><div class="input-row">' +
+            '<div class="input-group"><label>Plan windows (NY time)</label><input type="text" id="plan-windows" value="' + planEsc(planSettings.windows) + '" style="' + inputStyle + '"></div>' +
+            '<div class="input-group"><label>Daily stop (R)</label><input type="number" step="0.5" id="plan-stop" value="' + planSettings.dailyStopR + '" style="' + inputStyle + '"></div>' +
+            '</div><div class="input-group"><label>Off-plan model</label><select id="plan-blockedModel" style="' + inputStyle + '">' + modelOpts + '</select></div>' +
+            '<button class="btn" onclick="planSaveSettings()">Save plan settings</button> <span id="plan-saved" style="color:#27ae60; font-weight:600;"></span>' +
+            '<p style="font-size:0.85em; color:var(--text-secondary); margin-top:8px;">Change these outside your session only. Trades count as on plan when they are inside a window, not the off-plan model, not grade C/Troll, the first trade of the day (or after BE only), and the day is above the daily stop.</p>' +
+            '</details>';
+    }
+    window.planRenderCheck = planRenderCheck;
+
+    // ── Performance analytics ────────────────────────────
+    function planRenderPerf(list) {
+        var set = function (id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; };
+        if (!list || !list.length) {
+            ['perf-discipline', 'perf-byWindow', 'perf-byTradeNum', 'perf-byPrev'].forEach(function (id) { set(id, '<div class="no-data">No trades yet</div>'); });
+            return;
+        }
+        // de-duplicate copytraded batches
+        var seen = {}; list = list.filter(function (t) { var k = String(t.batchId || t.id); if (seen[k]) return false; seen[k] = true; return true; });
+        var ctx = list.map(function (t) { var c = planContext(t); return { t: t, n: c.n, prev: c.prev, flags: planFlags(t, c.prev) }; });
+        var groupBy = function (keyFn, order) {
+            var g = {};
+            ctx.forEach(function (c) { var k = keyFn(c); (g[k] = g[k] || []).push(c.t); });
+            var keys = Object.keys(g).sort(order || undefined);
+            return keys.map(function (k) { return { label: k, trades: g[k] }; });
+        };
+        var planWins = planWindows().map(function (w) { return w.label; });
+        set('perf-discipline', renderPerfBreakdown(groupBy(function (c) { return c.flags.length ? '⚠️ Off plan' : '🧭 On plan'; })));
+        set('perf-byWindow', renderPerfBreakdown(groupBy(function (c) {
+            var b = planMacroBucket(c.t.entryTime);
+            return planWins.indexOf(b) >= 0 ? b + ' ⭐ plan' : b;
+        }, function (a, b) {
+            var ma = planMin(a), mb = planMin(b);
+            if (ma == null) return 1; if (mb == null) return -1; return ma - mb;
+        })));
+        set('perf-byTradeNum', renderPerfBreakdown(groupBy(function (c) { return c.n >= 3 ? 'Trade #3+ of the day' : 'Trade #' + c.n + ' of the day'; })));
+        set('perf-byPrev', renderPerfBreakdown(groupBy(function (c) {
+            if (!c.prev.length) return '1️⃣ First trade of the day';
+            var p = c.prev[c.prev.length - 1];
+            return p.result === 'win' ? '🟢 After a win' : p.result === 'loss' ? '🔴 After a loss' : '🟡 After a BE';
+        })));
+    }
+    window.planRenderPerf = planRenderPerf;
+
+    function planRenderAll() {
+        planRenderCheck();
+        planLiveCheck();
+        if (typeof updatePerformanceTab === 'function') { try { updatePerformanceTab(); } catch (e) {} }
+        if (typeof displayTrades === 'function') { try { displayTrades(); } catch (e) {} }
+    }
+
+    window.addEventListener('load', function () {
+        ['tradeDate', 'tradeEntryTime', 'tradeModel', 'tradeGrade'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.addEventListener('change', planLiveCheck); el.addEventListener('input', planLiveCheck); }
+        });
+        setTimeout(function () { planRenderCheck(); planLiveCheck(); if (typeof displayTrades === 'function') { try { displayTrades(); } catch (e) {} } }, 300);
+        // keep the check card and live check fresh after trades change
+        if (typeof updateDisplay === 'function' && !updateDisplay.__plan) {
+            var orig = updateDisplay;
+            updateDisplay = function () { var r = orig.apply(this, arguments); try { planRenderCheck(); planLiveCheck(); } catch (e) {} return r; };
+            updateDisplay.__plan = true;
+        }
+    });
+    </script>
 </body>
 </html>
