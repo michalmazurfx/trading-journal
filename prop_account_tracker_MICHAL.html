@@ -1431,8 +1431,9 @@
         
         <!-- Account vs Journal -->
         <div class="card">
-            <h2>🔍 Account vs Journal</h2>
+            <h2>🔥 Plan Streak &amp; Account Check</h2>
             <p style="margin-bottom: 16px; color: var(--text-secondary);">After the session, type the real $ result of your lead account. It is compared with the journal R × your base risk, so any trade or size outside the plan shows up as a gap.</p>
+            <div id="plan-streak"></div>
             <div id="plan-check-root"></div>
         </div>
 
@@ -7813,7 +7814,8 @@
         windows: '09:50-10:10, 10:50-11:10, 11:50-12:10',
         dailyStopR: 1,          // stop for the day once the day is at -1R
         blockedModel: 'model3', // model id that is off-plan
-        offGrades: ['C', 'troll']
+        offGrades: ['C', 'troll'],
+        streakGoal: 15
     };
     var planSettings = (function () {
         try { return Object.assign({}, PLAN_DEFAULTS, JSON.parse(localStorage.getItem('planSettings') || '{}')); }
@@ -7966,6 +7968,7 @@
         var w = v('plan-windows').value.trim();
         planSettings.windows = w || PLAN_DEFAULTS.windows;
         planSettings.blockedModel = v('plan-blockedModel').value;
+        var goal = parseInt(v('plan-goal').value, 10); planSettings.streakGoal = goal > 0 ? goal : 15;
         planPersist(); planRenderAll();
         var s = document.getElementById('plan-saved'); if (s) { s.textContent = '✓ Saved'; setTimeout(function () { s.textContent = ''; }, 1500); }
     }
@@ -8022,6 +8025,7 @@
         var modelOpts = '<option value="">(none)</option>' + Object.keys(MODELS).map(function (id) {
             return '<option value="' + planEsc(id) + '"' + (id === planSettings.blockedModel ? ' selected' : '') + '>' + planEsc(MODELS[id].name) + '</option>';
         }).join('');
+        setTimeout(planRenderStreak, 0);
         root.innerHTML = reminder +
             '<div class="stats-grid" style="margin-bottom:16px;">' +
             '<div class="stat-box"><div class="value" style="color:' + (leakSum < 0 ? '#e74c3c' : leakSum > 0 ? '#f39c12' : '#27ae60') + ';">' + (leaks.length ? planMoney(leakSum) : '$0') + '</div><div class="label">Off-journal $ this month</div></div>' +
@@ -8043,12 +8047,58 @@
             '</div><div class="input-row">' +
             '<div class="input-group"><label>Plan windows (NY time)</label><input type="text" id="plan-windows" value="' + planEsc(planSettings.windows) + '" style="' + inputStyle + '"></div>' +
             '<div class="input-group"><label>Daily stop (R)</label><input type="number" step="0.5" id="plan-stop" value="' + planSettings.dailyStopR + '" style="' + inputStyle + '"></div>' +
+            '<div class="input-group"><label>Streak goal (days)</label><input type="number" id="plan-goal" value="' + (planSettings.streakGoal || 15) + '" style="' + inputStyle + '"></div>' +
             '</div><div class="input-group"><label>Off-plan model</label><select id="plan-blockedModel" style="' + inputStyle + '">' + modelOpts + '</select></div>' +
             '<button class="btn" onclick="planSaveSettings()">Save plan settings</button> <span id="plan-saved" style="color:#27ae60; font-weight:600;"></span>' +
             '<p style="font-size:0.85em; color:var(--text-secondary); margin-top:8px;">Change these outside your session only. Trades count as on plan when they are inside a window, not the off-plan model, not grade C/Troll, the first trade of the day (or after BE only), and the day is above the daily stop.</p>' +
             '</details>';
     }
     window.planRenderCheck = planRenderCheck;
+
+    // ── Plan streak: trading days in a row with every trade on plan and no account gap ──
+    function planDayStatus(date) {
+        var day = planDayTrades(date);
+        var bad = [];
+        day.forEach(function (t, i) { var f = planFlags(t, day.slice(0, i)); if (f.length) bad.push(f); });
+        var chk = acctChecks.find(function (c) { return c.date === date; });
+        var gap = chk && Math.abs(chk.gap) > chk.allowedGap;
+        return { clean: !bad.length && !gap, offPlan: bad.length, gap: !!gap };
+    }
+    function planStreak() {
+        var dates = {};
+        planUniqueTrades().forEach(function (t) { if (t.date) dates[t.date] = 1; });
+        acctChecks.forEach(function (c) { dates[c.date] = 1; });
+        var list = Object.keys(dates).sort();
+        var best = 0, run = 0, bestEnd = null;
+        var st = list.map(function (d) { return { d: d, s: planDayStatus(d) }; });
+        st.forEach(function (x) { run = x.s.clean ? run + 1 : 0; if (run > best) { best = run; bestEnd = x.d; } });
+        var cur = 0;
+        for (var i = st.length - 1; i >= 0 && st[i].s.clean; i--) cur++;
+        var lastBreak = null;
+        for (var j = st.length - 1; j >= 0; j--) if (!st[j].s.clean) { lastBreak = st[j]; break; }
+        return { current: cur, best: best, bestEnd: bestEnd, lastBreak: lastBreak, recent: st.slice(-15) };
+    }
+    function planRenderStreak() {
+        var el = document.getElementById('plan-streak'); if (!el) return;
+        var s = planStreak(), goal = planSettings.streakGoal || 15;
+        var pct = Math.min(100, Math.round(s.current / goal * 100));
+        var dots = s.recent.map(function (x) {
+            var c = x.s.clean ? '#27ae60' : '#e74c3c';
+            var why = x.s.clean ? 'clean' : (x.s.offPlan ? x.s.offPlan + ' off-plan trade(s)' : '') + (x.s.gap ? (x.s.offPlan ? ', ' : '') + 'account gap' : '');
+            return '<span title="' + x.d + ': ' + why + '" style="display:inline-block; width:14px; height:14px; border-radius:50%; background:' + c + '; margin-right:4px;"></span>';
+        }).join('');
+        var breakTxt = s.lastBreak ? 'Last break: ' + (typeof formatDate === 'function' ? formatDate(s.lastBreak.d) : s.lastBreak.d) + (s.lastBreak.s.offPlan ? ' (' + s.lastBreak.s.offPlan + ' off-plan trade' + (s.lastBreak.s.offPlan > 1 ? 's' : '') + ')' : '') + (s.lastBreak.s.gap ? ' (account gap)' : '') : 'No breaks yet';
+        el.innerHTML = '<div style="padding:16px; border-radius:12px; background:var(--card-bg); border:2px solid ' + (s.current ? '#f39c12' : 'var(--border-color)') + '; margin-bottom:16px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">' +
+            '<div style="font-size:1.6em; font-weight:800; color:var(--text-primary);">' + (s.current ? '🔥 ' : '') + s.current + ' clean day' + (s.current === 1 ? '' : 's') + ' in a row</div>' +
+            '<div style="color:var(--text-secondary); font-weight:600;">Best: ' + s.best + ' · Goal: ' + goal + '</div></div>' +
+            '<div style="margin:10px 0; background:var(--border-color); border-radius:6px; height:10px; overflow:hidden;"><div style="height:100%; width:' + pct + '%; background:linear-gradient(90deg,#f39c12,#e74c3c);"></div></div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.85em; color:var(--text-secondary);">' +
+            '<div>Last ' + s.recent.length + ' trading days: ' + dots + '</div><div>' + planEsc(breakTxt) + '</div></div>' +
+            '<div style="font-size:0.8em; color:var(--text-secondary); margin-top:8px;">A clean day = every trade on plan and no account vs journal gap. Days without trades don\'t count or break it.</div>' +
+            '</div>';
+    }
+    window.planRenderStreak = planRenderStreak;
 
     // ── Performance analytics ────────────────────────────
     function planRenderPerf(list) {
