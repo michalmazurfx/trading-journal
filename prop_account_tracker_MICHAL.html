@@ -2220,18 +2220,23 @@
         }
         
         function enableDriveSync() {
+            updateDriveStatus('Connecting...', null);
             tokenClient.callback = async (resp) => {
                 if (resp.error !== undefined) {
                     console.error('Auth error:', resp);
+                    // Status line was previously left stuck on "Not enabled" here with only an
+                    // easy-to-miss alert() to explain why - now it says so directly.
+                    updateDriveStatus('Not enabled (login failed - try again)', null);
                     alert('❌ Authentication failed. Please try again.');
                     return;
                 }
                 accessToken = gapi.client.getToken().access_token;
                 useDriveSync = true;
                 localStorage.setItem('useDriveSync', 'true');
+                updateDriveStatus('Connected - migrating your data...', null);
                 await migrateLocalDataToDrive();
             };
-            
+
             if (gapi.client.getToken() === null) {
                 tokenClient.requestAccessToken({prompt: 'consent'});
             } else {
@@ -2260,9 +2265,25 @@
                 localStorage.removeItem('propAccounts');
                 localStorage.removeItem('propModels');
                 localStorage.removeItem('propSymbols');
-                alert('✅ Success! Data migrated to Google Drive and browser storage cleared.\n\nRefresh to load from Drive.');
+                driveHasLoaded = true;
+                updateDriveStatus('Enabled & synced', data.lastUpdated);
+                // Put the migrated data to work immediately instead of making the user
+                // refresh and hope it worked - that extra manual step is exactly what kept
+                // reading as "it didn't do anything" even when the migration had succeeded.
+                if (data.accounts) ACCOUNTS = data.accounts;
+                if (data.models) MODELS = data.models;
+                if (data.symbols) SYMBOLS = data.symbols;
+                generateAccountOptions();
+                generateModelOptions();
+                generateSymbolOptions();
+                updateDisplay();
+                displayTrades();
+                renderTradeHistory();
+                setTimeout(loadScreenshots, 100);
+                alert('✅ Success! Data migrated to Google Drive and browser storage cleared.');
             } catch (err) {
                 console.error('Migration error:', err);
+                updateDriveStatus('Not enabled (sync failed - see console)', null);
                 alert('❌ Error migrating data. Your trades are still safe in browser storage.');
                 useDriveSync = false;
                 localStorage.setItem('useDriveSync', 'false');
